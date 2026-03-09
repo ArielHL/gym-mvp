@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Gym Mobile MVP",
+    "slug": "gym-mobile-mvp",
+    "scheme": "gymmobilemvp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.gymmobilemvp"
+    },
+    "android": {
+      "package": "com.example.gymmobilemvp"
+    },
+    "plugins": [
+      "expo-apple-authentication",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
