@@ -10,11 +10,12 @@ import { ClassesScreen, ClassDetailsScreen } from '@/features/classes';
 import { MyBookingsScreen } from '@/features/bookings';
 import { ProfileScreen } from '@/features/profile';
 import { SplashScreen } from '@/features/core';
+import { AdminClassesScreen } from '@/features/admin';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-function MainTabs() {
+function MainTabs({ isAdmin }: { isAdmin: boolean }) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -27,13 +28,14 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Classes" component={ClassesScreen} />
       <Tab.Screen name="Bookings" component={MyBookingsScreen} />
+      {isAdmin && <Tab.Screen name="Admin" component={AdminClassesScreen} />}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
 
 export function AppNavigator() {
-  const { user, initializing } = useAuthState();
+  const { user, role, initializing } = useAuthState();
 
   if (initializing) {
     return <LoadingView label="Checking session..." />;
@@ -50,7 +52,12 @@ export function AppNavigator() {
           </>
         ) : (
           <>
-            <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+            <Stack.Screen
+              name="Main"
+              options={{ headerShown: false }}
+            >
+              {() => <MainTabs isAdmin={role === 'admin'} />}
+            </Stack.Screen>
             <Stack.Screen name="ClassDetails" component={ClassDetailsScreen} options={{ title: 'Class Details' }} />
           </>
         )}

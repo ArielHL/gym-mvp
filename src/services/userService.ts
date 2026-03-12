@@ -1,26 +1,41 @@
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
-import type { User } from 'firebase/auth';
-import { db } from '@/services/firebase/client';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/services/supabase/client';
+
+type ProfileRecord = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  role: 'admin' | 'member';
+};
 
 export async function createUserProfileIfMissing(user: User): Promise<void> {
-  const ref = doc(db, 'users', user.uid);
-  const snapshot = await getDoc(ref);
+  const { error } = await supabase.from('profiles').upsert(
+    {
+      id: user.id,
+      full_name: user.user_metadata?.full_name ?? user.email ?? null,
+      email: user.email ?? null,
+      avatar_url: user.user_metadata?.avatar_url ?? null,
+      role: 'member'
+    },
+    { onConflict: 'id' }
+  );
 
-  if (!snapshot.exists()) {
-    await setDoc(ref, {
-      id: user.uid,
-      full_name: user.displayName ?? '',
-      email: user.email ?? '',
-      photo_url: user.photoURL ?? null,
-      provider: user.providerData[0]?.providerId ?? 'password',
-      membership_type: 'basic',
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp()
-    });
-  } else {
-    await updateDoc(ref, {
-      photo_url: user.photoURL ?? null,
-      updated_at: serverTimestamp()
-    });
+  if (error) {
+    throw error;
   }
+}
+
+export async function fetchUserProfile(userId: string): Promise<ProfileRecord | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, avatar_url, role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }

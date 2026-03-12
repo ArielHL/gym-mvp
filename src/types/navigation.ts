@@ -17,5 +17,6 @@ export type MainTabParamList = {
   Home: undefined;
   Classes: undefined;
   Bookings: undefined;
+  Admin: undefined;
   Profile: undefined;
 };

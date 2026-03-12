@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { auth, db } from '@/services/firebase/client';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '@/services/supabase/client';
 import { env } from '@/lib/env';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false
   })
@@ -23,14 +24,17 @@ export function useNotifications() {
         projectId: env.easProjectId || undefined
       });
 
-      const userId = auth.currentUser?.uid;
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+
+      const userId = user?.id;
       if (!userId) return;
 
-      await addDoc(collection(db, 'notification_tokens'), {
+      await supabase.from('notification_tokens').insert({
         user_id: userId,
         token: token.data,
-        platform: Platform.OS,
-        created_at: serverTimestamp()
+        platform: Platform.OS
       });
     };
 
