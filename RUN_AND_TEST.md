@@ -21,6 +21,16 @@ npm install
 cd ..
 ```
 
+Install backend API dependencies:
+
+```bash
+cd backend
+python -m venv .venv
+.venv/Scripts/activate
+pip install -r requirements.txt
+cd ..
+```
+
 ## 2) Configure environment
 Create a `.env` file in the root (copy from `.env.example` if available) and set your Firebase values:
 
@@ -64,7 +74,17 @@ cd ..
 firebase emulators:start --only functions
 ```
 
-## 5) Test / validate project
+## 5) Run backend API locally (optional)
+From `backend/`:
+
+```bash
+.venv/Scripts/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8080
+```
+
+API health check endpoint: `http://localhost:8080/health`
+
+## 6) Test / validate project
 This repo currently provides static quality checks (no dedicated unit test script in `package.json`).
 
 From the project root:
@@ -82,7 +102,16 @@ npm run build
 cd ..
 ```
 
-## 6) Quick smoke-test checklist
+For backend compile check:
+
+```bash
+cd backend
+.venv/Scripts/activate
+python -m compileall app
+cd ..
+```
+
+## 7) Quick smoke-test checklist
 - App boots from Expo without runtime errors.
 - Login/register works with your Firebase Auth setup.
 - Classes list loads from Firestore.

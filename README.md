@@ -1,22 +1,22 @@
-# Gym Mobile MVP (Expo + Supabase + Go)
+# Gym Mobile MVP (Expo + Supabase + FastAPI)
 
 Mobile-first gym app for class booking.
 
 ## Stack
 - Frontend: React Native + Expo + TypeScript
 - Auth + DB: Supabase (PostgreSQL + PostgREST + OAuth)
-- Business logic API: Go (`backend/`)
+- Business logic API: Python FastAPI (`backend/`)
 
 ## Features in this repo
 - Email/password auth and social login support through Supabase (Google, Facebook, Apple)
 - Class schedule feed from Supabase views
-- Book/cancel class via Go API
+- Book/cancel class via FastAPI
 - Admin screen to create class templates
 
 ## Prerequisites
 - Node.js 20+
 - npm
-- Go (1.23+)
+- Python (3.11+)
 - Supabase project
 
 ## 1) Install dependencies
@@ -72,12 +72,14 @@ Set redirect URLs for Expo app scheme:
 
 If using Expo web locally, include your local web callback as needed.
 
-## 6) Run backend API (Go)
+## 6) Run backend API (FastAPI)
 From `backend/`:
 
 ```bash
-go mod tidy
-go run ./cmd/server
+python -m venv .venv
+.venv/Scripts/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
 API runs on `http://localhost:8080` by default.
@@ -101,17 +103,17 @@ Frontend typecheck:
 npm run typecheck
 ```
 
-Backend build:
+Backend quick check:
 
 ```bash
 cd backend
-go build ./...
+python -m compileall app
 ```
 
 ## Project structure (important parts)
 - `src/` React Native app
 - `src/services/supabase/client.ts` Supabase client
-- `backend/` Go API for booking logic
+- `backend/` FastAPI for booking logic
 - `supabase/migrations/` DB schema and RLS
 
 ## Current limitations
