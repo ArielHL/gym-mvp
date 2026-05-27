@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import parse_qs, urlsplit
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -10,6 +11,10 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = Field(validation_alias="SUPABASE_JWT_SECRET")
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, populate_by_name=True)
+
+
+
+   
 
 
 @lru_cache

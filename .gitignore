@@ -1,4 +1,5 @@
 node_modules
 .expo
 .vscode
+.venv
 android/app/debug.keystore

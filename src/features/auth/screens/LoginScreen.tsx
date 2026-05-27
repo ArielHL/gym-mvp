@@ -1,59 +1,140 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Alert, Text, View } from 'react-native';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
+
+// On Android, windowSoftInputMode=adjustResize already resizes the window for the
+// keyboard — wrapping in KeyboardAvoidingView(height) causes a double-resize that
+// pushes buttons off screen. Use a plain View instead.
+const KeyboardWrapper = Platform.OS === 'ios'
+  ? ({ children, style }: { children: React.ReactNode; style: object }) =>
+      <KeyboardAvoidingView behavior="padding" style={style}>{children}</KeyboardAvoidingView>
+  : ({ children, style }: { children: React.ReactNode; style: object }) =>
+      <View style={style}>{children}</View>;
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/types/navigation';
-import { Screen } from '@/components/ui/Screen';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButtons';
 import { authService } from '@/features/auth/services/authService';
 
-const loginSchema = z.object({
-  email: z.string().email('Valid email required'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
-});
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-type LoginValues = z.infer<typeof loginSchema>;
-type Props = NativeStackScreenProps<RootStackParamList, 'Auth'>;
+export function LoginScreen() {
+  const nav = useNavigation<Nav>();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-export function LoginScreen({ navigation }: Props) {
-  const {
-    control,
-    handleSubmit,
-    formState: { isSubmitting }
-  } = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' }
-  });
-
-  const onSubmit = async (values: LoginValues) => {
+  const onLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Missing fields', 'Please enter email and password.');
+      return;
+    }
+    setLoading(true);
     try {
-      await authService.login(values.email, values.password);
-      navigation.replace('Main');
-    } catch (error) {
-      Alert.alert('Login failed', String((error as Error).message));
+      await authService.login(email.trim(), password);
+      // Auth state drives navigation automatically � no navigate() needed
+    } catch (err) {
+      Alert.alert('Login failed', (err as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Screen>
-      <Text className="mt-8 text-3xl font-bold text-white">Welcome Back</Text>
-      <Text className="mb-6 mt-2 text-slate-400">Sign in to manage your classes</Text>
+    <SafeAreaView style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <KeyboardWrapper style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.inner}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Sign In</Text>
+          <Text style={styles.subtitle}>Welcome back</Text>
 
-      <Input control={control} name="email" label="Email" placeholder="you@example.com" />
-      <Input control={control} name="password" label="Password" secureTextEntry placeholder="••••••••" />
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            placeholderTextColor="#555555"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+          />
 
-      <Button label="Login" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
-      <SocialLoginButtons />
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="��������"
+            placeholderTextColor="#555555"
+            secureTextEntry
+          />
 
-      <View className="mt-6 flex-row justify-center">
-        <Text className="text-slate-300">No account yet? </Text>
-        <Text className="font-semibold text-cyan-300" onPress={() => navigation.navigate('Register')}>
-          Register
-        </Text>
-      </View>
-    </Screen>
+          <Pressable
+            style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
+            onPress={onLogin}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#000000" />
+              : <Text style={styles.btnText}>Sign In</Text>}
+          </Pressable>
+
+          <Pressable style={styles.link} onPress={() => nav.navigate('Register')}>
+            <Text style={styles.linkText}>
+              No account?{' '}
+              <Text style={styles.linkHighlight}>Create one</Text>
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardWrapper>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#000000' },
+  flex: { flex: 1 },
+  inner: { paddingHorizontal: 28, paddingTop: 48, paddingBottom: 40 },
+  title: { fontSize: 36, fontWeight: '900', color: '#ffffff' },
+  subtitle: { fontSize: 16, color: '#555555', marginTop: 4, marginBottom: 32 },
+  label: { fontSize: 13, color: '#888888', marginBottom: 6, marginTop: 16 },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    color: '#ffffff',
+    backgroundColor: '#111111',
+    fontSize: 15,
+  },
+  btn: {
+    marginTop: 32,
+    height: 54,
+    backgroundColor: '#22D3EE',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnPressed: { opacity: 0.6 },
+  btnText: { color: '#000000', fontSize: 16, fontWeight: '700' },
+  link: { marginTop: 24, alignItems: 'center' },
+  linkText: { color: '#555555', fontSize: 14 },
+  linkHighlight: { color: '#22D3EE', fontWeight: '600' },
+});

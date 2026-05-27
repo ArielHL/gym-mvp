@@ -18,11 +18,12 @@ export async function createUserProfileIfMissing(user: User): Promise<void> {
       avatar_url: user.user_metadata?.avatar_url ?? null,
       role: 'member'
     },
-    { onConflict: 'id' }
+    { onConflict: 'id', ignoreDuplicates: false }
   );
 
   if (error) {
-    throw error;
+    // RLS will block this if the session is not yet confirmed — not fatal
+    console.warn('createUserProfileIfMissing:', error.message);
   }
 }
 

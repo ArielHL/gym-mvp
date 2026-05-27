@@ -1,22 +1,17 @@
 import type { GymClass } from './models';
 
-export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
-};
-
 export type RootStackParamList = {
-  Splash: undefined;
+  Landing: undefined;
   Auth: undefined;
   Register: undefined;
   Main: undefined;
   ClassDetails: { gymClass: GymClass };
+  BookClass: { classId?: string; className?: string; gymClass?: GymClass };
 };
 
 export type MainTabParamList = {
   Home: undefined;
   Classes: undefined;
-  Bookings: undefined;
-  Admin: undefined;
+  Book: undefined;
   Profile: undefined;
 };

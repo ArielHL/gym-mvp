@@ -45,15 +45,27 @@ async function signInWithOAuth(provider: Provider) {
 }
 
 export const authService = {
-  register: async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  register: async (email: string, password: string, fullName?: string): Promise<{ emailConfirmationRequired: boolean }> => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName ?? '' }
+      }
+    });
     if (error) {
       throw error;
     }
+    // session is null when Supabase requires email confirmation
+    const emailConfirmationRequired = !data.session;
+    return { emailConfirmationRequired };
   },
   login: async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      if (error.message?.toLowerCase().includes('email not confirmed')) {
+        throw new Error('Please confirm your email address before signing in. Check your inbox for a confirmation link.');
+      }
       throw error;
     }
   },
