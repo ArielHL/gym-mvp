@@ -80,11 +80,14 @@ export function LoginScreen() {
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="��������"
+            placeholder="••••••••"
             placeholderTextColor="#555555"
             secureTextEntry
           />
+        </ScrollView>
 
+        {/* Sticky footer — always visible above the keyboard */}
+        <View style={styles.footer}>
           <Pressable
             style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
             onPress={onLogin}
@@ -101,7 +104,7 @@ export function LoginScreen() {
               <Text style={styles.linkHighlight}>Create one</Text>
             </Text>
           </Pressable>
-        </ScrollView>
+        </View>
       </KeyboardWrapper>
     </SafeAreaView>
   );
@@ -110,7 +113,7 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: 28, paddingTop: 48, paddingBottom: 40 },
+  inner: { paddingHorizontal: 28, paddingTop: 48, paddingBottom: 16 },
   title: { fontSize: 36, fontWeight: '900', color: '#ffffff' },
   subtitle: { fontSize: 16, color: '#555555', marginTop: 4, marginBottom: 32 },
   label: { fontSize: 13, color: '#888888', marginBottom: 6, marginTop: 16 },
@@ -124,8 +127,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     fontSize: 15,
   },
+  footer: {
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 24,
+    backgroundColor: '#000000',
+  },
   btn: {
-    marginTop: 32,
     height: 54,
     backgroundColor: '#22D3EE',
     borderRadius: 12,
@@ -134,7 +142,7 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.6 },
   btnText: { color: '#000000', fontSize: 16, fontWeight: '700' },
-  link: { marginTop: 24, alignItems: 'center' },
+  link: { marginTop: 20, alignItems: 'center' },
   linkText: { color: '#555555', fontSize: 14 },
   linkHighlight: { color: '#22D3EE', fontWeight: '600' },
 });
