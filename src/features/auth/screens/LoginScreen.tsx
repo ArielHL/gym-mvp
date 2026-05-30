@@ -56,55 +56,60 @@ export function LoginScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <KeyboardWrapper style={styles.flex}>
         <ScrollView
+          style={styles.flex}
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Sign In</Text>
-          <Text style={styles.subtitle}>Welcome back</Text>
+          <View>
+            <Text style={styles.title}>Sign In</Text>
+            <Text style={styles.subtitle}>Welcome back</Text>
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor="#555555"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoCorrect={false}
-          />
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor="#555555"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+            />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            placeholderTextColor="#555555"
-            secureTextEntry
-          />
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              placeholderTextColor="#555555"
+              secureTextEntry
+            />
+          </View>
+
+          {/* Spacer pushes footer to the bottom */}
+          <View style={styles.spacer} />
+
+          <View style={styles.footer}>
+            <Pressable
+              style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
+              onPress={onLogin}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#000000" />
+                : <Text style={styles.btnText}>Sign In</Text>}
+            </Pressable>
+
+            <Pressable style={styles.link} onPress={() => nav.navigate('Register')}>
+              <Text style={styles.linkText}>
+                No account?{' '}
+                <Text style={styles.linkHighlight}>Create one</Text>
+              </Text>
+            </Pressable>
+          </View>
         </ScrollView>
-
-        {/* Sticky footer — always visible above the keyboard */}
-        <View style={styles.footer}>
-          <Pressable
-            style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
-            onPress={onLogin}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color="#000000" />
-              : <Text style={styles.btnText}>Sign In</Text>}
-          </Pressable>
-
-          <Pressable style={styles.link} onPress={() => nav.navigate('Register')}>
-            <Text style={styles.linkText}>
-              No account?{' '}
-              <Text style={styles.linkHighlight}>Create one</Text>
-            </Text>
-          </Pressable>
-        </View>
       </KeyboardWrapper>
     </SafeAreaView>
   );
@@ -113,7 +118,7 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: 28, paddingTop: 48, paddingBottom: 16 },
+  inner: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 48, paddingBottom: 24 },
   title: { fontSize: 36, fontWeight: '900', color: '#ffffff' },
   subtitle: { fontSize: 16, color: '#555555', marginTop: 4, marginBottom: 32 },
   label: { fontSize: 13, color: '#888888', marginBottom: 6, marginTop: 16 },
@@ -127,11 +132,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     fontSize: 15,
   },
+  spacer: { flex: 1, minHeight: 40 },
   footer: {
-    paddingHorizontal: 28,
     paddingTop: 12,
-    paddingBottom: 24,
-    backgroundColor: '#000000',
+    paddingBottom: 8,
   },
   btn: {
     height: 54,
