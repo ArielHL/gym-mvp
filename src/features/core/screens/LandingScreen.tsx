@@ -48,9 +48,15 @@ const QUICK_CLASSES = [
   { id: 'c', title: 'Ring Muscle Up', trainer: 'Carlos V.', time: '6:00 PM', spots: 3, diff: 'ADV', color: '#F59E0B' },
 ];
 
+type TabRoute = '/(tabs)/index' | '/(tabs)/classes' | '/(tabs)/book' | '/(tabs)/profile';
+
 export function LandingScreen() {
   const [slide, setSlide] = useState(0);
   const router = useRouter();
+
+  const goToTab = (route: TabRoute) => {
+    router.push(route);
+  };
 
   const onHeroScroll = (e: any) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / SW);
@@ -65,15 +71,15 @@ export function LandingScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={s.header}>
-          <View style={s.burger}>
+          <Pressable style={s.burger} onPress={() => goToTab('/(tabs)/index')} accessibilityLabel="Go to home tab">
             <View style={s.burgerLine} />
             <View style={[s.burgerLine, { width: 20 }]} />
             <View style={[s.burgerLine, { width: 14 }]} />
-          </View>
+          </Pressable>
           <Text style={s.logo}>CALI<Text style={s.logoAccent}>FIT</Text></Text>
-          <View style={s.notifBtn}>
+          <Pressable style={s.notifBtn} onPress={() => goToTab('/(tabs)/profile')} accessibilityLabel="Go to profile tab">
             <Text style={{ fontSize: 20 }}>🔔</Text>
-          </View>
+          </Pressable>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -102,9 +108,13 @@ export function LandingScreen() {
                   </View>
                   <Text style={s.heroTitle}>{item.title}</Text>
                   <Text style={s.heroSub}>{item.sub}</Text>
-                  <View style={[s.heroBtn, { borderColor: item.tagColor }]}>
+                  <Pressable
+                    style={[s.heroBtn, { borderColor: item.tagColor }]}
+                    onPress={() => goToTab('/(tabs)/classes')}
+                    accessibilityLabel="Explore classes tab"
+                  >
                     <Text style={[s.heroBtnText, { color: item.tagColor }]}>Sign in to explore →</Text>
-                  </View>
+                  </Pressable>
                 </View>
               </View>
             )}
@@ -134,7 +144,9 @@ export function LandingScreen() {
           {/* Section header */}
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>Today's Classes</Text>
-            <Text style={s.sectionLinkGhost}>Sign in to book →</Text>
+            <Pressable onPress={() => goToTab('/(tabs)/classes')} accessibilityLabel="See all classes">
+              <Text style={s.sectionLinkGhost}>See all →</Text>
+            </Pressable>
           </View>
 
           {/* Mini class cards */}

@@ -20,7 +20,14 @@
       "expo-apple-authentication",
       "expo-notifications",
       "expo-web-browser",
-      ["expo-router", { "root": "src/app" }]
+      [
+        "expo-router",
+        {
+          "root": "src/app"
+        }
+      ],
+      "expo-status-bar",
+      "expo-font"
     ]
   }
 }

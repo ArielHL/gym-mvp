@@ -57,6 +57,8 @@ const QUICK_CLASSES = [
   { id: 'c', title: 'Ring Muscle Up', trainer: 'Carlos V.', time: '6:00 PM', spots: 3, diff: 'ADV', color: '#F59E0B' },
 ];
 
+type TabRoute = '/(tabs)/classes' | '/(tabs)/book' | '/(tabs)/profile';
+
 export function HomeScreen() {
   const [slide, setSlide] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -64,6 +66,10 @@ export function HomeScreen() {
   const overlayAlpha = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const { displayName } = useAuthState();
+
+  const goToTab = (route: TabRoute) => {
+    router.push(route);
+  };
 
   const openDrawer = () => {
     setDrawerOpen(true);
@@ -110,7 +116,7 @@ export function HomeScreen() {
             <View style={[s.burgerLine, { width: 14 }]} />
           </Pressable>
           <Text style={s.logo}>CALI<Text style={s.logoAccent}>FIT</Text></Text>
-          <Pressable style={s.notifBtn}>
+          <Pressable style={s.notifBtn} onPress={() => goToTab('/(tabs)/profile')} accessibilityLabel="Go to profile tab">
             <Text style={{ fontSize: 20 }}>🔔</Text>
           </Pressable>
         </View>
@@ -173,7 +179,7 @@ export function HomeScreen() {
           {/* Section header */}
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>Today's Classes</Text>
-            <Pressable onPress={() => router.push('/(tabs)/classes')}>
+            <Pressable onPress={() => goToTab('/(tabs)/classes')} accessibilityLabel="See all classes">
               <Text style={s.sectionLink}>See all →</Text>
             </Pressable>
           </View>

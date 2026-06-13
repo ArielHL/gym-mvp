@@ -9,7 +9,7 @@ Built with **React Native + Expo**, **Supabase** (auth & database), and **FastAP
 
 | Layer | Technology |
 |---|---|
-| Mobile | React Native 0.83 + Expo ~55 + TypeScript ~5.9 |
+| Mobile | React Native 0.85 + Expo ~56 + TypeScript ~6.0 |
 | State / Data | TanStack React Query v5 |
 | Navigation | React Navigation v6 (native-stack + bottom-tabs) |
 | Auth + Database | Supabase (PostgreSQL + RLS) |
