@@ -6,13 +6,28 @@ import { supabase } from '@/services/supabase/client';
 
 WebBrowser.maybeCompleteAuthSession();
 
+function mapOAuthError(error: unknown): Error {
+  const message = String((error as { message?: string })?.message ?? error ?? 'OAuth login failed.');
+  const lowered = message.toLowerCase();
+
+  if (lowered.includes('provider is not enabled') || lowered.includes('unsupported provider')) {
+    return new Error('Google sign-in is not enabled in Supabase Authentication providers.');
+  }
+
+  if (lowered.includes('redirect') && lowered.includes('url')) {
+    return new Error('OAuth redirect URL is not allowed. Add gymmobilemvp://auth/callback in Supabase redirect URLs.');
+  }
+
+  return error instanceof Error ? error : new Error(message);
+}
+
 async function signInWithOAuth(provider: Provider) {
   const redirectTo = makeRedirectUri({ scheme: 'gymmobilemvp', path: 'auth/callback' });
 
   if (Platform.OS === 'web') {
     const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
     if (error) {
-      throw error;
+      throw mapOAuthError(error);
     }
     return;
   }
@@ -26,7 +41,7 @@ async function signInWithOAuth(provider: Provider) {
   });
 
   if (error) {
-    throw error;
+    throw mapOAuthError(error);
   }
 
   if (!data?.url) {
@@ -40,7 +55,7 @@ async function signInWithOAuth(provider: Provider) {
 
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url);
   if (exchangeError) {
-    throw exchangeError;
+    throw mapOAuthError(exchangeError);
   }
 }
 

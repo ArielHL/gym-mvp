@@ -11,11 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+import { useRouter } from 'expo-router';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -54,7 +50,7 @@ const QUICK_CLASSES = [
 
 export function LandingScreen() {
   const [slide, setSlide] = useState(0);
-  const nav = useNavigation<Nav>();
+  const router = useRouter();
 
   const onHeroScroll = (e: any) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / SW);
@@ -167,13 +163,13 @@ export function LandingScreen() {
         <View style={s.authButtons}>
           <Pressable
             style={({ pressed }) => [s.btnPrimary, pressed && s.pressed]}
-            onPress={() => nav.navigate('Auth')}
+            onPress={() => router.push('/auth')}
           >
             <Text style={s.btnPrimaryText}>Sign In</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [s.btnSecondary, pressed && s.pressed]}
-            onPress={() => nav.navigate('Register')}
+            onPress={() => router.push('/register')}
           >
             <Text style={s.btnSecondaryText}>Create Account</Text>
           </Pressable>

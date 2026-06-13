@@ -10,16 +10,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Calendar } from 'react-native-calendars';
-import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
 import { useClasses } from '@/features/classes/hooks/useClasses';
 import { useBookClass } from '@/features/bookings/hooks/useBookings';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
 import { toDateKey } from '@/utils/date';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const DIFF_COLORS: Record<string, string> = {
   beginner: '#22D3EE',
@@ -34,9 +30,8 @@ const LOCATIONS = [
 ];
 
 export function BookClassScreen() {
-  const route = useRoute<any>();
-  const { className, classId: initialClassId } = (route.params as { className?: string; classId?: string }) ?? {};
-  const nav = useNavigation<Nav>();
+  const { className, classId: initialClassId } = useLocalSearchParams<{ className?: string; classId?: string }>();
+  const router = useRouter();
   const { user } = useAuthState();
   const today = toDateKey(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
@@ -52,7 +47,7 @@ export function BookClassScreen() {
     if (!user) {
       Alert.alert('Sign in required', 'Please sign in to book a class', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => nav.navigate('Auth') },
+        { text: 'Sign In', onPress: () => router.push('/auth') },
       ]);
       return;
     }
@@ -62,7 +57,7 @@ export function BookClassScreen() {
     }
     try {
       const result = await bookMutation.mutateAsync(selectedClassId);
-      Alert.alert('Booked!', result.message, [{ text: 'Done', onPress: () => nav.goBack() }]);
+      Alert.alert('Booked!', result.message, [{ text: 'Done', onPress: () => router.back() }]);
     } catch (err) {
       Alert.alert('Booking failed', (err as Error).message);
     }
@@ -82,7 +77,7 @@ export function BookClassScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <Pressable style={s.backBtn} onPress={() => nav.goBack()}>
+        <Pressable style={s.backBtn} onPress={() => router.back()}>
           <Text style={s.backIcon}>‹</Text>
         </Pressable>
         <View style={{ flex: 1 }}>

@@ -8,13 +8,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
+import { useLocalSearchParams } from 'expo-router';
+import type { GymClass } from '@/types/models';
 import { useBookClass, useBookedStatus, useCancelBooking } from '@/features/bookings/hooks/useBookings';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
 import { prettyDateTime } from '@/utils/date';
-
-type Props = NativeStackScreenProps<RootStackParamList, 'ClassDetails'>;
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -25,8 +23,9 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function ClassDetailsScreen({ route }: Props) {
-  const { gymClass } = route.params;
+export function ClassDetailsScreen() {
+  const { gymClass: gymClassJson } = useLocalSearchParams<{ gymClass: string }>();
+  const gymClass = JSON.parse(gymClassJson) as GymClass;
   const { user } = useAuthState();
   const bookMutation = useBookClass();
   const cancelMutation = useCancelBooking();

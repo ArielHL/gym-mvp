@@ -12,17 +12,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
-import type { RootStackParamList, MainTabParamList } from '@/types/navigation';
-
-type Nav = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'Home'>,
-  NativeStackNavigationProp<RootStackParamList>
->;
 
 const { width: SW } = Dimensions.get('window');
 const DRAWER_W = SW * 0.78;
@@ -55,9 +46,9 @@ const HERO_SLIDES = [
 ];
 
 const DRAWER_ITEMS = [
-  { id: 'book', icon: '📅', label: 'Book Classes', tab: 'Book' as const },
-  { id: 'sub', icon: '💳', label: 'Pay a Subscription', tab: 'Book' as const },
-  { id: 'find', icon: '🔍', label: 'Find a Class for You', tab: 'Classes' as const },
+  { id: 'book', icon: '📅', label: 'Book Classes', tab: '/(tabs)/book' as const },
+  { id: 'sub', icon: '💳', label: 'Pay a Subscription', tab: '/(tabs)/book' as const },
+  { id: 'find', icon: '🔍', label: 'Find a Class for You', tab: '/(tabs)/classes' as const },
 ];
 
 const QUICK_CLASSES = [
@@ -71,7 +62,7 @@ export function HomeScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerX = useRef(new Animated.Value(-DRAWER_W)).current;
   const overlayAlpha = useRef(new Animated.Value(0)).current;
-  const nav = useNavigation<Nav>();
+  const router = useRouter();
   const { displayName } = useAuthState();
 
   const openDrawer = () => {
@@ -89,9 +80,9 @@ export function HomeScreen() {
     ]).start(() => setDrawerOpen(false));
   };
 
-  const handleDrawerNav = (tab: 'Book' | 'Classes') => {
+  const handleDrawerNav = (tab: '/(tabs)/book' | '/(tabs)/classes') => {
     closeDrawer();
-    setTimeout(() => nav.navigate(tab), 200);
+    setTimeout(() => router.push(tab), 200);
   };
 
   const onHeroScroll = (e: any) => {
@@ -141,7 +132,7 @@ export function HomeScreen() {
             onScroll={onHeroScroll}
             scrollEventThrottle={16}
             renderItem={({ item }) => (
-              <Pressable style={s.heroCard} onPress={() => nav.navigate('Classes')}>
+              <Pressable style={s.heroCard} onPress={() => router.push('/(tabs)/classes')}>
                 <Image source={{ uri: item.imageUri }} style={s.heroImage} resizeMode="cover" />
                 <View style={s.heroOverlay} />
                 <View style={s.heroContent}>
@@ -150,7 +141,7 @@ export function HomeScreen() {
                   </View>
                   <Text style={s.heroTitle}>{item.title}</Text>
                   <Text style={s.heroSub}>{item.sub}</Text>
-                  <Pressable style={[s.heroBtn, { borderColor: item.tagColor }]} onPress={() => nav.navigate('Classes')}>
+                  <Pressable style={[s.heroBtn, { borderColor: item.tagColor }]} onPress={() => router.push('/(tabs)/classes')}>
                     <Text style={[s.heroBtnText, { color: item.tagColor }]}>Explore Class →</Text>
                   </Pressable>
                 </View>
@@ -182,7 +173,7 @@ export function HomeScreen() {
           {/* Section header */}
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>Today's Classes</Text>
-            <Pressable onPress={() => nav.navigate('Classes')}>
+            <Pressable onPress={() => router.push('/(tabs)/classes')}>
               <Text style={s.sectionLink}>See all →</Text>
             </Pressable>
           </View>
@@ -207,7 +198,7 @@ export function HomeScreen() {
               <Pressable
                 key={c.id}
                 style={({ pressed }) => [s.miniCard, pressed && { opacity: 0.75 }]}
-                onPress={() => nav.navigate('BookClass', { classId: c.id, className: c.title })}
+                onPress={() => router.push({ pathname: '/book-class', params: { classId: c.id, className: c.title } })}
               >
                 <View style={[s.miniAccent, { backgroundColor: c.color }]} />
                 <View style={{ flex: 1, paddingLeft: 14 }}>
@@ -263,7 +254,7 @@ export function HomeScreen() {
           <View style={[s.drawerDivider, { marginTop: 24 }]} />
           <Pressable
             style={({ pressed }) => [s.drawerProfileBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => { closeDrawer(); setTimeout(() => nav.navigate('Profile'), 200); }}
+            onPress={() => { closeDrawer(); setTimeout(() => router.push('/(tabs)/profile'), 200); }}
           >
             <View style={s.drawerAvatar}>
               <Text style={{ color: '#22D3EE', fontWeight: '700', fontSize: 18 }}>

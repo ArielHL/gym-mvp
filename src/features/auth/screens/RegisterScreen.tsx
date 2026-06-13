@@ -19,15 +19,11 @@ const KeyboardWrapper = Platform.OS === 'ios'
   : ({ children, style }: { children: React.ReactNode; style: object }) =>
       <View style={style}>{children}</View>;
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
+import { useRouter } from 'expo-router';
 import { authService } from '@/features/auth/services/authService';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
 export function RegisterScreen() {
-  const nav = useNavigation<Nav>();
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,7 +54,7 @@ export function RegisterScreen() {
         Alert.alert(
           'Check your email ✉️',
           `We sent a confirmation link to ${email.trim()}. Click it to activate your account, then come back to sign in.`,
-          [{ text: 'OK', onPress: () => nav.navigate('Auth') }]
+          [{ text: 'OK', onPress: () => router.push('/auth') }]
         );
       } else {
         // Email confirmation disabled — user is logged in immediately, nav driven by auth state
@@ -136,7 +132,7 @@ export function RegisterScreen() {
               : <Text style={styles.btnText}>Register</Text>}
           </Pressable>
 
-          <Pressable style={styles.link} onPress={() => nav.navigate('Auth')}>
+          <Pressable style={styles.link} onPress={() => router.push('/auth')}>
             <Text style={styles.linkText}>
               Already have an account?{' '}
               <Text style={styles.linkHighlight}>Sign In</Text>

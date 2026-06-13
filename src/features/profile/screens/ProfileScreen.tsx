@@ -2,11 +2,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
 import { authService } from '@/features/auth/services/authService';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+import { useRouter } from 'expo-router';
 
 const MENU_ITEMS = [
   { id: 'edit', icon: '✏️', label: 'Edit Profile', sub: 'Update your name and photo' },
@@ -32,7 +28,7 @@ function Avatar({ name }: { name: string }) {
 
 export function ProfileScreen() {
   const { user, role, displayName } = useAuthState();
-  const nav = useNavigation<Nav>();
+  const router = useRouter();
 
   const onLogout = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -59,10 +55,10 @@ export function ProfileScreen() {
           <Text style={{ fontSize: 56 }}>🔒</Text>
           <Text style={s.signInTitle}>Sign in to access{'\n'}your account</Text>
           <Text style={s.signInSub}>Track bookings, manage your plan, and more</Text>
-          <Pressable style={s.signInBtn} onPress={() => nav.navigate('Auth')}>
+          <Pressable style={s.signInBtn} onPress={() => router.push('/auth')}>
             <Text style={s.signInBtnText}>Sign In</Text>
           </Pressable>
-          <Pressable style={s.registerBtn} onPress={() => nav.navigate('Register')}>
+          <Pressable style={s.registerBtn} onPress={() => router.push('/register')}>
             <Text style={s.registerBtnText}>Create Account</Text>
           </Pressable>
         </View>

@@ -11,14 +11,10 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
+import { useRouter } from 'expo-router';
 import type { GymClass } from '@/types/models';
 import { useClasses } from '@/features/classes/hooks/useClasses';
 import { toDateKey } from '@/utils/date';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const DIFF_COLORS: Record<string, string> = {
   beginner: '#22D3EE',
@@ -115,7 +111,7 @@ export function ClassesScreen() {
   const [date, setDate] = useState(today);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
-  const nav = useNavigation<Nav>();
+  const router = useRouter();
   const { data, isLoading, isError } = useClasses(date);
 
   const filtered = useMemo(() => {
@@ -214,7 +210,7 @@ export function ClassesScreen() {
           renderItem={({ item }) => (
             <ClassCard
               item={item}
-              onPress={() => nav.navigate('ClassDetails', { gymClass: item })}
+              onPress={() => router.push({ pathname: '/class-details', params: { gymClass: JSON.stringify(item) } })}
             />
           )}
         />

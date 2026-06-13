@@ -47,6 +47,13 @@ def _unauthorized(detail: str) -> HTTPException:
     )
 
 
+def _database_unavailable_response():
+    return fastapi_json_response(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        ApiResponse(success=False, message="database is unavailable").model_dump(),
+    )
+
+
 def _read_user_id_from_token(token: str, settings: Settings) -> str:
     try:
         payload: dict[str, Any] = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
@@ -88,6 +95,17 @@ async def http_exception_handler(_, exc: HTTPException):
         exc.status_code,
         ApiResponse(success=False, message="request failed").model_dump(),
     )
+
+
+@app.exception_handler(asyncpg.exceptions.PostgresConnectionError)
+async def db_connection_error_handler(_, exc: asyncpg.exceptions.PostgresConnectionError):
+    return _database_unavailable_response()
+
+
+@app.exception_handler(asyncpg.InterfaceError)
+async def db_interface_error_handler(_, exc: asyncpg.InterfaceError):
+    # Covers scenarios like using a closed/invalid connection pool.
+    return _database_unavailable_response()
 
 
 @app.get("/health", response_model=ApiResponse)

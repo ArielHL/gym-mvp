@@ -22,15 +22,11 @@ const KeyboardWrapper = Platform.OS === 'ios'
   : ({ children, style }: { children: React.ReactNode; style: object }) =>
       <View style={style}>{children}</View>;
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types/navigation';
+import { useRouter } from 'expo-router';
 import { authService } from '@/features/auth/services/authService';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
 export function LoginScreen() {
-  const nav = useNavigation<Nav>();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,7 +98,7 @@ export function LoginScreen() {
                 : <Text style={styles.btnText}>Sign In</Text>}
             </Pressable>
 
-            <Pressable style={styles.link} onPress={() => nav.navigate('Register')}>
+            <Pressable style={styles.link} onPress={() => router.push('/register')}>
               <Text style={styles.linkText}>
                 No account?{' '}
                 <Text style={styles.linkHighlight}>Create one</Text>

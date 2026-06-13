@@ -86,6 +86,22 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:8080
 
 Get your URL and anon key from **Supabase Dashboard → Project Settings → API**.
 
+### 2.1 Configure Supabase Google authentication
+
+The app already calls Supabase OAuth for Google in [src/features/auth/services/authService.ts](src/features/auth/services/authService.ts).
+To make it work, configure the provider in Supabase:
+
+1. Open **Supabase Dashboard → Authentication → Providers → Google**.
+2. Enable Google provider.
+3. In Google Cloud Console, create OAuth credentials and copy the **Client ID** and **Client Secret**.
+4. Paste those values into Supabase Google provider settings.
+5. Open **Supabase Dashboard → Authentication → URL Configuration** and add redirect URLs:
+  - `gymmobilemvp://auth/callback`
+  - `http://localhost:8081/auth/callback` (for web local runs)
+6. Save settings and restart the app.
+
+Project identified via MCP during setup: **GimApp** (`jrpbrsviuxroqazhtadl`).
+
 ### 3. Apply the database migration
 
 In the **Supabase SQL Editor**, run the full contents of:
