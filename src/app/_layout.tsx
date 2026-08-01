@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import '../../global.css';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -21,11 +21,12 @@ function RootLayoutNav() {
     if (initializing) return;
 
     const inTabs = segments[0] === '(tabs)';
-    const inPublicAuthFlow = segments[0] === 'index' || segments[0] === 'auth' || segments[0] === 'register';
+    const inProtectedRoute = inTabs || segments[0] === 'classes' || segments[0] === 'bookings';
+    const inPublicRoute = segments[0] === '(public)';
 
-    if (user && inPublicAuthFlow) {
+    if (user && inPublicRoute) {
       router.replace('/(tabs)');
-    } else if (!user && inTabs) {
+    } else if (!user && inProtectedRoute) {
       router.replace('/');
     }
   }, [user, initializing, segments, router]);
@@ -38,7 +39,15 @@ function RootLayoutNav() {
     );
   }
 
-  return <Slot />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(public)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="classes/[classId]" />
+      <Stack.Screen name="bookings/new" />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {

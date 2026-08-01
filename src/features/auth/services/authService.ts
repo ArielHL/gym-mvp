@@ -3,6 +3,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import type { Provider } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
+import { createUserProfileIfMissing } from '@/services/userService';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -70,6 +71,9 @@ export const authService = {
     });
     if (error) {
       throw error;
+    }
+    if (data.session && data.user) {
+      await createUserProfileIfMissing(data.user);
     }
     // session is null when Supabase requires email confirmation
     const emailConfirmationRequired = !data.session;

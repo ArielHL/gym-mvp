@@ -24,16 +24,16 @@ export function Input<T extends FieldValues>({
       name={name}
       render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
         <View className="mb-3">
-          <Text className="mb-1 text-sm font-medium text-slate-200">{label}</Text>
+          <Text className="mb-1 text-sm font-medium text-white">{label}</Text>
           <TextInput
             value={(value as string) ?? ''}
             onChangeText={onChange}
             onBlur={onBlur}
             placeholder={placeholder}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#666666"
             secureTextEntry={secureTextEntry}
             autoCapitalize={autoCapitalize}
-            className="h-12 rounded-xl border border-slate-700 bg-slate-900 px-3 text-white"
+            className="h-12 rounded-xl border border-border bg-surface px-3 text-white"
           />
           {!!error?.message && <Text className="mt-1 text-xs text-rose-400">{error.message}</Text>}
         </View>

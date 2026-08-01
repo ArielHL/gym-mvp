@@ -210,7 +210,7 @@ export function ClassesScreen() {
           renderItem={({ item }) => (
             <ClassCard
               item={item}
-              onPress={() => router.push({ pathname: '/class-details', params: { gymClass: JSON.stringify(item) } })}
+              onPress={() => router.push({ pathname: '/classes/[classId]', params: { classId: item.id } })}
             />
           )}
         />

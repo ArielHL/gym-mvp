@@ -27,7 +27,7 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home-variant" size={size} color={color} />
+            <MaterialCommunityIcons name="home-variant" size={size} color={String(color)} />
           ),
         }}
       />
@@ -36,16 +36,16 @@ export default function TabsLayout() {
         options={{
           title: 'Classes',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="dumbbell" size={size} color={color} />
+            <MaterialCommunityIcons name="dumbbell" size={size} color={String(color)} />
           ),
         }}
       />
       <Tabs.Screen
-        name="book"
+        name="bookings"
         options={{
           title: 'Book',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-check" size={size} color={color} />
+            <MaterialCommunityIcons name="calendar-check" size={size} color={String(color)} />
           ),
         }}
       />
@@ -54,7 +54,7 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-circle" size={size} color={color} />
+            <MaterialCommunityIcons name="account-circle" size={size} color={String(color)} />
           ),
         }}
       />

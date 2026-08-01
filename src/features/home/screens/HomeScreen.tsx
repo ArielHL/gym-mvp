@@ -46,8 +46,8 @@ const HERO_SLIDES = [
 ];
 
 const DRAWER_ITEMS = [
-  { id: 'book', icon: '📅', label: 'Book Classes', tab: '/(tabs)/book' as const },
-  { id: 'sub', icon: '💳', label: 'Pay a Subscription', tab: '/(tabs)/book' as const },
+  { id: 'book', icon: '📅', label: 'Book Classes', tab: '/(tabs)/bookings' as const },
+  { id: 'sub', icon: '💳', label: 'Pay a Subscription', tab: '/(tabs)/bookings' as const },
   { id: 'find', icon: '🔍', label: 'Find a Class for You', tab: '/(tabs)/classes' as const },
 ];
 
@@ -57,7 +57,7 @@ const QUICK_CLASSES = [
   { id: 'c', title: 'Ring Muscle Up', trainer: 'Carlos V.', time: '6:00 PM', spots: 3, diff: 'ADV', color: '#F59E0B' },
 ];
 
-type TabRoute = '/(tabs)/classes' | '/(tabs)/book' | '/(tabs)/profile';
+type TabRoute = '/(tabs)/classes' | '/(tabs)/bookings' | '/(tabs)/profile';
 
 export function HomeScreen() {
   const [slide, setSlide] = useState(0);
@@ -86,7 +86,7 @@ export function HomeScreen() {
     ]).start(() => setDrawerOpen(false));
   };
 
-  const handleDrawerNav = (tab: '/(tabs)/book' | '/(tabs)/classes') => {
+  const handleDrawerNav = (tab: '/(tabs)/bookings' | '/(tabs)/classes') => {
     closeDrawer();
     setTimeout(() => router.push(tab), 200);
   };
@@ -125,7 +125,7 @@ export function HomeScreen() {
           {/* Greeting */}
           <View style={s.greet}>
             <Text style={s.greetSub}>{greeting},</Text>
-            <Text style={s.greetName}>{displayName || 'Athlete'} 👊</Text>
+            <Text style={s.greetName}>{displayName || 'Invitado'} 👊</Text> 
           </View>
 
           {/* Hero Carousel */}
@@ -204,7 +204,7 @@ export function HomeScreen() {
               <Pressable
                 key={c.id}
                 style={({ pressed }) => [s.miniCard, pressed && { opacity: 0.75 }]}
-                onPress={() => router.push({ pathname: '/book-class', params: { classId: c.id, className: c.title } })}
+                onPress={() => router.push({ pathname: '/bookings/new', params: { classId: c.id, className: c.title } })}
               >
                 <View style={[s.miniAccent, { backgroundColor: c.color }]} />
                 <View style={{ flex: 1, paddingLeft: 14 }}>

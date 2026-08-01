@@ -39,7 +39,7 @@ export function LoginScreen() {
     setLoading(true);
     try {
       await authService.login(email.trim(), password);
-      // Auth state drives navigation automatically � no navigate() needed
+      // Auth state drives navigation automatically; no navigate() needed.
     } catch (err) {
       Alert.alert('Login failed', (err as Error).message);
     } finally {
@@ -57,55 +57,56 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View>
-            <Text style={styles.title}>Sign In</Text>
-            <Text style={styles.subtitle}>Welcome back</Text>
+          <Text style={styles.title}>Sign In</Text>
+          <Text style={styles.subtitle}>Welcome back</Text>
 
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor="#555555"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoCorrect={false}
-            />
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            placeholderTextColor="#555555"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            autoCorrect={false}
+            returnKeyType="next"
+          />
 
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor="#555555"
-              secureTextEntry
-            />
-          </View>
-
-          {/* Spacer pushes footer to the bottom */}
-          <View style={styles.spacer} />
-
-          <View style={styles.footer}>
-            <Pressable
-              style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
-              onPress={onLogin}
-              disabled={loading}
-            >
-              {loading
-                ? <ActivityIndicator color="#000000" />
-                : <Text style={styles.btnText}>Sign In</Text>}
-            </Pressable>
-
-            <Pressable style={styles.link} onPress={() => router.push('/register')}>
-              <Text style={styles.linkText}>
-                No account?{' '}
-                <Text style={styles.linkHighlight}>Create one</Text>
-              </Text>
-            </Pressable>
-          </View>
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="********"
+            placeholderTextColor="#555555"
+            secureTextEntry
+            autoComplete="password"
+            textContentType="password"
+            returnKeyType="done"
+            onSubmitEditing={onLogin}
+          />
         </ScrollView>
+
+        <SafeAreaView style={styles.footer} edges={['bottom']}>
+          <Pressable
+            style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
+            onPress={onLogin}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#000000" />
+              : <Text style={styles.btnText}>Sign In</Text>}
+          </Pressable>
+
+          <Pressable style={styles.link} onPress={() => router.push('/register')}>
+            <Text style={styles.linkText}>
+              No account?{' '}
+              <Text style={styles.linkHighlight}>Create one</Text>
+            </Text>
+          </Pressable>
+        </SafeAreaView>
       </KeyboardWrapper>
     </SafeAreaView>
   );
@@ -114,7 +115,7 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
   flex: { flex: 1 },
-  inner: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 48, paddingBottom: 24 },
+  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingTop: 32, paddingBottom: 24 },
   title: { fontSize: 36, fontWeight: '900', color: '#ffffff' },
   subtitle: { fontSize: 16, color: '#555555', marginTop: 4, marginBottom: 32 },
   label: { fontSize: 13, color: '#888888', marginBottom: 6, marginTop: 16 },
@@ -128,10 +129,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     fontSize: 15,
   },
-  spacer: { flex: 1, minHeight: 40 },
   footer: {
-    paddingTop: 12,
-    paddingBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1A1A1A',
+    backgroundColor: '#000000',
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   btn: {
     height: 54,

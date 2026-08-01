@@ -85,10 +85,11 @@ export function RegisterScreen() {
             onChangeText={setName}
             placeholder="Jane Smith"
             placeholderTextColor="#555555"
-            autoCapitalize="words"
-            autoCorrect={false}
-            returnKeyType="next"
-          />
+              autoCapitalize="words"
+              autoComplete="name"
+              autoCorrect={false}
+              returnKeyType="next"
+            />
 
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -97,19 +98,24 @@ export function RegisterScreen() {
             onChangeText={setEmail}
             placeholder="you@example.com"
             placeholderTextColor="#555555"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoCorrect={false}
-          />
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              autoCorrect={false}
+              returnKeyType="next"
+            />
 
           <Text style={styles.label}>Password</Text>
           <TextInput
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="��������"
+            placeholder="********"
             placeholderTextColor="#555555"
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="next"
           />
 
           <Text style={styles.label}>Confirm Password</Text>
@@ -117,11 +123,17 @@ export function RegisterScreen() {
             style={styles.input}
             value={confirm}
             onChangeText={setConfirm}
-            placeholder="��������"
+            placeholder="********"
             placeholderTextColor="#555555"
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="done"
+            onSubmitEditing={onRegister}
           />
+        </ScrollView>
 
+        <SafeAreaView style={styles.footer} edges={['bottom']}>
           <Pressable
             style={({ pressed }) => [styles.btn, (loading || pressed) && styles.btnPressed]}
             onPress={onRegister}
@@ -138,7 +150,7 @@ export function RegisterScreen() {
               <Text style={styles.linkHighlight}>Sign In</Text>
             </Text>
           </Pressable>
-        </ScrollView>
+        </SafeAreaView>
       </KeyboardWrapper>
     </SafeAreaView>
   );
@@ -147,7 +159,7 @@ export function RegisterScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: 28, paddingTop: 48, paddingBottom: 40 },
+  inner: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 32, paddingBottom: 24 },
   title: { fontSize: 36, fontWeight: '900', color: '#ffffff' },
   subtitle: { fontSize: 16, color: '#555555', marginTop: 4, marginBottom: 32 },
   label: { fontSize: 13, color: '#888888', marginBottom: 6, marginTop: 16 },
@@ -162,7 +174,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   btn: {
-    marginTop: 32,
     height: 54,
     backgroundColor: '#22D3EE',
     borderRadius: 12,
@@ -171,6 +182,14 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.6 },
   btnText: { color: '#000000', fontSize: 16, fontWeight: '700' },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: '#1A1A1A',
+    backgroundColor: '#000000',
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
   link: { marginTop: 24, alignItems: 'center' },
   linkText: { color: '#555555', fontSize: 14 },
   linkHighlight: { color: '#22D3EE', fontWeight: '600' },

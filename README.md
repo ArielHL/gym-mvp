@@ -145,6 +145,8 @@ Create `backend/.env`:
 ```env
 PORT=8080
 DATABASE_URL=postgresql://postgres:<password>@<host>:5432/postgres?sslmode=require
+# Optional fallback (recommended): IPv4 Session Pooler URL for networks without IPv6
+# DATABASE_URL_FALLBACK=postgresql://postgres.<project-ref>:<password>@<pooler-host>:6543/postgres?sslmode=require
 SUPABASE_JWT_SECRET=<your-supabase-jwt-secret>
 ```
 

@@ -4,7 +4,10 @@
     "strict": true,
     "ignoreDeprecations": "6.0",
     "jsx": "react-native",
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
@@ -25,7 +28,9 @@
     "**/*.ts",
     "**/*.tsx",
     "**/*.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
   "exclude": [
     "node_modules",

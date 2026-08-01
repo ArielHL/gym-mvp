@@ -48,7 +48,7 @@ const QUICK_CLASSES = [
   { id: 'c', title: 'Ring Muscle Up', trainer: 'Carlos V.', time: '6:00 PM', spots: 3, diff: 'ADV', color: '#F59E0B' },
 ];
 
-type TabRoute = '/(tabs)/index' | '/(tabs)/classes' | '/(tabs)/book' | '/(tabs)/profile';
+type TabRoute = '/(tabs)' | '/(tabs)/classes' | '/(tabs)/bookings' | '/(tabs)/profile';
 
 export function LandingScreen() {
   const [slide, setSlide] = useState(0);
@@ -71,7 +71,7 @@ export function LandingScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={s.header}>
-          <Pressable style={s.burger} onPress={() => goToTab('/(tabs)/index')} accessibilityLabel="Go to home tab">
+          <Pressable style={s.burger} onPress={() => goToTab('/(tabs)')} accessibilityLabel="Go to home tab">
             <View style={s.burgerLine} />
             <View style={[s.burgerLine, { width: 20 }]} />
             <View style={[s.burgerLine, { width: 14 }]} />

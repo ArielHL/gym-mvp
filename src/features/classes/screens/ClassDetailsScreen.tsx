@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import type { GymClass } from '@/types/models';
 import { useBookClass, useBookedStatus, useCancelBooking } from '@/features/bookings/hooks/useBookings';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
+import { useClass } from '@/features/classes/hooks/useClasses';
 import { prettyDateTime } from '@/utils/date';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -24,13 +24,34 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export function ClassDetailsScreen() {
-  const { gymClass: gymClassJson } = useLocalSearchParams<{ gymClass: string }>();
-  const gymClass = JSON.parse(gymClassJson) as GymClass;
+  const { classId } = useLocalSearchParams<{ classId?: string }>();
+  const { data: gymClass, isLoading, isError } = useClass(classId);
   const { user } = useAuthState();
   const bookMutation = useBookClass();
   const cancelMutation = useCancelBooking();
-  const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(gymClass.id, Boolean(user));
-  const isFull = gymClass.available_spots <= 0;
+  const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(classId ?? '', Boolean(user && classId));
+  const isFull = (gymClass?.available_spots ?? 0) <= 0;
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.root} edges={['bottom']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#22D3EE" />
+          <Text style={styles.mutedText}>Loading class...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError || !gymClass) {
+    return (
+      <SafeAreaView style={styles.root} edges={['bottom']}>
+        <View style={styles.center}>
+          <Text style={styles.errorText}>Could not load this class</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const onBook = async () => {
     try {
@@ -108,6 +129,9 @@ export function ClassDetailsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20 },
+  mutedText: { color: '#666666', fontSize: 14 },
+  errorText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
   scroll: { padding: 20, paddingBottom: 48 },
   title: { fontSize: 28, fontWeight: '900', color: '#ffffff', lineHeight: 34 },
   desc: { fontSize: 15, color: '#666666', marginTop: 8, lineHeight: 22 },

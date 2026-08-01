@@ -28,6 +28,9 @@
       ],
       "expo-status-bar",
       "expo-font"
-    ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
