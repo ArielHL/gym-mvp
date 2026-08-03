@@ -18,4 +18,5 @@ expo-env.d.ts
 
 #python
 __pycache__/
-*.cpython-*.pyc
+*.py[cod]
+*$py.class
