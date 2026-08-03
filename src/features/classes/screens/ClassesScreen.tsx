@@ -210,6 +210,7 @@ export function ClassesScreen() {
 
       {/* Difficulty Filter */}
       <FlatList
+        style={{ marginTop: 10 }}
         data={FILTERS}
         horizontal
         showsHorizontalScrollIndicator={false}
