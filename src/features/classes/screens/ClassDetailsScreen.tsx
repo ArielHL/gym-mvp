@@ -10,7 +10,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  useBookClass,
   useBookedStatus,
   useCancelBooking,
 } from '@/features/bookings/hooks/useBookings';
@@ -32,7 +31,6 @@ export function ClassDetailsScreen() {
   const router = useRouter();
   const { data: gymClass, isLoading, isError } = useClass(classId);
   const { user } = useAuthState();
-  const bookMutation = useBookClass();
   const cancelMutation = useCancelBooking();
   const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(
     classId ?? '',
@@ -61,25 +59,15 @@ export function ClassDetailsScreen() {
     );
   }
 
-  const onBook = async () => {
-    if (!user) {
-      Alert.alert(
-        'Sign in required',
-        'Please sign in or create an account to book a class.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign In', onPress: () => router.push('/auth') },
-        ],
-      );
-      return;
-    }
-
-    try {
-      const result = await bookMutation.mutateAsync(gymClass.id);
-      Alert.alert('Booked!', result.message);
-    } catch (err) {
-      Alert.alert('Booking failed', (err as Error).message);
-    }
+  const onBook = () => {
+    router.push({
+      pathname: '/bookings/new',
+      params: {
+        classId: gymClass.id,
+        className: gymClass.title,
+        classDate: gymClass.date,
+      },
+    });
   };
 
   const onCancel = async () => {
@@ -141,39 +129,37 @@ export function ClassDetailsScreen() {
         {checkingBooking ? (
           <ActivityIndicator style={styles.checkLoader} color="#22D3EE" />
         ) : isBooked ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              styles.btnDanger,
-              (pressed || cancelMutation.isPending) && styles.btnDisabled,
-            ]}
-            onPress={onCancel}
-            disabled={cancelMutation.isPending}
-          >
-            {cancelMutation.isPending ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.btnTextDanger}>Cancel Booking</Text>
-            )}
-          </Pressable>
+          <View style={[styles.btnShell, styles.btnDangerShell]}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.btnPressable,
+                (pressed || cancelMutation.isPending) && styles.btnDisabled,
+              ]}
+              onPress={onCancel}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.btnTextDanger}>Cancel Booking</Text>
+              )}
+            </Pressable>
+          </View>
         ) : (
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              isFull && styles.btnDisabled,
-              pressed && styles.btnDisabled,
-            ]}
-            onPress={onBook}
-            disabled={isFull || bookMutation.isPending}
-          >
-            {bookMutation.isPending ? (
-              <ActivityIndicator color="#000000" />
-            ) : (
+          <View style={styles.btnShell}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.btnPressable,
+                (isFull || pressed) && styles.btnDisabled,
+              ]}
+              onPress={onBook}
+              disabled={isFull}
+            >
               <Text style={styles.btnText}>
                 {isFull ? 'Class Full' : 'Book Class'}
               </Text>
-            )}
-          </Pressable>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -239,15 +225,21 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   checkLoader: { marginTop: 24 },
-  btn: {
-    marginTop: 24,
+  btnShell: {
+    marginTop: 48,
     height: 54,
-    backgroundColor: '#22D3EE',
+    backgroundColor: '#add8e6',
     borderRadius: 12,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDanger: {
+  btnPressable: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnDangerShell: {
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#ef4444',
