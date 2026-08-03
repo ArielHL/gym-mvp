@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from functools import lru_cache
 import logging
 from typing import Any, AsyncIterator
 
 import asyncpg
 import jwt
+from jwt import PyJWKClient
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -75,10 +77,36 @@ def _database_unavailable_response():
     )
 
 
+@lru_cache
+def _get_jwks_client(supabase_url: str) -> PyJWKClient:
+    jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    return PyJWKClient(jwks_url)
+
+
 def _read_user_id_from_token(token: str, settings: Settings) -> str:
     try:
-        payload: dict[str, Any] = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
-    except jwt.InvalidTokenError as exc:
+        header = jwt.get_unverified_header(token)
+        algorithm = header.get("alg")
+
+        if algorithm == "HS256":
+            payload: dict[str, Any] = jwt.decode(
+                token,
+                settings.supabase_jwt_secret,
+                algorithms=["HS256"],
+                audience=settings.supabase_jwt_audience,
+            )
+        else:
+            if not settings.supabase_url:
+                raise jwt.InvalidTokenError("SUPABASE_URL is required for asymmetric JWT verification")
+
+            signing_key = _get_jwks_client(settings.supabase_url).get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256", "ES256"],
+                audience=settings.supabase_jwt_audience,
+            )
+    except jwt.PyJWTError as exc:
         raise _unauthorized("invalid token") from exc
 
     user_id = payload.get("sub")

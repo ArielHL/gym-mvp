@@ -71,6 +71,7 @@ export function BookClassScreen() {
   const bookMutation = useBookClass();
 
   const selectedClass = classes?.find((c) => c.id === selectedClassId) ?? null;
+  const isBookDisabled = !selectedClassId || bookMutation.isPending;
 
   if (!user) {
     return (
@@ -332,15 +333,20 @@ export function BookClassScreen() {
           style={({ pressed }) => [
             s.bookBtn,
             !selectedClassId && s.bookBtnDisabled,
-            pressed && { opacity: 0.85 },
+            pressed && !isBookDisabled && { opacity: 0.85 },
           ]}
           onPress={handleBook}
-          disabled={bookMutation.isPending}
+          disabled={isBookDisabled}
         >
           {bookMutation.isPending ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={s.bookBtnText}>
+            <Text
+              style={[
+                s.bookBtnText,
+                !selectedClassId && s.bookBtnTextDisabled,
+              ]}
+            >
               {selectedClassId ? "Confirm Booking →" : "Select a class first"}
             </Text>
           )}
@@ -506,5 +512,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   bookBtnDisabled: { backgroundColor: "#1A1A1A" },
-  bookBtnText: { color: "#000", fontSize: 16, fontWeight: "800" },
+  bookBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  bookBtnTextDisabled: { color: "#777" },
 });
