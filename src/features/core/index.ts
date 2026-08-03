@@ -1,1 +1,1 @@
-export * from './screens/LandingScreen';
+export * from './screens/SplashScreen';

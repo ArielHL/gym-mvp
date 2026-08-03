@@ -8,8 +8,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
-import { useBookClass, useBookedStatus, useCancelBooking } from '@/features/bookings/hooks/useBookings';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  useBookClass,
+  useBookedStatus,
+  useCancelBooking,
+} from '@/features/bookings/hooks/useBookings';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
 import { useClass } from '@/features/classes/hooks/useClasses';
 import { prettyDateTime } from '@/utils/date';
@@ -25,11 +29,15 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export function ClassDetailsScreen() {
   const { classId } = useLocalSearchParams<{ classId?: string }>();
+  const router = useRouter();
   const { data: gymClass, isLoading, isError } = useClass(classId);
   const { user } = useAuthState();
   const bookMutation = useBookClass();
   const cancelMutation = useCancelBooking();
-  const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(classId ?? '', Boolean(user && classId));
+  const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(
+    classId ?? '',
+    Boolean(user && classId),
+  );
   const isFull = (gymClass?.available_spots ?? 0) <= 0;
 
   if (isLoading) {
@@ -54,6 +62,18 @@ export function ClassDetailsScreen() {
   }
 
   const onBook = async () => {
+    if (!user) {
+      Alert.alert(
+        'Sign in required',
+        'Please sign in or create an account to book a class.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/auth') },
+        ],
+      );
+      return;
+    }
+
     try {
       const result = await bookMutation.mutateAsync(gymClass.id);
       Alert.alert('Booked!', result.message);
@@ -92,34 +112,61 @@ export function ClassDetailsScreen() {
         <View style={styles.infoCard}>
           <InfoRow label="Trainer" value={gymClass.trainer_name} />
           <InfoRow label="Type" value={gymClass.exercise_type} />
-          <InfoRow label="Duration" value={`${gymClass.duration_minutes} min`} />
-          <InfoRow label="When" value={prettyDateTime(gymClass.date, gymClass.start_time, gymClass.end_time)} />
+          <InfoRow
+            label="Duration"
+            value={`${gymClass.duration_minutes} min`}
+          />
+          <InfoRow
+            label="When"
+            value={prettyDateTime(
+              gymClass.date,
+              gymClass.start_time,
+              gymClass.end_time,
+            )}
+          />
           <InfoRow label="Difficulty" value={gymClass.difficulty_level} />
           <InfoRow label="Location" value={gymClass.location} />
-          <InfoRow label="Spots left" value={String(gymClass.available_spots)} />
+          <InfoRow
+            label="Spots left"
+            value={String(gymClass.available_spots)}
+          />
         </View>
 
         {checkingBooking ? (
           <ActivityIndicator style={styles.checkLoader} color="#22D3EE" />
         ) : isBooked ? (
           <Pressable
-            style={({ pressed }) => [styles.btn, styles.btnDanger, (pressed || cancelMutation.isPending) && styles.btnDisabled]}
+            style={({ pressed }) => [
+              styles.btn,
+              styles.btnDanger,
+              (pressed || cancelMutation.isPending) && styles.btnDisabled,
+            ]}
             onPress={onCancel}
             disabled={cancelMutation.isPending}
           >
-            {cancelMutation.isPending
-              ? <ActivityIndicator color="#ffffff" />
-              : <Text style={styles.btnTextDanger}>Cancel Booking</Text>}
+            {cancelMutation.isPending ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.btnTextDanger}>Cancel Booking</Text>
+            )}
           </Pressable>
         ) : (
           <Pressable
-            style={({ pressed }) => [styles.btn, isFull && styles.btnDisabled, pressed && styles.btnDisabled]}
+            style={({ pressed }) => [
+              styles.btn,
+              isFull && styles.btnDisabled,
+              pressed && styles.btnDisabled,
+            ]}
             onPress={onBook}
             disabled={isFull || bookMutation.isPending}
           >
-            {bookMutation.isPending
-              ? <ActivityIndicator color="#000000" />
-              : <Text style={styles.btnText}>{isFull ? 'Class Full' : 'Book Class'}</Text>}
+            {bookMutation.isPending ? (
+              <ActivityIndicator color="#000000" />
+            ) : (
+              <Text style={styles.btnText}>
+                {isFull ? 'Class Full' : 'Book Class'}
+              </Text>
+            )}
           </Pressable>
         )}
       </ScrollView>
@@ -129,7 +176,13 @@ export function ClassDetailsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 20,
+  },
   mutedText: { color: '#666666', fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
   scroll: { padding: 20, paddingBottom: 48 },
@@ -168,7 +221,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDanger: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#ef4444' },
+  btnDanger: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
   btnDisabled: { opacity: 0.45 },
   btnText: { fontSize: 16, fontWeight: '700', color: '#000000' },
   btnTextDanger: { fontSize: 16, fontWeight: '700', color: '#ef4444' },

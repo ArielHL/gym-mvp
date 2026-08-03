@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Calendar } from 'react-native-calendars';
+import { AuthRequiredView } from '@/features/auth/components/AuthRequiredView';
 import { useClasses } from '@/features/classes/hooks/useClasses';
 import { useBookClass } from '@/features/bookings/hooks/useBookings';
 import { useAuthState } from '@/features/auth/hooks/useAuthState';
@@ -24,24 +25,58 @@ const DIFF_COLORS: Record<string, string> = {
 };
 
 const LOCATIONS = [
-  { id: '1', name: 'Centro Gym', address: 'Av. Corrientes 1234, CABA', icon: '🏢' },
-  { id: '2', name: 'Sede Norte', address: 'Av. Cabildo 890, Belgrano', icon: '🌆' },
-  { id: '3', name: 'Parque Fitness', address: 'Parque Sarmiento, Al Aire Libre', icon: '🌿' },
+  {
+    id: '1',
+    name: 'Centro Gym',
+    address: 'Av. Corrientes 1234, CABA',
+    icon: '🏢',
+  },
+  {
+    id: '2',
+    name: 'Sede Norte',
+    address: 'Av. Cabildo 890, Belgrano',
+    icon: '🌆',
+  },
+  {
+    id: '3',
+    name: 'Parque Fitness',
+    address: 'Parque Sarmiento, Al Aire Libre',
+    icon: '🌿',
+  },
 ];
 
 export function BookClassScreen() {
-  const { className, classId: initialClassId } = useLocalSearchParams<{ className?: string; classId?: string }>();
+  const { className, classId: initialClassId } = useLocalSearchParams<{
+    className?: string;
+    classId?: string;
+  }>();
   const router = useRouter();
   const { user } = useAuthState();
   const today = toDateKey(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(initialClassId ?? null);
-  const [selectedLocation, setSelectedLocation] = useState<string>(LOCATIONS[0].id);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(
+    initialClassId ?? null,
+  );
+  const [selectedLocation, setSelectedLocation] = useState<string>(
+    LOCATIONS[0].id,
+  );
 
-  const { data: classes, isLoading } = useClasses(selectedDate);
+  const { data: classes, isLoading } = useClasses(selectedDate, Boolean(user));
   const bookMutation = useBookClass();
 
-  const selectedClass = classes?.find(c => c.id === selectedClassId) ?? null;
+  const selectedClass = classes?.find((c) => c.id === selectedClassId) ?? null;
+
+  if (!user) {
+    return (
+      <SafeAreaView style={s.root} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+        <AuthRequiredView
+          title={'Sign in to book\na class'}
+          subtitle="Create an account or sign in to reserve a spot."
+        />
+      </SafeAreaView>
+    );
+  }
 
   const handleBook = async () => {
     if (!user) {
@@ -57,7 +92,9 @@ export function BookClassScreen() {
     }
     try {
       const result = await bookMutation.mutateAsync(selectedClassId);
-      Alert.alert('Booked!', result.message, [{ text: 'Done', onPress: () => router.back() }]);
+      Alert.alert('Booked!', result.message, [
+        { text: 'Done', onPress: () => router.back() },
+      ]);
     } catch (err) {
       Alert.alert('Booking failed', (err as Error).message);
     }
@@ -86,17 +123,25 @@ export function BookClassScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         {/* ── Step 1: Pick Date ── */}
         <View style={s.stepBlock}>
           <View style={s.stepRow}>
-            <View style={s.stepNum}><Text style={s.stepNumText}>1</Text></View>
+            <View style={s.stepNum}>
+              <Text style={s.stepNumText}>1</Text>
+            </View>
             <Text style={s.stepTitle}>Pick a Date</Text>
           </View>
 
           <Calendar
             current={selectedDate}
-            onDayPress={day => { setSelectedDate(day.dateString); setSelectedClassId(null); }}
+            onDayPress={(day) => {
+              setSelectedDate(day.dateString);
+              setSelectedClassId(null);
+            }}
             markedDates={markedDates}
             minDate={today}
             theme={{
@@ -122,7 +167,9 @@ export function BookClassScreen() {
         {/* ── Step 2: Choose Class ── */}
         <View style={s.stepBlock}>
           <View style={s.stepRow}>
-            <View style={s.stepNum}><Text style={s.stepNumText}>2</Text></View>
+            <View style={s.stepNum}>
+              <Text style={s.stepNumText}>2</Text>
+            </View>
             <Text style={s.stepTitle}>Choose a Class</Text>
           </View>
 
@@ -137,32 +184,55 @@ export function BookClassScreen() {
             </View>
           ) : (
             <View style={{ gap: 10 }}>
-              {classes.map(c => {
+              {classes.map((c) => {
                 const active = c.id === selectedClassId;
                 const full = c.available_spots <= 0;
                 const diffColor = DIFF_COLORS[c.difficulty_level] ?? '#22D3EE';
                 return (
                   <Pressable
                     key={c.id}
-                    style={[s.classRow, active && s.classRowActive, full && s.classRowFull]}
+                    style={[
+                      s.classRow,
+                      active && s.classRowActive,
+                      full && s.classRowFull,
+                    ]}
                     onPress={() => !full && setSelectedClassId(c.id)}
                   >
-                    <View style={[s.classAccent, { backgroundColor: active ? diffColor : '#2A2A2A' }]} />
+                    <View
+                      style={[
+                        s.classAccent,
+                        { backgroundColor: active ? diffColor : '#2A2A2A' },
+                      ]}
+                    />
                     <View style={{ flex: 1, paddingLeft: 14 }}>
-                      <Text style={[s.classTitle, full && { color: '#444' }]}>{c.title}</Text>
-                      <Text style={s.classMeta}>{c.trainer_name} · {c.start_time} – {c.end_time}</Text>
+                      <Text style={[s.classTitle, full && { color: '#444' }]}>
+                        {c.title}
+                      </Text>
+                      <Text style={s.classMeta}>
+                        {c.trainer_name} · {c.start_time} – {c.end_time}
+                      </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
                       {full ? (
                         <Text style={s.fullTag}>FULL</Text>
                       ) : (
                         <>
-                          <View style={[s.diffTag, { backgroundColor: diffColor + '22', borderColor: diffColor + '55' }]}>
+                          <View
+                            style={[
+                              s.diffTag,
+                              {
+                                backgroundColor: diffColor + '22',
+                                borderColor: diffColor + '55',
+                              },
+                            ]}
+                          >
                             <Text style={[s.diffTagText, { color: diffColor }]}>
                               {c.difficulty_level.slice(0, 3).toUpperCase()}
                             </Text>
                           </View>
-                          <Text style={s.spotsTag}>{c.available_spots} spots</Text>
+                          <Text style={s.spotsTag}>
+                            {c.available_spots} spots
+                          </Text>
                         </>
                       )}
                     </View>
@@ -177,12 +247,14 @@ export function BookClassScreen() {
         {/* ── Step 3: Location ── */}
         <View style={s.stepBlock}>
           <View style={s.stepRow}>
-            <View style={s.stepNum}><Text style={s.stepNumText}>3</Text></View>
+            <View style={s.stepNum}>
+              <Text style={s.stepNumText}>3</Text>
+            </View>
             <Text style={s.stepTitle}>Select Location</Text>
           </View>
 
           <View style={{ gap: 10 }}>
-            {LOCATIONS.map(loc => {
+            {LOCATIONS.map((loc) => {
               const active = loc.id === selectedLocation;
               return (
                 <Pressable
@@ -224,16 +296,20 @@ export function BookClassScreen() {
             </View>
             <View style={s.summaryRow}>
               <Text style={s.summaryLabel}>Time</Text>
-              <Text style={s.summaryValue}>{selectedClass.start_time} – {selectedClass.end_time}</Text>
+              <Text style={s.summaryValue}>
+                {selectedClass.start_time} – {selectedClass.end_time}
+              </Text>
             </View>
             <View style={s.summaryRow}>
               <Text style={s.summaryLabel}>Duration</Text>
-              <Text style={s.summaryValue}>{selectedClass.duration_minutes} min</Text>
+              <Text style={s.summaryValue}>
+                {selectedClass.duration_minutes} min
+              </Text>
             </View>
             <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
               <Text style={s.summaryLabel}>Location</Text>
               <Text style={s.summaryValue}>
-                {LOCATIONS.find(l => l.id === selectedLocation)?.name}
+                {LOCATIONS.find((l) => l.id === selectedLocation)?.name}
               </Text>
             </View>
           </View>
@@ -266,44 +342,160 @@ export function BookClassScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0A0A0A' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 12 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#141414', borderWidth: 1, borderColor: '#222', alignItems: 'center', justifyContent: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#222',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   backIcon: { color: '#FFF', fontSize: 22, lineHeight: 24 },
   heading: { color: '#FFF', fontSize: 20, fontWeight: '800' },
   subHeading: { color: '#555', fontSize: 12, marginTop: 2 },
   stepBlock: { marginHorizontal: 20, marginTop: 24 },
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#22D3EE', alignItems: 'center', justifyContent: 'center' },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  stepNum: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#22D3EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stepNumText: { color: '#000', fontSize: 13, fontWeight: '800' },
   stepTitle: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  calendar: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#1E1E1E' },
+  calendar: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+  },
   loadingWrap: { paddingVertical: 32, alignItems: 'center' },
   emptyWrap: { paddingVertical: 28, alignItems: 'center', gap: 8 },
   emptyText: { color: '#555', fontSize: 14 },
-  classRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#141414', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#1E1E1E', position: 'relative' },
+  classRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    position: 'relative',
+  },
   classRowActive: { borderColor: '#22D3EE44', backgroundColor: '#0F2A2E' },
   classRowFull: { opacity: 0.5 },
   classAccent: { width: 4, height: 42, borderRadius: 2 },
   classTitle: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   classMeta: { color: '#666', fontSize: 12, marginTop: 3 },
-  fullTag: { color: '#EF4444', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  diffTag: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  fullTag: {
+    color: '#EF4444',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  diffTag: {
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
   diffTagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   spotsTag: { color: '#555', fontSize: 11 },
-  checkIcon: { position: 'absolute', top: 10, right: 12, color: '#22D3EE', fontSize: 16, fontWeight: '700' },
-  locCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#141414', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#1E1E1E' },
+  checkIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    color: '#22D3EE',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  locCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+  },
   locCardActive: { borderColor: '#22D3EE44', backgroundColor: '#0F2A2E' },
   locIcon: { fontSize: 26 },
   locName: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   locAddr: { color: '#666', fontSize: 12, marginTop: 2 },
-  locCheck: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#22D3EE22', borderWidth: 1, borderColor: '#22D3EE44', alignItems: 'center', justifyContent: 'center' },
-  summaryCard: { marginHorizontal: 20, marginTop: 24, backgroundColor: '#141414', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#1E1E1E' },
-  summaryTitle: { color: '#FFF', fontSize: 15, fontWeight: '800', marginBottom: 14 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#1E1E1E' },
+  locCheck: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#22D3EE22',
+    borderWidth: 1,
+    borderColor: '#22D3EE44',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryCard: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    backgroundColor: '#141414',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  summaryTitle: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 14,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E1E1E',
+  },
   summaryLabel: { color: '#555', fontSize: 13 },
-  summaryValue: { color: '#FFF', fontSize: 13, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
-  floatingBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 32, backgroundColor: '#0A0A0A', borderTopWidth: 1, borderTopColor: '#1A1A1A' },
-  bookBtn: { height: 56, backgroundColor: '#22D3EE', borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  summaryValue: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+    maxWidth: '60%',
+    textAlign: 'right',
+  },
+  floatingBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 32,
+    backgroundColor: '#0A0A0A',
+    borderTopWidth: 1,
+    borderTopColor: '#1A1A1A',
+  },
+  bookBtn: {
+    height: 56,
+    backgroundColor: '#22D3EE',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bookBtnDisabled: { backgroundColor: '#1A1A1A' },
   bookBtnText: { color: '#000', fontSize: 16, fontWeight: '800' },
 });

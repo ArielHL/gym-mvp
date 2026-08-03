@@ -6,13 +6,14 @@ export function useClass(classId?: string) {
   return useQuery({
     queryKey: queryKeys.classById(classId ?? ''),
     queryFn: () => fetchClassById(classId!),
-    enabled: Boolean(classId)
+    enabled: Boolean(classId),
   });
 }
 
-export function useClasses(date: string) {
+export function useClasses(date: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.classesByDate(date),
-    queryFn: () => fetchClassesByDate(date)
+    queryFn: () => fetchClassesByDate(date),
+    enabled,
   });
 }
