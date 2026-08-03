@@ -57,9 +57,10 @@ function formatDateShort(dateStr: string): string {
 interface ClassCardProps {
   item: GymClass;
   onPress: () => void;
+  onBookPress: () => void;
 }
 
-function ClassCard({ item, onPress }: ClassCardProps) {
+function ClassCard({ item, onPress, onBookPress }: ClassCardProps) {
   const full = item.available_spots <= 0;
   const diffColor = DIFF_COLORS[item.difficulty_level] ?? "#22D3EE";
   const typeKey = item.exercise_type?.toLowerCase() ?? "default";
@@ -123,8 +124,19 @@ function ClassCard({ item, onPress }: ClassCardProps) {
             {full ? "No spots left" : `${item.available_spots} spots left`}
           </Text>
           {!full && (
-            <View style={[s.bookBtn, { backgroundColor: diffColor }]}>
-              <Text style={s.bookBtnText}>Book</Text>
+            <View style={s.bookBtn}>
+              <Pressable
+                style={({ pressed }) => [
+                  s.bookBtnPressable,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  onBookPress();
+                }}
+              >
+                <Text style={s.bookBtnText}>Book</Text>
+              </Pressable>
             </View>
           )}
         </View>
@@ -270,6 +282,16 @@ export function ClassesScreen() {
                   params: { classId: item.id },
                 })
               }
+              onBookPress={() =>
+                router.push({
+                  pathname: "/bookings/new",
+                  params: {
+                    classId: item.id,
+                    className: item.title,
+                    classDate: item.date,
+                  },
+                })
+              }
             />
           )}
         />
@@ -384,6 +406,28 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   spotsText: { fontSize: 13, fontWeight: "600" },
-  bookBtn: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 8 },
-  bookBtnText: { color: "#000", fontSize: 12, fontWeight: "800" },
+  bookBtn: {
+    minWidth: 72,
+    minHeight: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "gray",
+    backgroundColor: "#0A0A0A",
+    overflow: "hidden",
+  },
+  bookBtnPressable: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bookBtnText: {
+    color: "#D1D5DB",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textAlign: "center",
+  },
 });
