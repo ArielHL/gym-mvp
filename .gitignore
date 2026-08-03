@@ -14,3 +14,8 @@ expo-env.d.ts
 .agents
 .claude
 .kiro
+
+
+#python
+__pycache__/
+*.cpython-*.pyc
