@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/constants/queryKeys';
-import { fetchClassById, fetchClassesByDate } from '../services/classesService';
+import { fetchClassById, fetchClasses } from '../services/classesService';
 
 export function useClass(classId?: string) {
   return useQuery({
@@ -10,10 +10,10 @@ export function useClass(classId?: string) {
   });
 }
 
-export function useClasses(date: string, enabled = true) {
+export function useClasses(date?: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.classesByDate(date),
-    queryFn: () => fetchClassesByDate(date),
+    queryKey: queryKeys.classesList(date),
+    queryFn: () => fetchClasses(date),
     enabled,
   });
 }

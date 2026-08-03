@@ -46,14 +46,19 @@ const LOCATIONS = [
 ];
 
 export function BookClassScreen() {
-  const { className, classId: initialClassId } = useLocalSearchParams<{
+  const {
+    className,
+    classDate,
+    classId: initialClassId,
+  } = useLocalSearchParams<{
     className?: string;
+    classDate?: string;
     classId?: string;
   }>();
   const router = useRouter();
   const { user } = useAuthState();
   const today = toDateKey(new Date());
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState(classDate ?? today);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(
     initialClassId ?? null,
   );
