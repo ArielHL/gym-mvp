@@ -1,11 +1,17 @@
 import { supabase } from '@/services/supabase/client';
 import type { GymClass } from '@/types/models';
 
-export async function fetchClassesByDate(date: string): Promise<GymClass[]> {
-  const { data, error } = await supabase
+export async function fetchClasses(date?: string): Promise<GymClass[]> {
+  let query = supabase
     .from('classes_feed')
-    .select('*')
-    .eq('date', date)
+    .select('*');
+
+  if (date) {
+    query = query.eq('date', date);
+  }
+
+  const { data, error } = await query
+    .order('date', { ascending: true })
     .order('start_time', { ascending: true });
 
   if (error) {
@@ -40,6 +46,8 @@ type CreateTemplateInput = {
   capacity: number;
   difficulty_level: 'beginner' | 'intermediate' | 'advanced';
   location: string;
+  valid_from?: string;
+  valid_until?: string | null;
 };
 
 export async function createClassTemplate(input: CreateTemplateInput): Promise<void> {
@@ -62,6 +70,8 @@ export async function createClassTemplate(input: CreateTemplateInput): Promise<v
     capacity: input.capacity,
     difficulty_level: input.difficulty_level,
     location: input.location,
+    valid_from: input.valid_from,
+    valid_until: input.valid_until || null,
     created_by: user.id,
     is_active: true
   });

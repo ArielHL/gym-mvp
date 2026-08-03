@@ -86,6 +86,7 @@ export async function fetchMyBookingsWithClasses(): Promise<Array<{ booking: Boo
       trainer_name: row.trainer_name,
       exercise_type: row.exercise_type,
       duration_minutes: row.duration_minutes,
+      day_of_week: row.day_of_week,
       date: row.date,
       start_time: row.start_time,
       end_time: row.end_time,
@@ -93,6 +94,8 @@ export async function fetchMyBookingsWithClasses(): Promise<Array<{ booking: Boo
       available_spots: row.available_spots,
       difficulty_level: row.difficulty_level,
       location: row.location,
+      valid_from: row.valid_from,
+      valid_until: row.valid_until,
       created_at: row.created_at,
       updated_at: row.updated_at
     }

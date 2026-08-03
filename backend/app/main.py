@@ -148,10 +148,17 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
         async with conn.transaction():
             row = await conn.fetchrow(
                 """
-                select scheduled_at, capacity
-                from class_sessions
-                where id = $1 and status = 'scheduled'
-                for update
+                select cs.scheduled_at, cs.capacity
+                from class_sessions cs
+                join class_templates ct on ct.id = cs.template_id
+                where cs.id = $1
+                  and cs.status = 'scheduled'
+                  and ct.is_active = true
+                  and (now() at time zone 'UTC')::date >= ct.valid_from
+                  and (ct.valid_until is null or (now() at time zone 'UTC')::date <= ct.valid_until)
+                  and (cs.scheduled_at at time zone 'UTC')::date >= ct.valid_from
+                  and (ct.valid_until is null or (cs.scheduled_at at time zone 'UTC')::date <= ct.valid_until)
+                for update of cs
                 """,
                 request.session_id,
             )

@@ -42,7 +42,7 @@ export function ClassDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root} edges={['bottom']}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#22D3EE" />
           <Text style={styles.mutedText}>Loading class...</Text>
@@ -53,7 +53,7 @@ export function ClassDetailsScreen() {
 
   if (isError || !gymClass) {
     return (
-      <SafeAreaView style={styles.root} edges={['bottom']}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <Text style={styles.errorText}>Could not load this class</Text>
         </View>
@@ -101,7 +101,13 @@ export function ClassDetailsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Class Details</Text>
+      </View>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -176,6 +182,26 @@ export function ClassDetailsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  backIcon: { color: '#22D3EE', fontSize: 28, lineHeight: 30 },
+  headerTitle: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -185,7 +211,7 @@ const styles = StyleSheet.create({
   },
   mutedText: { color: '#666666', fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
-  scroll: { padding: 20, paddingBottom: 48 },
+  scroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48 },
   title: { fontSize: 28, fontWeight: '900', color: '#ffffff', lineHeight: 34 },
   desc: { fontSize: 15, color: '#666666', marginTop: 8, lineHeight: 22 },
   infoCard: {

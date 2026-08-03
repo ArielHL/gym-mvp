@@ -30,6 +30,8 @@ create table if not exists public.class_templates (
   capacity integer not null check (capacity > 0),
   difficulty_level difficulty_level not null default 'beginner',
   location text not null,
+  valid_from date not null default current_date,
+  valid_until date,
   is_active boolean not null default true,
   created_by uuid not null references public.profiles(id),
   created_at timestamptz not null default now(),
@@ -101,6 +103,7 @@ select
   ct.trainer_name,
   ct.exercise_type,
   ct.duration_minutes,
+  ct.day_of_week,
   to_char(cs.scheduled_at at time zone 'UTC', 'YYYY-MM-DD') as date,
   to_char(cs.scheduled_at at time zone 'UTC', 'HH24:MI') as start_time,
   to_char((cs.scheduled_at + make_interval(mins => ct.duration_minutes)) at time zone 'UTC', 'HH24:MI') as end_time,
@@ -113,11 +116,19 @@ select
   ) as available_spots,
   ct.difficulty_level,
   ct.location,
+  ct.valid_from,
+  ct.valid_until,
   cs.created_at,
   cs.updated_at
 from public.class_sessions cs
 join public.class_templates ct on ct.id = cs.template_id
-where ct.is_active = true and cs.status = 'scheduled';
+where ct.is_active = true
+  and cs.status = 'scheduled'
+  and (now() at time zone 'UTC')::date >= ct.valid_from
+  and (ct.valid_until is null or (now() at time zone 'UTC')::date <= ct.valid_until)
+  and (cs.scheduled_at at time zone 'UTC')::date >= (now() at time zone 'UTC')::date
+  and (cs.scheduled_at at time zone 'UTC')::date >= ct.valid_from
+  and (ct.valid_until is null or (cs.scheduled_at at time zone 'UTC')::date <= ct.valid_until);
 
 create or replace view public.bookings_feed as
 select
@@ -131,6 +142,7 @@ select
   ct.trainer_name,
   ct.exercise_type,
   ct.duration_minutes,
+  ct.day_of_week,
   to_char(cs.scheduled_at at time zone 'UTC', 'YYYY-MM-DD') as date,
   to_char(cs.scheduled_at at time zone 'UTC', 'HH24:MI') as start_time,
   to_char((cs.scheduled_at + make_interval(mins => ct.duration_minutes)) at time zone 'UTC', 'HH24:MI') as end_time,
@@ -143,6 +155,8 @@ select
   ) as available_spots,
   ct.difficulty_level,
   ct.location,
+  ct.valid_from,
+  ct.valid_until,
   cs.created_at,
   cs.updated_at
 from public.bookings b
