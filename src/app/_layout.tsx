@@ -17,7 +17,7 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const { user, initializing } = useAuthState();
+  const { user, role, initializing } = useAuthState();
   const router = useRouter();
   const segments = useSegments();
   const wasAuthenticated = useRef(false);
@@ -25,8 +25,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (initializing) return;
 
-    const inProtectedRoute = segments[0] === "bookings";
-    const inPublicRoute = segments[0] === "(public)";
+    const rootSegment = segments[0] as string | undefined;
+    const inProtectedRoute = rootSegment === "bookings";
+    const inAdminRoute = rootSegment === "admin";
+    const inPublicRoute = rootSegment === "(public)";
     const inPublicIndex = inPublicRoute && !segments[1];
     const signedOutAfterSession = wasAuthenticated.current && !user;
 
@@ -41,16 +43,20 @@ function RootLayoutNav() {
       router.replace("/(tabs)");
     } else if (!user && inPublicIndex) {
       router.replace("/(tabs)");
-    } else if (!user && inProtectedRoute) {
+    } else if (!user && (inProtectedRoute || inAdminRoute)) {
+      router.replace("/(tabs)");
+    } else if (user && inAdminRoute && role !== "admin") {
       router.replace("/(tabs)");
     }
-  }, [user, initializing, segments, router]);
+  }, [user, role, initializing, segments, router]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="classes/[classId]" />
       <Stack.Screen name="bookings/new" />
+      <Stack.Screen name="admin/classes" />
+      <Stack.Screen name="admin/settings" />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     database_url: str = Field(validation_alias="DATABASE_URL")
     database_url_fallback: str | None = Field(default=None, validation_alias="DATABASE_URL_FALLBACK")
     supabase_jwt_secret: str = Field(validation_alias="SUPABASE_JWT_SECRET")
+    supabase_url: str | None = Field(default=None, validation_alias="SUPABASE_URL")
+    supabase_jwt_audience: str = Field(default="authenticated", validation_alias="SUPABASE_JWT_AUDIENCE")
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, populate_by_name=True)
 
