@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState } from "react";
 import {
   View,
   Text,
@@ -8,40 +8,41 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Calendar } from 'react-native-calendars';
-import { AuthRequiredView } from '@/features/auth/components/AuthRequiredView';
-import { useClasses } from '@/features/classes/hooks/useClasses';
-import { useBookClass } from '@/features/bookings/hooks/useBookings';
-import { useAuthState } from '@/features/auth/hooks/useAuthState';
-import { toDateKey } from '@/utils/date';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Calendar } from "react-native-calendars";
+import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
+import { useClasses } from "@/features/classes/hooks/useClasses";
+import { useBookClass } from "@/features/bookings/hooks/useBookings";
+import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { toDateKey } from "@/utils/date";
 
 const DIFF_COLORS: Record<string, string> = {
-  beginner: '#22D3EE',
-  intermediate: '#F59E0B',
-  advanced: '#A855F7',
+  beginner: "#22D3EE",
+  intermediate: "#F59E0B",
+  advanced: "#A855F7",
 };
 
 const LOCATIONS = [
   {
-    id: '1',
-    name: 'Centro Gym',
-    address: 'Av. Corrientes 1234, CABA',
-    icon: '🏢',
+    id: "1",
+    name: "Centro Gym",
+    address: "Av. Corrientes 1234, CABA",
+    icon: "🏢",
   },
   {
-    id: '2',
-    name: 'Sede Norte',
-    address: 'Av. Cabildo 890, Belgrano',
-    icon: '🌆',
+    id: "2",
+    name: "Sede Norte",
+    address: "Av. Cabildo 890, Belgrano",
+    icon: "🌆",
   },
   {
-    id: '3',
-    name: 'Parque Fitness',
-    address: 'Parque Sarmiento, Al Aire Libre',
-    icon: '🌿',
+    id: "3",
+    name: "Parque Fitness",
+    address: "Parque Sarmiento, Al Aire Libre",
+    icon: "🌿",
   },
 ];
 
@@ -73,10 +74,10 @@ export function BookClassScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={s.root} edges={['top']}>
+      <SafeAreaView style={s.root} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         <AuthRequiredView
-          title={'Sign in to book\na class'}
+          title={"Sign in to book\na class"}
           subtitle="Create an account or sign in to reserve a spot."
         />
       </SafeAreaView>
@@ -85,45 +86,49 @@ export function BookClassScreen() {
 
   const handleBook = async () => {
     if (!user) {
-      Alert.alert('Sign in required', 'Please sign in to book a class', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/auth') },
+      Alert.alert("Sign in required", "Please sign in to book a class", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign In", onPress: () => router.push("/auth") },
       ]);
       return;
     }
     if (!selectedClassId) {
-      Alert.alert('Select a class', 'Please select a class to book');
+      Alert.alert("Select a class", "Please select a class to book");
       return;
     }
     try {
       const result = await bookMutation.mutateAsync(selectedClassId);
-      Alert.alert('Booked!', result.message, [
-        { text: 'Done', onPress: () => router.back() },
+      Alert.alert("Booked!", result.message, [
+        { text: "Done", onPress: () => router.back() },
       ]);
     } catch (err) {
-      Alert.alert('Booking failed', (err as Error).message);
+      Alert.alert("Booking failed", (err as Error).message);
     }
   };
 
   const markedDates: Record<string, any> = {
     [selectedDate]: {
       selected: true,
-      selectedColor: '#22D3EE',
-      selectedTextColor: '#000',
+      selectedColor: "#22D3EE",
+      selectedTextColor: "#000",
     },
   };
 
   return (
-    <SafeAreaView style={s.root} edges={['top']}>
+    <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
 
       {/* Header */}
       <View style={s.header}>
         <Pressable style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backIcon}>‹</Text>
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={28}
+            color="#22D3EE"
+          />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={s.heading}>{className || 'Book a Class'}</Text>
+          <Text style={s.heading}>{className || "Book a Class"}</Text>
           <Text style={s.subHeading}>Pick date · Choose class · Confirm</Text>
         </View>
       </View>
@@ -150,20 +155,20 @@ export function BookClassScreen() {
             markedDates={markedDates}
             minDate={today}
             theme={{
-              calendarBackground: '#141414',
-              backgroundColor: '#141414',
-              dayTextColor: '#DDD',
-              textDisabledColor: '#333',
-              selectedDayBackgroundColor: '#22D3EE',
-              selectedDayTextColor: '#000',
-              todayTextColor: '#22D3EE',
-              monthTextColor: '#FFF',
-              arrowColor: '#22D3EE',
-              textMonthFontWeight: '800',
+              calendarBackground: "#141414",
+              backgroundColor: "#141414",
+              dayTextColor: "#DDD",
+              textDisabledColor: "#333",
+              selectedDayBackgroundColor: "#22D3EE",
+              selectedDayTextColor: "#000",
+              todayTextColor: "#22D3EE",
+              monthTextColor: "#FFF",
+              arrowColor: "#22D3EE",
+              textMonthFontWeight: "800",
               textDayFontSize: 14,
               textMonthFontSize: 16,
-              dotColor: '#22D3EE',
-              selectedDotColor: '#000',
+              dotColor: "#22D3EE",
+              selectedDotColor: "#000",
             }}
             style={s.calendar}
           />
@@ -192,7 +197,7 @@ export function BookClassScreen() {
               {classes.map((c) => {
                 const active = c.id === selectedClassId;
                 const full = c.available_spots <= 0;
-                const diffColor = DIFF_COLORS[c.difficulty_level] ?? '#22D3EE';
+                const diffColor = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
                 return (
                   <Pressable
                     key={c.id}
@@ -206,18 +211,18 @@ export function BookClassScreen() {
                     <View
                       style={[
                         s.classAccent,
-                        { backgroundColor: active ? diffColor : '#2A2A2A' },
+                        { backgroundColor: active ? diffColor : "#2A2A2A" },
                       ]}
                     />
                     <View style={{ flex: 1, paddingLeft: 14 }}>
-                      <Text style={[s.classTitle, full && { color: '#444' }]}>
+                      <Text style={[s.classTitle, full && { color: "#444" }]}>
                         {c.title}
                       </Text>
                       <Text style={s.classMeta}>
                         {c.trainer_name} · {c.start_time} – {c.end_time}
                       </Text>
                     </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <View style={{ alignItems: "flex-end", gap: 4 }}>
                       {full ? (
                         <Text style={s.fullTag}>FULL</Text>
                       ) : (
@@ -226,8 +231,8 @@ export function BookClassScreen() {
                             style={[
                               s.diffTag,
                               {
-                                backgroundColor: diffColor + '22',
-                                borderColor: diffColor + '55',
+                                backgroundColor: diffColor + "22",
+                                borderColor: diffColor + "55",
                               },
                             ]}
                           >
@@ -274,7 +279,7 @@ export function BookClassScreen() {
                   </View>
                   {active && (
                     <View style={s.locCheck}>
-                      <Text style={{ color: '#22D3EE', fontSize: 14 }}>✓</Text>
+                      <Text style={{ color: "#22D3EE", fontSize: 14 }}>✓</Text>
                     </View>
                   )}
                 </Pressable>
@@ -336,7 +341,7 @@ export function BookClassScreen() {
             <ActivityIndicator color="#000" />
           ) : (
             <Text style={s.bookBtnText}>
-              {selectedClassId ? 'Confirm Booking →' : 'Select a class first'}
+              {selectedClassId ? "Confirm Booking →" : "Select a class first"}
             </Text>
           )}
         </Pressable>
@@ -346,31 +351,30 @@ export function BookClassScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  root: { flex: 1, backgroundColor: "#0A0A0A" },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 14,
     gap: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#141414',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#141414",
     borderWidth: 1,
-    borderColor: '#222',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#222222",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backIcon: { color: '#FFF', fontSize: 22, lineHeight: 24 },
-  heading: { color: '#FFF', fontSize: 20, fontWeight: '800' },
-  subHeading: { color: '#555', fontSize: 12, marginTop: 2 },
+  heading: { color: "#FFF", fontSize: 20, fontWeight: "800" },
+  subHeading: { color: "#555", fontSize: 12, marginTop: 2 },
   stepBlock: { marginHorizontal: 20, marginTop: 24 },
   stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginBottom: 14,
   },
@@ -378,40 +382,40 @@ const s = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#22D3EE',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#22D3EE",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  stepNumText: { color: '#000', fontSize: 13, fontWeight: '800' },
-  stepTitle: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  stepNumText: { color: "#000", fontSize: 13, fontWeight: "800" },
+  stepTitle: { color: "#FFF", fontSize: 16, fontWeight: "700" },
   calendar: {
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#1E1E1E',
+    borderColor: "#1E1E1E",
   },
-  loadingWrap: { paddingVertical: 32, alignItems: 'center' },
-  emptyWrap: { paddingVertical: 28, alignItems: 'center', gap: 8 },
-  emptyText: { color: '#555', fontSize: 14 },
+  loadingWrap: { paddingVertical: 32, alignItems: "center" },
+  emptyWrap: { paddingVertical: 28, alignItems: "center", gap: 8 },
+  emptyText: { color: "#555", fontSize: 14 },
   classRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#141414',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#141414",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#1E1E1E',
-    position: 'relative',
+    borderColor: "#1E1E1E",
+    position: "relative",
   },
-  classRowActive: { borderColor: '#22D3EE44', backgroundColor: '#0F2A2E' },
+  classRowActive: { borderColor: "#22D3EE44", backgroundColor: "#0F2A2E" },
   classRowFull: { opacity: 0.5 },
   classAccent: { width: 4, height: 42, borderRadius: 2 },
-  classTitle: { color: '#FFF', fontSize: 14, fontWeight: '700' },
-  classMeta: { color: '#666', fontSize: 12, marginTop: 3 },
+  classTitle: { color: "#FFF", fontSize: 14, fontWeight: "700" },
+  classMeta: { color: "#666", fontSize: 12, marginTop: 3 },
   fullTag: {
-    color: '#EF4444',
+    color: "#EF4444",
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 1,
   },
   diffTag: {
@@ -420,87 +424,87 @@ const s = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  diffTagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  spotsTag: { color: '#555', fontSize: 11 },
+  diffTagText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  spotsTag: { color: "#555", fontSize: 11 },
   checkIcon: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 12,
-    color: '#22D3EE',
+    color: "#22D3EE",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   locCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#141414',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#141414",
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#1E1E1E',
+    borderColor: "#1E1E1E",
   },
-  locCardActive: { borderColor: '#22D3EE44', backgroundColor: '#0F2A2E' },
+  locCardActive: { borderColor: "#22D3EE44", backgroundColor: "#0F2A2E" },
   locIcon: { fontSize: 26 },
-  locName: { color: '#FFF', fontSize: 14, fontWeight: '700' },
-  locAddr: { color: '#666', fontSize: 12, marginTop: 2 },
+  locName: { color: "#FFF", fontSize: 14, fontWeight: "700" },
+  locAddr: { color: "#666", fontSize: 12, marginTop: 2 },
   locCheck: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#22D3EE22',
+    backgroundColor: "#22D3EE22",
     borderWidth: 1,
-    borderColor: '#22D3EE44',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#22D3EE44",
+    alignItems: "center",
+    justifyContent: "center",
   },
   summaryCard: {
     marginHorizontal: 20,
     marginTop: 24,
-    backgroundColor: '#141414',
+    backgroundColor: "#141414",
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#1E1E1E',
+    borderColor: "#1E1E1E",
   },
   summaryTitle: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 14,
   },
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E1E1E',
+    borderBottomColor: "#1E1E1E",
   },
-  summaryLabel: { color: '#555', fontSize: 13 },
+  summaryLabel: { color: "#555", fontSize: 13 },
   summaryValue: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 13,
-    fontWeight: '600',
-    maxWidth: '60%',
-    textAlign: 'right',
+    fontWeight: "600",
+    maxWidth: "60%",
+    textAlign: "right",
   },
   floatingBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     padding: 20,
     paddingBottom: 32,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: "#0A0A0A",
     borderTopWidth: 1,
-    borderTopColor: '#1A1A1A',
+    borderTopColor: "#1A1A1A",
   },
   bookBtn: {
     height: 56,
-    backgroundColor: '#22D3EE',
+    backgroundColor: "#22D3EE",
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  bookBtnDisabled: { backgroundColor: '#1A1A1A' },
-  bookBtnText: { color: '#000', fontSize: 16, fontWeight: '800' },
+  bookBtnDisabled: { backgroundColor: "#1A1A1A" },
+  bookBtnText: { color: "#000", fontSize: 16, fontWeight: "800" },
 });

@@ -78,6 +78,7 @@ export function AdminClassesScreen() {
   const queryClient = useQueryClient();
   const [selectedTemplate, setSelectedTemplate] =
     useState<ClassTemplate | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
   const { control, handleSubmit, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
@@ -123,10 +124,11 @@ export function AdminClassesScreen() {
 
       return createClassTemplate(payload, weeksAhead);
     },
-    onSuccess: async (template) => {
-      setSelectedTemplate(template);
-      reset(valuesFromTemplate(template));
+    onSuccess: async () => {
       await invalidateClassData();
+      setSelectedTemplate(null);
+      setIsFormVisible(false);
+      reset(emptyValues);
       Alert.alert(
         "Saved",
         `Class saved and future sessions generated ${settingsQuery.data ?? 3} weeks ahead.`,
@@ -174,10 +176,23 @@ export function AdminClassesScreen() {
   const startNewTemplate = () => {
     setSelectedTemplate(null);
     reset(emptyValues);
+    setIsFormVisible(true);
   };
 
-  const confirmDeactivate = () => {
-    if (!selectedTemplate) {
+  const cancelForm = () => {
+    setSelectedTemplate(null);
+    reset(emptyValues);
+    setIsFormVisible(false);
+  };
+
+  const confirmToggleActive = (template: ClassTemplate) => {
+    const nextIsActive = !template.is_active;
+
+    if (nextIsActive) {
+      activeMutation.mutate({
+        template,
+        isActive: true,
+      });
       return;
     }
 
@@ -191,7 +206,7 @@ export function AdminClassesScreen() {
           style: "destructive",
           onPress: () =>
             activeMutation.mutate({
-              template: selectedTemplate,
+              template,
               isActive: false,
             }),
         },
@@ -233,160 +248,161 @@ export function AdminClassesScreen() {
             Create templates, edit class data, and soft-delete inactive classes.
           </Text>
         </View>
-        <Pressable
-          className="rounded-xl border border-border bg-surface px-4 py-3"
-          onPress={startNewTemplate}
-        >
-          <Text className="font-semibold text-white">New</Text>
-        </Pressable>
+        {!isFormVisible ? (
+          <Pressable
+            className="rounded-xl border border-border bg-surface px-4 py-3"
+            onPress={startNewTemplate}
+          >
+            <Text className="font-semibold text-white">New</Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
-        <Text className="mb-3 text-base font-bold text-white">
-          Class Templates
-        </Text>
-        {templatesQuery.isError ? (
-          <Text className="text-sm text-rose-400">
-            Could not load class templates.
+      {!isFormVisible ? (
+        <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
+          <Text className="mb-3 text-base font-bold text-white">
+            Class Templates
           </Text>
-        ) : templatesQuery.data?.length ? (
-          templatesQuery.data.map((template) => {
-            const selected = selectedTemplate?.id === template.id;
-            return (
-              <Pressable
-                key={template.id}
-                className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-background"}`}
-                onPress={() => setSelectedTemplate(template)}
-              >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="font-bold text-white">
-                      {template.title}
-                    </Text>
-                    <Text className="mt-1 text-xs text-gray-400">
-                      {dayLabels[template.day_of_week]} at{" "}
-                      {template.start_time.slice(0, 5)} ·{" "}
-                      {template.trainer_name}
-                    </Text>
+          {templatesQuery.isError ? (
+            <Text className="text-sm text-rose-400">
+              Could not load class templates.
+            </Text>
+          ) : templatesQuery.data?.length ? (
+            templatesQuery.data.map((template) => {
+              const selected = selectedTemplate?.id === template.id;
+              return (
+                <Pressable
+                  key={template.id}
+                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-background"}`}
+                  onPress={() => {
+                    setSelectedTemplate(template);
+                    setIsFormVisible(true);
+                  }}
+                >
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1">
+                      <Text className="font-bold text-white">
+                        {template.title}
+                      </Text>
+                      <Text className="mt-1 text-xs text-gray-400">
+                        {dayLabels[template.day_of_week]} at{" "}
+                        {template.start_time.slice(0, 5)} ·{" "}
+                        {template.trainer_name}
+                      </Text>
+                    </View>
+                    <Pressable
+                      className={`rounded-full border px-3 py-2 ${template.is_active ? "border-cyan-400/60 bg-cyan-950/40" : "border-amber-400/60 bg-amber-950/30"}`}
+                      disabled={activeMutation.isPending}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        confirmToggleActive(template);
+                      }}
+                    >
+                      <Text
+                        className={`text-xs font-bold ${template.is_active ? "text-cyan-300" : "text-amber-300"}`}
+                      >
+                        {template.is_active ? "ACTIVE" : "INACTIVE"}
+                      </Text>
+                    </Pressable>
                   </View>
-                  <Text
-                    className={`text-xs font-bold ${template.is_active ? "text-cyan-300" : "text-amber-300"}`}
-                  >
-                    {template.is_active ? "ACTIVE" : "INACTIVE"}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })
-        ) : (
-          <Text className="text-sm text-gray-400">No class templates yet.</Text>
-        )}
-      </View>
-
-      <Text className="mb-3 text-lg font-bold text-white">
-        {selectedTemplate ? "Edit Class" : "Create Class"}
-      </Text>
-      <Input
-        control={control}
-        name="title"
-        label="Title"
-        placeholder="Morning Strength"
-      />
-      <Input
-        control={control}
-        name="description"
-        label="Description"
-        placeholder="Full body circuit"
-      />
-      <Input
-        control={control}
-        name="trainer_name"
-        label="Trainer"
-        placeholder="Alex"
-      />
-      <Input
-        control={control}
-        name="exercise_type"
-        label="Type"
-        placeholder="strength"
-      />
-      <Input
-        control={control}
-        name="duration_minutes"
-        label="Duration (minutes)"
-        placeholder="60"
-      />
-      <Input
-        control={control}
-        name="day_of_week"
-        label="Day (0=Sun ... 6=Sat)"
-        placeholder="1"
-      />
-      <Input
-        control={control}
-        name="start_time"
-        label="Start Time (HH:MM)"
-        placeholder="18:00"
-      />
-      <Input
-        control={control}
-        name="capacity"
-        label="Capacity"
-        placeholder="20"
-      />
-      <Input
-        control={control}
-        name="difficulty_level"
-        label="Difficulty (beginner/intermediate/advanced)"
-        placeholder="beginner"
-      />
-      <Input
-        control={control}
-        name="location"
-        label="Location"
-        placeholder="Main Studio"
-      />
-      <Input
-        control={control}
-        name="valid_from"
-        label="Valid From (YYYY-MM-DD)"
-        placeholder="2026-08-01"
-      />
-      <Input
-        control={control}
-        name="valid_until"
-        label="Valid Until (optional YYYY-MM-DD)"
-        placeholder="2026-08-31"
-      />
-      <Text className="mt-1 text-xs text-gray-500">
-        Future sessions will be generated {settingsQuery.data ?? 3} weeks ahead.
-        Change this in Class Settings.
-      </Text>
-      <Button
-        label={selectedTemplate ? "Save Changes" : "Create Class"}
-        onPress={handleSubmit((values) => saveMutation.mutate(values))}
-        loading={saveMutation.isPending}
-      />
-      {selectedTemplate?.is_active ? (
-        <Button
-          label="Deactivate Class"
-          variant="danger"
-          onPress={confirmDeactivate}
-          loading={activeMutation.isPending}
-        />
-      ) : selectedTemplate ? (
-        <Button
-          label="Reactivate Class"
-          variant="secondary"
-          onPress={() =>
-            activeMutation.mutate({
-              template: selectedTemplate,
-              isActive: true,
+                </Pressable>
+              );
             })
-          }
-          loading={activeMutation.isPending}
-        />
-      ) : null}
+          ) : (
+            <Text className="text-sm text-gray-400">
+              No class templates yet.
+            </Text>
+          )}
+        </View>
+      ) : (
+        <>
+          <Text className="mb-3 text-lg font-bold text-white">
+            {selectedTemplate ? "Edit Class" : "Create Class"}
+          </Text>
+          <Input
+            control={control}
+            name="title"
+            label="Title"
+            placeholder="Morning Strength"
+          />
+          <Input
+            control={control}
+            name="description"
+            label="Description"
+            placeholder="Full body circuit"
+          />
+          <Input
+            control={control}
+            name="trainer_name"
+            label="Trainer"
+            placeholder="Alex"
+          />
+          <Input
+            control={control}
+            name="exercise_type"
+            label="Type"
+            placeholder="strength"
+          />
+          <Input
+            control={control}
+            name="duration_minutes"
+            label="Duration (minutes)"
+            placeholder="60"
+          />
+          <Input
+            control={control}
+            name="day_of_week"
+            label="Day (0=Sun ... 6=Sat)"
+            placeholder="1"
+          />
+          <Input
+            control={control}
+            name="start_time"
+            label="Start Time (HH:MM)"
+            placeholder="18:00"
+          />
+          <Input
+            control={control}
+            name="capacity"
+            label="Capacity"
+            placeholder="20"
+          />
+          <Input
+            control={control}
+            name="difficulty_level"
+            label="Difficulty (beginner/intermediate/advanced)"
+            placeholder="beginner"
+          />
+          <Input
+            control={control}
+            name="location"
+            label="Location"
+            placeholder="Main Studio"
+          />
+          <Input
+            control={control}
+            name="valid_from"
+            label="Valid From (YYYY-MM-DD)"
+            placeholder="2026-08-01"
+          />
+          <Input
+            control={control}
+            name="valid_until"
+            label="Valid Until (optional YYYY-MM-DD)"
+            placeholder="2026-08-31"
+          />
+          <Text className="mt-1 text-xs text-gray-500">
+            Future sessions will be generated {settingsQuery.data ?? 3} weeks
+            ahead. Change this in Class Settings.
+          </Text>
+          <Button
+            label={selectedTemplate ? "Save Changes" : "Create Class"}
+            onPress={handleSubmit((values) => saveMutation.mutate(values))}
+            loading={saveMutation.isPending}
+          />
+          <Button label="Cancel" variant="secondary" onPress={cancelForm} />
+        </>
+      )}
     </Screen>
   );
 }
