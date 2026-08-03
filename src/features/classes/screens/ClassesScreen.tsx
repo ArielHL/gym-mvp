@@ -183,6 +183,7 @@ export function ClassesScreen() {
 
       {/* Day Filter */}
       <FlatList
+        style={s.filterBar}
         data={DAY_FILTERS}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -210,7 +211,7 @@ export function ClassesScreen() {
 
       {/* Difficulty Filter */}
       <FlatList
-        style={{ marginTop: 10 }}
+        style={[s.filterBar]}
         data={FILTERS}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -303,14 +304,16 @@ const s = StyleSheet.create({
   },
   searchIcon: { fontSize: 15, marginRight: 8 },
   searchInput: { flex: 1, color: "#FFF", fontSize: 14, padding: 0 },
+  filterBar: { flexGrow: 0, flexShrink: 0 },
+  difficultyFilterBar: { marginTop: 10 },
   filterList: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
   filterChip: {
-    minHeight: 36,
+    height: 36,
     borderWidth: 1,
     borderColor: "#2A2A2A",
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 0,
     backgroundColor: "#141414",
     alignItems: "center",
     justifyContent: "center",
