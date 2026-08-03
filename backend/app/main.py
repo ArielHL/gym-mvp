@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+import logging
 from typing import Any, AsyncIterator
 
 import asyncpg
@@ -9,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import Settings, get_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApiResponse(BaseModel):
@@ -23,11 +27,28 @@ class BookingRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    app.state.db_pool = await asyncpg.create_pool(dsn=settings.database_url, min_size=1, max_size=8)
+    app.state.db_pool = await _create_pool_with_fallback(settings)
     try:
         yield
     finally:
         await app.state.db_pool.close()
+
+
+async def _create_pool_with_fallback(settings: Settings) -> asyncpg.Pool:
+    last_error: Exception | None = None
+
+    for index, dsn in enumerate(settings.database_urls(), start=1):
+        try:
+            logger.info("Attempting database connection using DATABASE_URL option %d", index)
+            return await asyncpg.create_pool(dsn=dsn, min_size=1, max_size=8)
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Database connection attempt %d failed: %s", index, exc)
+
+    if last_error is not None:
+        raise last_error
+
+    raise RuntimeError("No database URLs configured")
 
 
 app = FastAPI(lifespan=lifespan)
@@ -44,6 +65,13 @@ def _unauthorized(detail: str) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=ApiResponse(success=False, message=detail).model_dump(),
+    )
+
+
+def _database_unavailable_response():
+    return fastapi_json_response(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        ApiResponse(success=False, message="database is unavailable").model_dump(),
     )
 
 
@@ -88,6 +116,17 @@ async def http_exception_handler(_, exc: HTTPException):
         exc.status_code,
         ApiResponse(success=False, message="request failed").model_dump(),
     )
+
+
+@app.exception_handler(asyncpg.exceptions.PostgresConnectionError)
+async def db_connection_error_handler(_, exc: asyncpg.exceptions.PostgresConnectionError):
+    return _database_unavailable_response()
+
+
+@app.exception_handler(asyncpg.InterfaceError)
+async def db_interface_error_handler(_, exc: asyncpg.InterfaceError):
+    # Covers scenarios like using a closed/invalid connection pool.
+    return _database_unavailable_response()
 
 
 @app.get("/health", response_model=ApiResponse)

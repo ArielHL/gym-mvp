@@ -9,13 +9,13 @@ interface ScreenProps extends ScrollViewProps {
 
 export function Screen({ children, scroll = true, ...rest }: ScreenProps) {
   return (
-    <SafeAreaView className="flex-1 bg-slate-950">
+    <SafeAreaView className="flex-1 bg-background">
       {scroll ? (
-        <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 24 }} {...rest}>
+        <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 24 }} {...rest}>
           {children}
         </ScrollView>
       ) : (
-        <View className="flex-1 px-4">{children}</View>
+        <View className="flex-1 px-5">{children}</View>
       )}
     </SafeAreaView>
   );

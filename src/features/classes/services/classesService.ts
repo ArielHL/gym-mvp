@@ -15,6 +15,20 @@ export async function fetchClassesByDate(date: string): Promise<GymClass[]> {
   return (data ?? []) as GymClass[];
 }
 
+export async function fetchClassById(classId: string): Promise<GymClass> {
+  const { data, error } = await supabase
+    .from('classes_feed')
+    .select('*')
+    .eq('id', classId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as GymClass;
+}
+
 type CreateTemplateInput = {
   title: string;
   description: string;

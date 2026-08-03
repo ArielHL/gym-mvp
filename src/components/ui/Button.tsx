@@ -11,9 +11,15 @@ interface ButtonProps {
 }
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-brand-700',
-  secondary: 'bg-slate-700',
+  primary: 'bg-accent-cyan',
+  secondary: 'border border-border bg-surface',
   danger: 'bg-rose-600'
+};
+
+const variantTextClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
+  primary: 'text-black',
+  secondary: 'text-white',
+  danger: 'text-white'
 };
 
 export function Button({ label, onPress, disabled, loading, variant = 'primary', icon }: ButtonProps) {
@@ -25,8 +31,8 @@ export function Button({ label, onPress, disabled, loading, variant = 'primary',
       disabled={isDisabled}
       className={`mt-3 h-12 flex-row items-center justify-center rounded-xl ${variantClasses[variant]} ${isDisabled ? 'opacity-50' : ''}`}
     >
-      {loading ? <ActivityIndicator color="#fff" /> : icon}
-      <Text className="ml-2 text-base font-semibold text-white">{label}</Text>
+      {loading ? <ActivityIndicator color={variant === 'primary' ? '#000' : '#fff'} /> : icon}
+      <Text className={`ml-2 text-base font-semibold ${variantTextClasses[variant]}`}>{label}</Text>
     </Pressable>
   );
 }

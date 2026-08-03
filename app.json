@@ -5,7 +5,7 @@
     "scheme": "gymmobilemvp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
@@ -16,12 +16,19 @@
     },
     "plugins": [
       "expo-apple-authentication",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-web-browser",
+      [
+        "expo-router",
+        {
+          "root": "src/app"
+        }
+      ],
+      "expo-status-bar",
+      "expo-font"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }

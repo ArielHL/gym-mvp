@@ -1,10 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/constants/queryKeys';
-import { fetchClassesByDate } from '../services/classesService';
+import { fetchClassById, fetchClassesByDate } from '../services/classesService';
 
-export function useClasses(date: string) {
+export function useClass(classId?: string) {
+  return useQuery({
+    queryKey: queryKeys.classById(classId ?? ''),
+    queryFn: () => fetchClassById(classId!),
+    enabled: Boolean(classId),
+  });
+}
+
+export function useClasses(date: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.classesByDate(date),
-    queryFn: () => fetchClassesByDate(date)
+    queryFn: () => fetchClassesByDate(date),
+    enabled,
   });
 }

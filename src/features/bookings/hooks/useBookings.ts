@@ -11,8 +11,12 @@ export function useMyBookings() {
   return useQuery({ queryKey: queryKeys.bookings, queryFn: fetchMyBookingsWithClasses });
 }
 
-export function useBookedStatus(classId: string) {
-  return useQuery({ queryKey: ['booked-status', classId], queryFn: () => hasUserBookedClass(classId) });
+export function useBookedStatus(classId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['booked-status', classId],
+    queryFn: () => hasUserBookedClass(classId),
+    enabled
+  });
 }
 
 export function useBookClass() {

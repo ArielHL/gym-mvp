@@ -1,46 +1,399 @@
-import { useMemo, useState } from 'react';
-import { Text } from 'react-native';
-import { Calendar, type DateData } from 'react-native-calendars';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Screen } from '@/components/ui/Screen';
+﻿import { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar,
+  Image,
+  TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import type { GymClass } from '@/types/models';
 import { useClasses } from '@/features/classes/hooks/useClasses';
 import { toDateKey } from '@/utils/date';
-import { ClassCard } from '@/features/classes/components/ClassCard';
-import { EmptyView, ErrorView, LoadingView } from '@/components/feedback/StateViews';
-import type { RootStackParamList } from '@/types/navigation';
+
+const DIFF_COLORS: Record<string, string> = {
+  beginner: '#22D3EE',
+  intermediate: '#F59E0B',
+  advanced: '#A855F7',
+};
+
+const CLASS_IMAGES: Record<string, string> = {
+  default:
+    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=70',
+  strength:
+    'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=400&q=70',
+  cardio:
+    'https://images.unsplash.com/photo-1517963879433-6ad2171073fb?w=400&q=70',
+  yoga: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&q=70',
+  mobility:
+    'https://images.unsplash.com/photo-1599058917765-a780eda07a3e?w=400&q=70',
+};
+
+const FILTERS = ['All', 'Beginner', 'Intermediate', 'Advanced'];
+
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return toDateKey(d);
+}
+
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+interface ClassCardProps {
+  item: GymClass;
+  onPress: () => void;
+}
+
+function ClassCard({ item, onPress }: ClassCardProps) {
+  const full = item.available_spots <= 0;
+  const diffColor = DIFF_COLORS[item.difficulty_level] ?? '#22D3EE';
+  const typeKey = item.exercise_type?.toLowerCase() ?? 'default';
+  const imgUri = CLASS_IMAGES[typeKey] ?? CLASS_IMAGES.default;
+
+  return (
+    <Pressable
+      style={({ pressed }) => [s.card, pressed && { opacity: 0.8 }]}
+      onPress={onPress}
+    >
+      {/* Image */}
+      <View style={s.cardImgWrap}>
+        <Image source={{ uri: imgUri }} style={s.cardImg} resizeMode="cover" />
+        <View style={s.cardImgOverlay} />
+        <View
+          style={[
+            s.diffPill,
+            {
+              backgroundColor: diffColor + '22',
+              borderColor: diffColor + '66',
+            },
+          ]}
+        >
+          <Text style={[s.diffPillText, { color: diffColor }]}>
+            {item.difficulty_level.toUpperCase()}
+          </Text>
+        </View>
+        {full && (
+          <View style={s.fullBanner}>
+            <Text style={s.fullBannerText}>FULL</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Body */}
+      <View style={s.cardBody}>
+        <Text style={s.cardTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={s.cardTrainer}>🏋️ {item.trainer_name}</Text>
+
+        <View style={s.cardMeta}>
+          <View style={s.metaItem}>
+            <Text style={s.metaIcon}>⏱</Text>
+            <Text style={s.metaText}>{item.start_time}</Text>
+          </View>
+          <View style={s.metaItem}>
+            <Text style={s.metaIcon}>📍</Text>
+            <Text style={s.metaText} numberOfLines={1}>
+              {item.location}
+            </Text>
+          </View>
+        </View>
+
+        <View style={s.cardFooter}>
+          <Text style={[s.spotsText, { color: full ? '#555' : diffColor }]}>
+            {full ? 'No spots left' : `${item.available_spots} spots left`}
+          </Text>
+          {!full && (
+            <View style={[s.bookBtn, { backgroundColor: diffColor }]}>
+              <Text style={s.bookBtnText}>Book</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
 
 export function ClassesScreen() {
   const today = useMemo(() => toDateKey(new Date()), []);
-  const [selectedDate, setSelectedDate] = useState(today);
-  const { data, isLoading, isError } = useClasses(selectedDate);
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [date, setDate] = useState(today);
+  const [filter, setFilter] = useState('All');
+  const [search, setSearch] = useState('');
+  const router = useRouter();
+  const { data, isLoading, isError } = useClasses(date);
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    return data.filter((c) => {
+      const matchDiff =
+        filter === 'All' ||
+        c.difficulty_level.toLowerCase() === filter.toLowerCase();
+      const matchSearch =
+        search === '' ||
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.trainer_name.toLowerCase().includes(search.toLowerCase());
+      return matchDiff && matchSearch;
+    });
+  }, [data, filter, search]);
 
   return (
-    <Screen>
-      <Text className="mb-4 mt-4 text-2xl font-bold text-white">Classes Calendar</Text>
-      <Calendar
-        onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
-        markedDates={{ [selectedDate]: { selected: true } }}
-        theme={{
-          calendarBackground: '#0F172A',
-          dayTextColor: '#E2E8F0',
-          monthTextColor: '#E2E8F0',
-          textDisabledColor: '#475569',
-          selectedDayBackgroundColor: '#0E7490'
+    <SafeAreaView style={s.root} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+
+      {/* Header */}
+      <View style={s.header}>
+        <Text style={s.heading}>Classes</Text>
+        <Text style={s.subHeading}>{filtered.length} available</Text>
+      </View>
+
+      {/* Search Bar */}
+      <View style={s.searchWrap}>
+        <Text style={s.searchIcon}>🔍</Text>
+        <TextInput
+          style={s.searchInput}
+          placeholder="Search classes or trainers..."
+          placeholderTextColor="#444"
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+        />
+        {search.length > 0 && (
+          <Pressable onPress={() => setSearch('')}>
+            <Text style={{ color: '#555', fontSize: 16 }}>✕</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Date Nav */}
+      <View style={s.dateRow}>
+        <Pressable
+          style={s.dateArrow}
+          onPress={() => setDate((d) => addDays(d, -1))}
+        >
+          <Text style={s.dateArrowText}>‹</Text>
+        </Pressable>
+        <Pressable style={s.dateCenter} onPress={() => setDate(today)}>
+          <Text style={s.dateText}>{formatDateShort(date)}</Text>
+          {date === today && <Text style={s.todayBadge}>TODAY</Text>}
+        </Pressable>
+        <Pressable
+          style={s.dateArrow}
+          onPress={() => setDate((d) => addDays(d, 1))}
+        >
+          <Text style={s.dateArrowText}>›</Text>
+        </Pressable>
+      </View>
+
+      {/* Difficulty Filter */}
+      <FlatList
+        data={FILTERS}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(f) => f}
+        contentContainerStyle={s.filterList}
+        renderItem={({ item }) => {
+          const active = item === filter;
+          const color =
+            item === 'All'
+              ? '#22D3EE'
+              : (DIFF_COLORS[item.toLowerCase()] ?? '#22D3EE');
+          return (
+            <Pressable
+              style={[
+                s.filterChip,
+                active && { backgroundColor: color, borderColor: color },
+              ]}
+              onPress={() => setFilter(item)}
+            >
+              <Text style={[s.filterChipText, active && { color: '#000' }]}>
+                {item}
+              </Text>
+            </Pressable>
+          );
         }}
       />
 
-      {isLoading && <LoadingView label="Loading classes..." />}
-      {isError && <ErrorView message="Could not load classes." />}
-      {!isLoading && !isError && data?.length === 0 && <EmptyView message="No classes for this day." />}
-      {data?.map((gymClass) => (
-        <ClassCard
-          key={gymClass.id}
-          gymClass={gymClass}
-          onPress={() => navigation.navigate('ClassDetails', { gymClass })}
+      {/* List */}
+      {isLoading ? (
+        <View style={s.center}>
+          <ActivityIndicator size="large" color="#22D3EE" />
+        </View>
+      ) : isError ? (
+        <View style={s.center}>
+          <Text style={s.errorText}>Could not load classes</Text>
+        </View>
+      ) : filtered.length === 0 ? (
+        <View style={s.center}>
+          <Text style={{ fontSize: 40 }}>🤸</Text>
+          <Text style={s.emptyText}>No classes found</Text>
+          <Text style={s.emptySubText}>Try another date or filter</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(i) => i.id}
+          contentContainerStyle={s.list}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <ClassCard
+              item={item}
+              onPress={() =>
+                router.push({
+                  pathname: '/classes/[classId]',
+                  params: { classId: item.id },
+                })
+              }
+            />
+          )}
         />
-      ))}
-    </Screen>
+      )}
+    </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 10,
+  },
+  heading: { color: '#FFF', fontSize: 26, fontWeight: '900' },
+  subHeading: { color: '#444', fontSize: 13 },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginVertical: 10,
+    backgroundColor: '#141414',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  searchIcon: { fontSize: 15, marginRight: 8 },
+  searchInput: { flex: 1, color: '#FFF', fontSize: 14, padding: 0 },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  dateArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#222',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowText: { color: '#888', fontSize: 20 },
+  dateCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  dateText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
+  todayBadge: {
+    backgroundColor: '#22D3EE22',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    color: '#22D3EE',
+    fontSize: 10,
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: '#22D3EE44',
+  },
+  filterList: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    backgroundColor: '#141414',
+  },
+  filterChipText: { color: '#888', fontSize: 13, fontWeight: '600' },
+  list: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  errorText: { color: '#EF4444', fontSize: 14 },
+  emptyText: { color: '#FFF', fontSize: 16, fontWeight: '700', marginTop: 8 },
+  emptySubText: { color: '#555', fontSize: 13 },
+  card: {
+    backgroundColor: '#141414',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  cardImgWrap: { height: 160, position: 'relative' },
+  cardImg: { ...StyleSheet.absoluteFillObject },
+  cardImgOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+    opacity: 0.25,
+  },
+  diffPill: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  diffPillText: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  fullBanner: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#00000088',
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  fullBannerText: {
+    color: '#EF4444',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
+  cardBody: { padding: 16, gap: 6 },
+  cardTitle: { color: '#FFF', fontSize: 16, fontWeight: '800', lineHeight: 22 },
+  cardTrainer: { color: '#777', fontSize: 13 },
+  cardMeta: { flexDirection: 'row', gap: 16, marginTop: 2 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaIcon: { fontSize: 12 },
+  metaText: { color: '#666', fontSize: 12 },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  spotsText: { fontSize: 13, fontWeight: '600' },
+  bookBtn: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 8 },
+  bookBtnText: { color: '#000', fontSize: 12, fontWeight: '800' },
+});
