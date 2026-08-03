@@ -1,6 +1,7 @@
 import "react-native-gesture-handler";
 import "../../global.css";
 import { useEffect, useRef } from "react";
+import { NavigationBar } from "expo-navigation-bar";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -62,6 +63,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
+              <NavigationBar style="dark" />
               <StatusBar style="light" />
               <RootLayoutNav />
             </AuthProvider>

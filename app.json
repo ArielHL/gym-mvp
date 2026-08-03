@@ -25,6 +25,13 @@
         }
       ],
       "expo-status-bar",
+      [
+        "expo-navigation-bar",
+        {
+          "style": "dark",
+          "enforceContrast": false
+        }
+      ],
       "expo-font"
     ],
     "experiments": {

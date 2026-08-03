@@ -18,6 +18,7 @@ export interface GymClass {
   trainer_name: string;
   exercise_type: string;
   duration_minutes: number;
+  day_of_week: number;
   date: string;
   start_time: string;
   end_time: string;
@@ -25,6 +26,8 @@ export interface GymClass {
   available_spots: number;
   difficulty_level: 'beginner' | 'intermediate' | 'advanced';
   location: string;
+  valid_from: string;
+  valid_until: string | null;
   image_url?: string;
   created_at: string;
   updated_at: string;

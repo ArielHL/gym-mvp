@@ -1,5 +1,13 @@
 # AGENTS.md
 
+Keep always the good practise in software development, and follow the guidelines below to ensure consistency and maintainability across the project.
+
+use Context7 to validate to the latest version of each library and framework used in the project. This will help to avoid potential security vulnerabilities and ensure compatibility with the latest features.
+
+
+
+
+
 ## Repo Shape
 - This is an npm-based Expo/React Native app with Expo Router as the real entrypoint: `package.json` uses `expo-router/entry`, and `app.json` sets the router root to `src/app`.
 - `App.tsx` is legacy/stale for the current app path and imports missing `@/navigation/AppNavigator`; prefer `src/app/_layout.tsx` and route files under `src/app/`.

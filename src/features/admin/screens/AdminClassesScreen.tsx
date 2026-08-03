@@ -6,6 +6,9 @@ import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { createClassTemplate } from '@/features/classes/services/classesService';
+import { toDateKey } from '@/utils/date';
+
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const schema = z.object({
   title: z.string().min(2),
@@ -17,7 +20,9 @@ const schema = z.object({
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
   capacity: z.coerce.number().min(1).max(500),
   difficulty_level: z.enum(['beginner', 'intermediate', 'advanced']),
-  location: z.string().min(2)
+  location: z.string().min(2),
+  valid_from: dateSchema,
+  valid_until: z.union([dateSchema, z.literal('')]).optional()
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -40,13 +45,18 @@ export function AdminClassesScreen() {
       start_time: '18:00',
       capacity: 20,
       difficulty_level: 'beginner',
-      location: 'Main Studio'
+      location: 'Main Studio',
+      valid_from: toDateKey(new Date()),
+      valid_until: ''
     }
   });
 
   const onSubmit = async (values: FormValues) => {
     try {
-      await createClassTemplate(values);
+      await createClassTemplate({
+        ...values,
+        valid_until: values.valid_until || null
+      });
       Alert.alert('Created', 'Class template created successfully.');
       reset();
     } catch (error) {
@@ -72,6 +82,8 @@ export function AdminClassesScreen() {
         placeholder="beginner"
       />
       <Input control={control} name="location" label="Location" placeholder="Main Studio" />
+      <Input control={control} name="valid_from" label="Valid From (YYYY-MM-DD)" placeholder="2026-08-01" />
+      <Input control={control} name="valid_until" label="Valid Until (optional YYYY-MM-DD)" placeholder="2026-08-31" />
       <Button label="Create Template" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
     </Screen>
   );

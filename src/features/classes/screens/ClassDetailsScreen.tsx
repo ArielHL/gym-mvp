@@ -10,7 +10,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  useBookClass,
   useBookedStatus,
   useCancelBooking,
 } from '@/features/bookings/hooks/useBookings';
@@ -32,7 +31,6 @@ export function ClassDetailsScreen() {
   const router = useRouter();
   const { data: gymClass, isLoading, isError } = useClass(classId);
   const { user } = useAuthState();
-  const bookMutation = useBookClass();
   const cancelMutation = useCancelBooking();
   const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(
     classId ?? '',
@@ -42,7 +40,7 @@ export function ClassDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root} edges={['bottom']}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#22D3EE" />
           <Text style={styles.mutedText}>Loading class...</Text>
@@ -53,7 +51,7 @@ export function ClassDetailsScreen() {
 
   if (isError || !gymClass) {
     return (
-      <SafeAreaView style={styles.root} edges={['bottom']}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <Text style={styles.errorText}>Could not load this class</Text>
         </View>
@@ -61,25 +59,15 @@ export function ClassDetailsScreen() {
     );
   }
 
-  const onBook = async () => {
-    if (!user) {
-      Alert.alert(
-        'Sign in required',
-        'Please sign in or create an account to book a class.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign In', onPress: () => router.push('/auth') },
-        ],
-      );
-      return;
-    }
-
-    try {
-      const result = await bookMutation.mutateAsync(gymClass.id);
-      Alert.alert('Booked!', result.message);
-    } catch (err) {
-      Alert.alert('Booking failed', (err as Error).message);
-    }
+  const onBook = () => {
+    router.push({
+      pathname: '/bookings/new',
+      params: {
+        classId: gymClass.id,
+        className: gymClass.title,
+        classDate: gymClass.date,
+      },
+    });
   };
 
   const onCancel = async () => {
@@ -101,7 +89,13 @@ export function ClassDetailsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Class Details</Text>
+      </View>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -135,39 +129,37 @@ export function ClassDetailsScreen() {
         {checkingBooking ? (
           <ActivityIndicator style={styles.checkLoader} color="#22D3EE" />
         ) : isBooked ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              styles.btnDanger,
-              (pressed || cancelMutation.isPending) && styles.btnDisabled,
-            ]}
-            onPress={onCancel}
-            disabled={cancelMutation.isPending}
-          >
-            {cancelMutation.isPending ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.btnTextDanger}>Cancel Booking</Text>
-            )}
-          </Pressable>
+          <View style={[styles.btnShell, styles.btnDangerShell]}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.btnPressable,
+                (pressed || cancelMutation.isPending) && styles.btnDisabled,
+              ]}
+              onPress={onCancel}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.btnTextDanger}>Cancel Booking</Text>
+              )}
+            </Pressable>
+          </View>
         ) : (
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              isFull && styles.btnDisabled,
-              pressed && styles.btnDisabled,
-            ]}
-            onPress={onBook}
-            disabled={isFull || bookMutation.isPending}
-          >
-            {bookMutation.isPending ? (
-              <ActivityIndicator color="#000000" />
-            ) : (
+          <View style={styles.btnShell}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.btnPressable,
+                (isFull || pressed) && styles.btnDisabled,
+              ]}
+              onPress={onBook}
+              disabled={isFull}
+            >
               <Text style={styles.btnText}>
                 {isFull ? 'Class Full' : 'Book Class'}
               </Text>
-            )}
-          </Pressable>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -176,6 +168,26 @@ export function ClassDetailsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  backIcon: { color: '#22D3EE', fontSize: 28, lineHeight: 30 },
+  headerTitle: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -185,7 +197,7 @@ const styles = StyleSheet.create({
   },
   mutedText: { color: '#666666', fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
-  scroll: { padding: 20, paddingBottom: 48 },
+  scroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48 },
   title: { fontSize: 28, fontWeight: '900', color: '#ffffff', lineHeight: 34 },
   desc: { fontSize: 15, color: '#666666', marginTop: 8, lineHeight: 22 },
   infoCard: {
@@ -213,15 +225,21 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   checkLoader: { marginTop: 24 },
-  btn: {
-    marginTop: 24,
+  btnShell: {
+    marginTop: 48,
     height: 54,
-    backgroundColor: '#22D3EE',
+    backgroundColor: '#add8e6',
     borderRadius: 12,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDanger: {
+  btnPressable: {
+    // flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnDangerShell: {
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#ef4444',
