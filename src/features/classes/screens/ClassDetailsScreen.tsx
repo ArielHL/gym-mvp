@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnPressable: {
-    flex: 1,
+    // flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
