@@ -1,5 +1,10 @@
-import { Controller, type Control, type FieldValues, type Path } from 'react-hook-form';
-import { Text, TextInput, View } from 'react-native';
+import {
+  Controller,
+  type Control,
+  type FieldValues,
+  type Path,
+} from "react-hook-form";
+import { Text, TextInput, View } from "react-native";
 
 interface InputProps<T extends FieldValues> {
   name: Path<T>;
@@ -7,7 +12,7 @@ interface InputProps<T extends FieldValues> {
   control: Control<T>;
   placeholder?: string;
   secureTextEntry?: boolean;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }
 
 export function Input<T extends FieldValues>({
@@ -16,17 +21,20 @@ export function Input<T extends FieldValues>({
   control,
   placeholder,
   secureTextEntry,
-  autoCapitalize = 'none'
+  autoCapitalize = "none",
 }: InputProps<T>) {
   return (
     <Controller
       control={control}
       name={name}
-      render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
+      render={({
+        field: { onChange, onBlur, value },
+        fieldState: { error },
+      }) => (
         <View className="mb-3">
           <Text className="mb-1 text-sm font-medium text-white">{label}</Text>
           <TextInput
-            value={(value as string) ?? ''}
+            value={value == null ? "" : String(value)}
             onChangeText={onChange}
             onBlur={onBlur}
             placeholder={placeholder}
@@ -35,7 +43,9 @@ export function Input<T extends FieldValues>({
             autoCapitalize={autoCapitalize}
             className="h-12 rounded-xl border border-border bg-surface px-3 text-white"
           />
-          {!!error?.message && <Text className="mt-1 text-xs text-rose-400">{error.message}</Text>}
+          {!!error?.message && (
+            <Text className="mt-1 text-xs text-rose-400">{error.message}</Text>
+          )}
         </View>
       )}
     />
