@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from functools import lru_cache
 import logging
 from typing import Any, AsyncIterator
 
 import asyncpg
-import httpx
+import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -75,33 +76,16 @@ def _database_unavailable_response():
     )
 
 
-async def _read_user_id_from_token(token: str, settings: Settings) -> str:
-    auth_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/user"
+@lru_cache
+def _get_jwks_client(supabase_url: str) -> PyJWKClient:
+    jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    return PyJWKClient(jwks_url)
 
+
+def _read_user_id_from_token(token: str, settings: Settings) -> str:
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                auth_url,
-                headers={
-                    "apikey": settings.supabase_anon_key,
-                    "Authorization": f"Bearer {token}",
-                },
-            )
-    except httpx.RequestError as exc:
-        logger.warning("Supabase Auth verification request failed: %s", exc)
-        raise _unauthorized("invalid token") from exc
-
-    if response.status_code != status.HTTP_200_OK:
-        logger.warning(
-            "Supabase Auth rejected token with status %d",
-            response.status_code,
-        )
-        raise _unauthorized("invalid token")
-
-    try:
-        payload: dict[str, Any] = response.json()
-    except ValueError as exc:
-        logger.warning("Supabase Auth returned invalid JSON")
+        payload: dict[str, Any] = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
+    except jwt.InvalidTokenError as exc:
         raise _unauthorized("invalid token") from exc
 
     user_id = payload.get("id")

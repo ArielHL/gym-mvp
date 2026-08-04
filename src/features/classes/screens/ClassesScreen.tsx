@@ -222,17 +222,8 @@ export function ClassesScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <Pressable style={s.backBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color="#22D3EE"
-          />
-        </Pressable>
-        <View>
-          <Text style={s.heading}>Classes</Text>
-          <Text style={s.subHeading}>{filtered.length} available</Text>
-        </View>
+        <Text style={s.heading}>Classes</Text>
+        <Text style={s.subHeading}>{filtered.length} available</Text>
       </View>
 
       {/* Search Bar */}
@@ -372,18 +363,8 @@ const s = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "baseline",
     gap: 10,
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#141414",
-    borderWidth: 1,
-    borderColor: "#222222",
-    alignItems: "center",
-    justifyContent: "center",
   },
   heading: { color: "#FFF", fontSize: 26, fontWeight: "900" },
   subHeading: { color: "#444", fontSize: 13 },
