@@ -98,6 +98,14 @@ export function MyBookingsScreen() {
                   <Text style={styles.cardTrainer}>
                     {item.gymClass.trainer_name}
                   </Text>
+                  <Text style={styles.cardLocation}>
+                    {item.booking.location_name ?? item.gymClass.location}
+                  </Text>
+                  {item.booking.location_address ? (
+                    <Text style={styles.cardLocationAddress}>
+                      {item.booking.location_address}
+                    </Text>
+                  ) : null}
                 </View>
                 <Text style={styles.cardTime}>
                   {prettyDateTime(
@@ -169,6 +177,8 @@ const styles = StyleSheet.create({
   cardTitleWrap: { flex: 1 },
   cardTitle: { fontSize: 17, fontWeight: "800", color: "#ffffff" },
   cardTrainer: { fontSize: 13, color: "#777777", marginTop: 4 },
+  cardLocation: { fontSize: 13, color: "#22D3EE", marginTop: 8 },
+  cardLocationAddress: { fontSize: 12, color: "#555555", marginTop: 2 },
   cardTime: {
     color: "#9CA3AF",
     flexShrink: 1,

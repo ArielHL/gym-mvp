@@ -187,6 +187,28 @@ export function ProfileScreen() {
                 s.menuItem,
                 pressed && { backgroundColor: "#1A1A1A" },
               ]}
+              onPress={() => router.push("/admin/locations" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>📍</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Manage Locations</Text>
+                    <Text style={s.menuSub}>
+                      Add, edit, deactivate, and reactivate gym locations
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
               onPress={() => router.push("/admin/settings" as never)}
             >
               <View style={s.menuItemContent}>

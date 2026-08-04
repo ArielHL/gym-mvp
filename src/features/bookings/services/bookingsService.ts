@@ -1,30 +1,35 @@
-import { env } from '@/lib/env';
-import { supabase } from '@/services/supabase/client';
-import type { Booking, CallableResponse, GymClass } from '@/types/models';
+import { env } from "@/lib/env";
+import { supabase } from "@/services/supabase/client";
+import type { Booking, CallableResponse, GymClass } from "@/types/models";
+
+export type BookClassInput = {
+  classId: string;
+  locationId: string;
+};
 
 async function getBearerToken(): Promise<string> {
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.access_token) {
-    throw error ?? new Error('No active session token found.');
+    throw error ?? new Error("No active session token found.");
   }
 
   return data.session.access_token;
 }
 
-export async function bookClass(classId: string) {
+export async function bookClass({ classId, locationId }: BookClassInput) {
   const token = await getBearerToken();
   const response = await fetch(`${env.apiBaseUrl}/bookings`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ session_id: classId })
+    body: JSON.stringify({ session_id: classId, location_id: locationId }),
   });
 
   const payload = (await response.json()) as CallableResponse;
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || 'Booking request failed.');
+    throw new Error(payload.message || "Booking request failed.");
   }
 
   return payload;
@@ -33,25 +38,27 @@ export async function bookClass(classId: string) {
 export async function cancelBooking(classId: string) {
   const token = await getBearerToken();
   const response = await fetch(`${env.apiBaseUrl}/bookings/cancel`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ session_id: classId })
+    body: JSON.stringify({ session_id: classId }),
   });
 
   const payload = (await response.json()) as CallableResponse;
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || 'Cancellation request failed.');
+    throw new Error(payload.message || "Cancellation request failed.");
   }
 
   return payload;
 }
 
-export async function fetchMyBookingsWithClasses(): Promise<Array<{ booking: Booking; gymClass: GymClass }>> {
+export async function fetchMyBookingsWithClasses(): Promise<
+  Array<{ booking: Booking; gymClass: GymClass }>
+> {
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -59,12 +66,12 @@ export async function fetchMyBookingsWithClasses(): Promise<Array<{ booking: Boo
   }
 
   const { data, error } = await supabase
-    .from('bookings_feed')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'confirmed')
-    .order('date', { ascending: true })
-    .order('start_time', { ascending: true });
+    .from("bookings_feed")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("status", "confirmed")
+    .order("date", { ascending: true })
+    .order("start_time", { ascending: true });
 
   if (error) {
     throw error;
@@ -75,9 +82,12 @@ export async function fetchMyBookingsWithClasses(): Promise<Array<{ booking: Boo
       id: row.booking_id,
       user_id: row.user_id,
       class_id: row.class_id,
-      status: 'booked',
+      location_id: row.location_id,
+      location_name: row.booking_location,
+      location_address: row.booking_location_address,
+      status: "booked",
       created_at: row.booked_at,
-      updated_at: row.booked_at
+      updated_at: row.booked_at,
     },
     gymClass: {
       id: row.class_id,
@@ -97,14 +107,14 @@ export async function fetchMyBookingsWithClasses(): Promise<Array<{ booking: Boo
       valid_from: row.valid_from,
       valid_until: row.valid_until,
       created_at: row.created_at,
-      updated_at: row.updated_at
-    }
+      updated_at: row.updated_at,
+    },
   }));
 }
 
 export async function hasUserBookedClass(classId: string): Promise<boolean> {
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -112,11 +122,11 @@ export async function hasUserBookedClass(classId: string): Promise<boolean> {
   }
 
   const { data, error } = await supabase
-    .from('bookings')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('session_id', classId)
-    .eq('status', 'confirmed')
+    .from("bookings")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("session_id", classId)
+    .eq("status", "confirmed")
     .maybeSingle();
 
   if (error) {

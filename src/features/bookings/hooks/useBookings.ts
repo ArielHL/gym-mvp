@@ -1,32 +1,36 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/constants/queryKeys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/constants/queryKeys";
 import {
+  type BookClassInput,
   bookClass,
   cancelBooking,
   fetchMyBookingsWithClasses,
-  hasUserBookedClass
-} from '../services/bookingsService';
+  hasUserBookedClass,
+} from "../services/bookingsService";
 
 export function useMyBookings() {
-  return useQuery({ queryKey: queryKeys.bookings, queryFn: fetchMyBookingsWithClasses });
+  return useQuery({
+    queryKey: queryKeys.bookings,
+    queryFn: fetchMyBookingsWithClasses,
+  });
 }
 
 export function useBookedStatus(classId: string, enabled = true) {
   return useQuery({
-    queryKey: ['booked-status', classId],
+    queryKey: ["booked-status", classId],
     queryFn: () => hasUserBookedClass(classId),
-    enabled
+    enabled,
   });
 }
 
 export function useBookClass() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (classId: string) => bookClass(classId),
+    mutationFn: (input: BookClassInput) => bookClass(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings });
       queryClient.invalidateQueries({ queryKey: queryKeys.classes });
-    }
+    },
   });
 }
 
@@ -37,6 +41,6 @@ export function useCancelBooking() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings });
       queryClient.invalidateQueries({ queryKey: queryKeys.classes });
-    }
+    },
   });
 }
