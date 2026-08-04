@@ -1,5 +1,7 @@
+import '@/polyfills/webCrypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
+import { createClient, processLock } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
 
 const fallbackSupabaseUrl = 'https://placeholder.supabase.co';
@@ -15,9 +17,21 @@ if (!env.supabaseUrl || !env.supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    ...(Platform.OS !== 'web' ? { storage: AsyncStorage } : {}),
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false
+    detectSessionInUrl: false,
+    flowType: 'pkce',
+    lock: processLock
   }
 });
+
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}

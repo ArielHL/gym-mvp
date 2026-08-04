@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { makeRedirectUri } from 'expo-auth-session';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
 import type { Provider } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
@@ -54,7 +55,17 @@ async function signInWithOAuth(provider: Provider) {
     throw new Error('OAuth login was cancelled.');
   }
 
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url);
+  const { params, errorCode } = QueryParams.getQueryParams(result.url);
+  if (errorCode) {
+    throw mapOAuthError(errorCode);
+  }
+
+  const code = params.code;
+  if (!code) {
+    throw new Error('OAuth login did not return an authorization code.');
+  }
+
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
   if (exchangeError) {
     throw mapOAuthError(exchangeError);
   }

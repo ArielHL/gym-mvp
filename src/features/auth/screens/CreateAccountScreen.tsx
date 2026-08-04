@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButtons';
 import { authService } from '@/features/auth/services/authService';
 
 const KeyboardWrapper = Platform.OS === 'ios'
@@ -157,6 +158,14 @@ export function CreateAccountScreen() {
               )}
             </Pressable>
           </View>
+
+          <View className="my-6 flex-row items-center gap-3">
+            <View className="h-px flex-1 bg-border" />
+            <Text className="text-xs font-bold uppercase tracking-[2px] text-muted">or</Text>
+            <View className="h-px flex-1 bg-border" />
+          </View>
+
+          <SocialLoginButtons disabled={loading} />
 
           <Pressable className="mt-7 items-center" onPress={() => router.push('/auth')}>
             <Text className="text-sm text-muted">
