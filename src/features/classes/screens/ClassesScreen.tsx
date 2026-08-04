@@ -9,17 +9,11 @@ import {
   StatusBar,
   Image,
   TextInput,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { GymClass } from "@/types/models";
-import {
-  useCancelBooking,
-  useMyBookings,
-} from "@/features/bookings/hooks/useBookings";
-import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useClasses } from "@/features/classes/hooks/useClasses";
 
 const DIFF_COLORS: Record<string, string> = {
@@ -63,26 +57,15 @@ function formatDateShort(dateStr: string): string {
 
 interface ClassCardProps {
   item: GymClass;
-  isBooked: boolean;
-  isActionDisabled: boolean;
   onPress: () => void;
   onBookPress: () => void;
-  onCancelPress: () => void;
 }
 
-function ClassCard({
-  item,
-  isBooked,
-  isActionDisabled,
-  onPress,
-  onBookPress,
-  onCancelPress,
-}: ClassCardProps) {
+function ClassCard({ item, onPress, onBookPress }: ClassCardProps) {
   const full = item.available_spots <= 0;
   const diffColor = DIFF_COLORS[item.difficulty_level] ?? "#22D3EE";
   const typeKey = item.exercise_type?.toLowerCase() ?? "default";
   const imgUri = CLASS_IMAGES[typeKey] ?? CLASS_IMAGES.default;
-  const showAction = isBooked || !full;
 
   return (
     <Pressable
@@ -141,27 +124,19 @@ function ClassCard({
           <Text style={[s.spotsText, { color: full ? "#555" : diffColor }]}>
             {full ? "No spots left" : `${item.available_spots} spots left`}
           </Text>
-          {showAction && (
-            <View style={[s.bookBtn, isBooked && s.cancelBtn]}>
+          {!full && (
+            <View style={s.bookBtn}>
               <Pressable
                 style={({ pressed }) => [
                   s.bookBtnPressable,
-                  (pressed || isActionDisabled) && { opacity: 0.65 },
+                  pressed && { opacity: 0.85 },
                 ]}
-                disabled={isActionDisabled}
                 onPress={(event) => {
                   event.stopPropagation();
-                  if (isBooked) {
-                    onCancelPress();
-                    return;
-                  }
-
                   onBookPress();
                 }}
               >
-                <Text style={[s.bookBtnText, isBooked && s.cancelBtnText]}>
-                  {isBooked ? "Cancel" : "Book"}
-                </Text>
+                <Text style={s.bookBtnText}>Book</Text>
               </Pressable>
             </View>
           )}
@@ -176,14 +151,7 @@ export function ClassesScreen() {
   const [dayFilter, setDayFilter] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const router = useRouter();
-  const { user } = useAuthState();
   const { data, isLoading, isError } = useClasses();
-  const { data: bookings, isLoading: isLoadingBookings } = useMyBookings();
-  const cancelMutation = useCancelBooking();
-
-  const bookedClassIds = useMemo(() => {
-    return new Set((bookings ?? []).map((booking) => booking.gymClass.id));
-  }, [bookings]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -198,24 +166,6 @@ export function ClassesScreen() {
     });
   }, [data, dayFilter, filter, search]);
 
-  const onCancelBooking = (gymClass: GymClass) => {
-    Alert.alert("Cancel booking", "Remove this class from your bookings?", [
-      { text: "Keep it", style: "cancel" },
-      {
-        text: "Cancel booking",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const result = await cancelMutation.mutateAsync(gymClass.id);
-            Alert.alert("Cancelled", result.message);
-          } catch (err) {
-            Alert.alert("Error", (err as Error).message);
-          }
-        },
-      },
-    ]);
-  };
-
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
@@ -223,9 +173,13 @@ export function ClassesScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable style={s.backBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="chevron-left" size={26} color="#FFF" />
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={28}
+            color="#22D3EE"
+          />
         </Pressable>
-        <View>
+        <View style={s.headerText}>
           <Text style={s.heading}>Classes</Text>
           <Text style={s.subHeading}>{filtered.length} available</Text>
         </View>
@@ -332,10 +286,6 @@ export function ClassesScreen() {
           renderItem={({ item }) => (
             <ClassCard
               item={item}
-              isBooked={bookedClassIds.has(item.id)}
-              isActionDisabled={
-                cancelMutation.isPending || Boolean(user && isLoadingBookings)
-              }
               onPress={() =>
                 router.push({
                   pathname: "/classes/[classId]",
@@ -352,7 +302,6 @@ export function ClassesScreen() {
                   },
                 })
               }
-              onCancelPress={() => onCancelBooking(item)}
             />
           )}
         />
@@ -369,18 +318,19 @@ const s = StyleSheet.create({
     paddingBottom: 4,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "#141414",
     borderWidth: 1,
-    borderColor: "#222",
+    borderColor: "#222222",
     alignItems: "center",
     justifyContent: "center",
   },
+  headerText: { flexDirection: "row", alignItems: "baseline", gap: 10 },
   heading: { color: "#FFF", fontSize: 26, fontWeight: "900" },
   subHeading: { color: "#444", fontSize: 13 },
   searchWrap: {
@@ -428,18 +378,13 @@ const s = StyleSheet.create({
     backgroundColor: "#141414",
     borderRadius: 16,
     overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "#3F5661",
-    shadowColor: "#22D3EE",
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#1E1E1E",
   },
   cardImgWrap: { height: 50, position: "relative" },
-  cardImg: { ...StyleSheet.absoluteFill },
+  cardImg: { ...StyleSheet.absoluteFillObject },
   cardImgOverlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
     opacity: 0.25,
   },
@@ -493,10 +438,6 @@ const s = StyleSheet.create({
     backgroundColor: "#0A0A0A",
     overflow: "hidden",
   },
-  cancelBtn: {
-    borderColor: "#EF444455",
-    backgroundColor: "#EF444411",
-  },
   bookBtnPressable: {
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -510,5 +451,4 @@ const s = StyleSheet.create({
     letterSpacing: 1,
     textAlign: "center",
   },
-  cancelBtnText: { color: "#f87171" },
 });

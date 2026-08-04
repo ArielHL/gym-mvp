@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Calendar } from "react-native-calendars";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Calendar } from "react-native-calendars";
 import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
 import { useClasses } from "@/features/classes/hooks/useClasses";
 import { useBookClass } from "@/features/bookings/hooks/useBookings";
@@ -121,7 +121,11 @@ export function BookClassScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable style={s.backBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="chevron-left" size={26} color="#FFF" />
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={28}
+            color="#22D3EE"
+          />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={s.heading}>{className || "Book a Class"}</Text>
@@ -334,7 +338,7 @@ export function BookClassScreen() {
           disabled={bookMutation.isPending}
         >
           {bookMutation.isPending ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color="#000" />
           ) : (
             <Text style={s.bookBtnText}>
               {selectedClassId ? "Confirm Booking →" : "Select a class first"}
@@ -356,12 +360,12 @@ const s = StyleSheet.create({
     gap: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "#141414",
     borderWidth: 1,
-    borderColor: "#222",
+    borderColor: "#222222",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -502,5 +506,5 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   bookBtnDisabled: { backgroundColor: "#1A1A1A" },
-  bookBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  bookBtnText: { color: "#000", fontSize: 16, fontWeight: "800" },
 });

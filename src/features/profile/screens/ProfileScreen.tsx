@@ -151,17 +151,62 @@ export function ProfileScreen() {
           </Pressable>
         </View>
 
+        {role === "admin" && (
+          <View style={s.menuSection}>
+            <Text style={s.menuSectionTitle}>Admin</Text>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
+              onPress={() => router.push("/admin/classes" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>🏗️</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Manage Classes</Text>
+                    <Text style={s.menuSub}>
+                      Create, edit, deactivate, and reactivate classes
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
+              onPress={() => router.push("/admin/settings" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>⚙️</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Class Settings</Text>
+                    <Text style={s.menuSub}>
+                      Set how many weeks ahead sessions are generated
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
+
         {/* Menu items */}
         <View style={s.menuSection}>
           <Text style={s.menuSectionTitle}>Account</Text>
           {MENU_ITEMS.map((item, i) => (
             <Pressable
               key={item.id}
-              onPress={() => {
-                if (item.id === "history") {
-                  router.push("/bookings");
-                }
-              }}
               style={({ pressed }) => [
                 s.menuItem,
                 i === 0 && s.menuItemFirst,
@@ -404,3 +449,4 @@ const s = StyleSheet.create({
   logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "700" },
   version: { color: "#333", fontSize: 12, textAlign: "center", marginTop: 20 },
 });
+
