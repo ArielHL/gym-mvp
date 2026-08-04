@@ -1,0 +1,63 @@
+# Dependencies and local Expo state
+node_modules/
+.expo/
+dist/
+coverage/
+
+# Local/editor/tooling
+.vscode/
+.idea/
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env and secrets
+.env
+.env.*
+backend/.env
+*.pem
+*.key
+*.p12
+*.mobileprovision
+
+# Agent/tool folders
+.agents/
+.claude/
+.kiro/
+
+# Python backend: deployed separately, not needed for Expo app build
+backend/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Firebase functions package: separate package, not needed for Expo app build
+functions/
+firebase.json
+.firebaserc
+
+# Supabase local/dev files: remote Supabase is used at runtime
+supabase/
+seed/
+
+# Generated Expo/native artifacts
+expo-env.d.ts
+android/app/debug.keystore
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/
+android/.cxx/
+
+# Optional: ignore native folders for cloud EAS managed/prebuild builds
+# Keep these ignored if EAS should regenerate native projects.
+android/
+ios/
