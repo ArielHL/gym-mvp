@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { GymClass } from "@/types/models";
 import { useClasses } from "@/features/classes/hooks/useClasses";
 
@@ -171,8 +172,13 @@ export function ClassesScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.heading}>Classes</Text>
-        <Text style={s.subHeading}>{filtered.length} available</Text>
+        <Pressable style={s.backBtn} onPress={() => router.back()}>
+          <MaterialCommunityIcons name="chevron-left" size={26} color="#FFF" />
+        </Pressable>
+        <View>
+          <Text style={s.heading}>Classes</Text>
+          <Text style={s.subHeading}>{filtered.length} available</Text>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -307,8 +313,18 @@ const s = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     gap: 10,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#141414",
+    borderWidth: 1,
+    borderColor: "#222",
+    alignItems: "center",
+    justifyContent: "center",
   },
   heading: { color: "#FFF", fontSize: 26, fontWeight: "900" },
   subHeading: { color: "#444", fontSize: 13 },
