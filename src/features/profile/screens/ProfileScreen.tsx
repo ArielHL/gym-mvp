@@ -7,9 +7,11 @@
   Text,
   View,
 } from "react-native";
+import { useMemo } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { authService } from "@/features/auth/services/authService";
+import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useRouter } from "expo-router";
 
 const MENU_ITEMS = [
@@ -61,7 +63,53 @@ function Avatar({ name }: { name: string }) {
 
 export function ProfileScreen() {
   const { user, role, displayName } = useAuthState();
+  const { data: bookings } = useMyBookings();
   const router = useRouter();
+
+  const bookingStats = useMemo(() => {
+    const bookedClasses = bookings ?? [];
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const bookedDateKeys = Array.from(
+      new Set(
+        bookedClasses
+          .map((item) => item.gymClass.date)
+          .filter((date): date is string => /^\d{4}-\d{2}-\d{2}$/.test(date)),
+      ),
+    ).sort((a, b) => b.localeCompare(a));
+
+    let dayStreak = 0;
+    if (bookedDateKeys.length > 0) {
+      const bookedDateSet = new Set(bookedDateKeys);
+      const cursor = new Date(`${bookedDateKeys[0]}T00:00:00Z`);
+
+      while (bookedDateSet.has(cursor.toISOString().slice(0, 10))) {
+        dayStreak += 1;
+        cursor.setUTCDate(cursor.getUTCDate() - 1);
+      }
+    }
+
+    return [
+      {
+        label: "Classes\nBooked",
+        val: String(bookedClasses.length),
+        color: "#22D3EE",
+      },
+      {
+        label: "This\nMonth",
+        val: String(
+          bookedClasses.filter((item) =>
+            item.gymClass.date.startsWith(currentMonth),
+          ).length,
+        ),
+        color: "#A855F7",
+      },
+      {
+        label: "Day\nStreak",
+        val: dayStreak > 0 ? `${dayStreak}🔥` : "0",
+        color: "#F59E0B",
+      },
+    ];
+  }, [bookings]);
 
   const onMenuItemPress = (itemId: string) => {
     if (itemId === "history") {
@@ -134,11 +182,7 @@ export function ProfileScreen() {
 
         {/* Stats row */}
         <View style={s.statsRow}>
-          {[
-            { label: "Classes\nBooked", val: "24", color: "#22D3EE" },
-            { label: "This\nMonth", val: "6", color: "#A855F7" },
-            { label: "Day\nStreak", val: "7🔥", color: "#F59E0B" },
-          ].map((st, i) => (
+          {bookingStats.map((st, i) => (
             <View key={i} style={s.statCard}>
               <Text style={[s.statVal, { color: st.color }]}>{st.val}</Text>
               <Text style={s.statLabel}>{st.label}</Text>

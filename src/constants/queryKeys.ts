@@ -7,5 +7,6 @@ export const queryKeys = {
   activeLocations: ["locations", "active"] as const,
   adminSettings: ["admin", "settings"] as const,
   bookings: ["bookings"] as const,
+  allBookings: ["bookings", "all"] as const,
   me: ["me"] as const,
 };

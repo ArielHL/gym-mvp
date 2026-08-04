@@ -4,6 +4,7 @@ import {
   type BookClassInput,
   bookClass,
   cancelBooking,
+  fetchAllBookingsWithClasses,
   fetchMyBookingsWithClasses,
   hasUserBookedClass,
 } from "../services/bookingsService";
@@ -12,6 +13,13 @@ export function useMyBookings() {
   return useQuery({
     queryKey: queryKeys.bookings,
     queryFn: fetchMyBookingsWithClasses,
+  });
+}
+
+export function useAllBookings() {
+  return useQuery({
+    queryKey: queryKeys.allBookings,
+    queryFn: fetchAllBookingsWithClasses,
   });
 }
 
@@ -29,6 +37,7 @@ export function useBookClass() {
     mutationFn: (input: BookClassInput) => bookClass(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allBookings });
       queryClient.invalidateQueries({ queryKey: queryKeys.classes });
     },
   });
@@ -40,6 +49,7 @@ export function useCancelBooking() {
     mutationFn: (classId: string) => cancelBooking(classId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allBookings });
       queryClient.invalidateQueries({ queryKey: queryKeys.classes });
     },
   });
