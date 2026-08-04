@@ -25,9 +25,16 @@ use Context7 to validate to the latest version of each library and framework use
 
 ## Environment And Data
 - Root Expo env keys are `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and optional `EXPO_PUBLIC_API_BASE_URL` defaulting to `http://localhost:8080`.
-- Backend env keys are `DATABASE_URL`, optional `DATABASE_URL_FALLBACK`, and `SUPABASE_JWT_SECRET`; backend settings load from its working-directory `.env`.
+- Backend env keys are `DATABASE_URL`, optional `DATABASE_URL_FALLBACK`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY`; legacy `SUPABASE_JWT_SECRET` may exist but is not used for auth validation. Backend settings load from its working-directory `.env`.
 - Supabase schema is in `supabase/migrations/20260312_001_init.sql`; mobile code expects `classes_feed` and `bookings_feed` views plus `class_sessions`/`bookings` tables.
 - Google OAuth redirect scheme is `gymmobilemvp://auth/callback` from `app.json` and auth service usage.
+
+## Backend Auth
+- Mobile auth is owned by Supabase; the Expo app sends the Supabase access token to FastAPI as `Authorization: Bearer <token>` for protected booking/cancel writes.
+- FastAPI validates protected requests by calling Supabase Auth `/auth/v1/user` with `SUPABASE_URL` and `SUPABASE_ANON_KEY`, then uses the returned user `id` as the trusted identity.
+- Do not accept `user_id` from mobile request bodies.
+- Do not manually decode Supabase access tokens with `SUPABASE_JWT_SECRET`; projects may use asymmetric signing algorithms/JWKS and key rotation.
+- Log token validation failures without logging raw tokens.
 
 ## Verification Gotchas
 - There is no test script in the root package or `functions/` package.

@@ -6,7 +6,6 @@ from typing import Any, AsyncIterator
 
 import asyncpg
 import jwt
-from jwt import PyJWKClient
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -85,31 +84,11 @@ def _get_jwks_client(supabase_url: str) -> PyJWKClient:
 
 def _read_user_id_from_token(token: str, settings: Settings) -> str:
     try:
-        header = jwt.get_unverified_header(token)
-        algorithm = header.get("alg")
-
-        if algorithm == "HS256":
-            payload: dict[str, Any] = jwt.decode(
-                token,
-                settings.supabase_jwt_secret,
-                algorithms=["HS256"],
-                audience=settings.supabase_jwt_audience,
-            )
-        else:
-            if not settings.supabase_url:
-                raise jwt.InvalidTokenError("SUPABASE_URL is required for asymmetric JWT verification")
-
-            signing_key = _get_jwks_client(settings.supabase_url).get_signing_key_from_jwt(token)
-            payload = jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256", "ES256"],
-                audience=settings.supabase_jwt_audience,
-            )
-    except jwt.PyJWTError as exc:
+        payload: dict[str, Any] = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
+    except jwt.InvalidTokenError as exc:
         raise _unauthorized("invalid token") from exc
 
-    user_id = payload.get("sub")
+    user_id = payload.get("id")
     if not isinstance(user_id, str) or not user_id:
         raise _unauthorized("invalid token")
 
@@ -130,7 +109,7 @@ async def get_user_id(
     if not token:
         raise _unauthorized("invalid bearer token")
 
-    return _read_user_id_from_token(token, settings)
+    return await _read_user_id_from_token(token, settings)
 
 
 @app.exception_handler(HTTPException)

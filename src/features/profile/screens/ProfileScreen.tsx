@@ -63,6 +63,12 @@ export function ProfileScreen() {
   const { user, role, displayName } = useAuthState();
   const router = useRouter();
 
+  const onMenuItemPress = (itemId: string) => {
+    if (itemId === "history") {
+      router.push("/bookings" as never);
+    }
+  };
+
   const onLogout = () => {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
@@ -213,6 +219,7 @@ export function ProfileScreen() {
                 i === MENU_ITEMS.length - 1 && s.menuItemLast,
                 pressed && { backgroundColor: "#1A1A1A" },
               ]}
+              onPress={() => onMenuItemPress(item.id)}
             >
               <View style={s.menuItemContent}>
                 <View style={s.menuItemLeft}>
