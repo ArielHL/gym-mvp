@@ -557,7 +557,7 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    paddingBottom: 32,
+    paddingBottom: 20,
     backgroundColor: "#0A0A0A",
     borderTopWidth: 1,
     borderTopColor: "#1A1A1A",
