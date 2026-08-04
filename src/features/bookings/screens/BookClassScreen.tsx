@@ -333,7 +333,7 @@ export function BookClassScreen() {
           disabled={bookMutation.isPending}
         >
           {bookMutation.isPending ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color="#FFF" />
           ) : (
             <Text style={s.bookBtnText}>
               {selectedClassId ? 'Confirm Booking →' : 'Select a class first'}
@@ -502,5 +502,5 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   bookBtnDisabled: { backgroundColor: '#1A1A1A' },
-  bookBtnText: { color: '#000', fontSize: 16, fontWeight: '800' },
+  bookBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
 });

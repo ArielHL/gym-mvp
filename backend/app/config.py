@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +8,9 @@ class Settings(BaseSettings):
     port: int = Field(default=8080, validation_alias="PORT")
     database_url: str = Field(validation_alias="DATABASE_URL")
     database_url_fallback: str | None = Field(default=None, validation_alias="DATABASE_URL_FALLBACK")
-    supabase_jwt_secret: str = Field(validation_alias="SUPABASE_JWT_SECRET")
+    supabase_url: str = Field(validation_alias=AliasChoices("SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_URL"))
+    supabase_anon_key: str = Field(validation_alias=AliasChoices("SUPABASE_ANON_KEY", "EXPO_PUBLIC_SUPABASE_ANON_KEY"))
+    supabase_jwt_secret: str | None = Field(default=None, validation_alias="SUPABASE_JWT_SECRET")
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, populate_by_name=True)
 

@@ -4,7 +4,7 @@ import logging
 from typing import Any, AsyncIterator
 
 import asyncpg
-import jwt
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -75,13 +75,36 @@ def _database_unavailable_response():
     )
 
 
-def _read_user_id_from_token(token: str, settings: Settings) -> str:
+async def _read_user_id_from_token(token: str, settings: Settings) -> str:
+    auth_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/user"
+
     try:
-        payload: dict[str, Any] = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
-    except jwt.InvalidTokenError as exc:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                auth_url,
+                headers={
+                    "apikey": settings.supabase_anon_key,
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+    except httpx.RequestError as exc:
+        logger.warning("Supabase Auth verification request failed: %s", exc)
         raise _unauthorized("invalid token") from exc
 
-    user_id = payload.get("sub")
+    if response.status_code != status.HTTP_200_OK:
+        logger.warning(
+            "Supabase Auth rejected token with status %d",
+            response.status_code,
+        )
+        raise _unauthorized("invalid token")
+
+    try:
+        payload: dict[str, Any] = response.json()
+    except ValueError as exc:
+        logger.warning("Supabase Auth returned invalid JSON")
+        raise _unauthorized("invalid token") from exc
+
+    user_id = payload.get("id")
     if not isinstance(user_id, str) or not user_id:
         raise _unauthorized("invalid token")
 
@@ -102,7 +125,7 @@ async def get_user_id(
     if not token:
         raise _unauthorized("invalid bearer token")
 
-    return _read_user_id_from_token(token, settings)
+    return await _read_user_id_from_token(token, settings)
 
 
 @app.exception_handler(HTTPException)

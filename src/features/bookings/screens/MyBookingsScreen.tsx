@@ -9,12 +9,13 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMyBookings } from '@/features/bookings/hooks/useBookings';
+import { useCancelBooking, useMyBookings } from '@/features/bookings/hooks/useBookings';
 import { authService } from '@/features/auth/services/authService';
 import { prettyDateTime } from '@/utils/date';
 
 export function MyBookingsScreen() {
   const { data, isLoading, isError } = useMyBookings();
+  const cancelMutation = useCancelBooking();
 
   const onLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -26,6 +27,24 @@ export function MyBookingsScreen() {
           try {
             await authService.logout();
             // Auth state change drives navigation back to Landing automatically
+          } catch (err) {
+            Alert.alert('Error', (err as Error).message);
+          }
+        },
+      },
+    ]);
+  };
+
+  const onCancelBooking = (classId: string) => {
+    Alert.alert('Cancel booking', 'Remove this class from your bookings?', [
+      { text: 'Keep it', style: 'cancel' },
+      {
+        text: 'Cancel booking',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const result = await cancelMutation.mutateAsync(classId);
+            Alert.alert('Cancelled', result.message);
           } catch (err) {
             Alert.alert('Error', (err as Error).message);
           }
@@ -82,8 +101,20 @@ export function MyBookingsScreen() {
               <Text style={styles.cardTime}>
                 {prettyDateTime(item.gymClass.date, item.gymClass.start_time, item.gymClass.end_time)}
               </Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>BOOKED</Text>
+              <View style={styles.cardFooter}>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>BOOKED</Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.cancelBtn,
+                    (pressed || cancelMutation.isPending) && { opacity: 0.65 },
+                  ]}
+                  onPress={() => onCancelBooking(item.gymClass.id)}
+                  disabled={cancelMutation.isPending}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </Pressable>
               </View>
             </View>
           )}
@@ -125,8 +156,13 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 17, fontWeight: '700', color: '#ffffff' },
   cardTrainer: { fontSize: 13, color: '#777777', marginTop: 4 },
   cardTime: { fontSize: 13, color: '#555555', marginTop: 4 },
-  statusBadge: {
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 10,
+  },
+  statusBadge: {
     alignSelf: 'flex-start',
     backgroundColor: '#052e16',
     borderRadius: 6,
@@ -134,6 +170,15 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   statusText: { fontSize: 10, fontWeight: '700', color: '#34d399', letterSpacing: 1 },
+  cancelBtn: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EF444455',
+    backgroundColor: '#EF444411',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  cancelBtnText: { color: '#f87171', fontSize: 12, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   errorText: { color: '#f87171', fontSize: 15 },
   emptyText: { color: '#555555', fontSize: 15, fontWeight: '600' },

@@ -157,6 +157,11 @@ export function ProfileScreen() {
           {MENU_ITEMS.map((item, i) => (
             <Pressable
               key={item.id}
+              onPress={() => {
+                if (item.id === "history") {
+                  router.push("/bookings");
+                }
+              }}
               style={({ pressed }) => [
                 s.menuItem,
                 i === 0 && s.menuItemFirst,
