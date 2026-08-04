@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,11 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { Calendar } from "react-native-calendars";
+import { queryKeys } from "@/constants/queryKeys";
 import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
 import { useClasses } from "@/features/classes/hooks/useClasses";
 import { useBookClass } from "@/features/bookings/hooks/useBookings";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { fetchActiveLocations } from "@/features/locations/services/locationsService";
 import { toDateKey } from "@/utils/date";
 
 const DIFF_COLORS: Record<string, string> = {
@@ -24,27 +27,6 @@ const DIFF_COLORS: Record<string, string> = {
   intermediate: "#F59E0B",
   advanced: "#A855F7",
 };
-
-const LOCATIONS = [
-  {
-    id: "1",
-    name: "Centro Gym",
-    address: "Av. Corrientes 1234, CABA",
-    icon: "🏢",
-  },
-  {
-    id: "2",
-    name: "Sede Norte",
-    address: "Av. Cabildo 890, Belgrano",
-    icon: "🌆",
-  },
-  {
-    id: "3",
-    name: "Parque Fitness",
-    address: "Parque Sarmiento, Al Aire Libre",
-    icon: "🌿",
-  },
-];
 
 export function BookClassScreen() {
   const {
@@ -63,15 +45,46 @@ export function BookClassScreen() {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(
     initialClassId ?? null,
   );
-  const [selectedLocation, setSelectedLocation] = useState<string>(
-    LOCATIONS[0].id,
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
+    null,
   );
 
   const { data: classes, isLoading } = useClasses(selectedDate, Boolean(user));
+  const locationsQuery = useQuery({
+    queryKey: queryKeys.activeLocations,
+    queryFn: fetchActiveLocations,
+    enabled: Boolean(user),
+  });
   const bookMutation = useBookClass();
 
   const selectedClass = classes?.find((c) => c.id === selectedClassId) ?? null;
-  const isBookDisabled = !selectedClassId || bookMutation.isPending;
+  const selectedLocation =
+    locationsQuery.data?.find((loc) => loc.id === selectedLocationId) ?? null;
+  const isReadyToBook = Boolean(selectedClassId && selectedLocationId);
+  const isBookDisabled =
+    !isReadyToBook || locationsQuery.isLoading || bookMutation.isPending;
+  const bookButtonLabel = locationsQuery.isLoading
+    ? "Loading locations..."
+    : !selectedClassId
+      ? "Select a class first"
+      : !selectedLocationId
+        ? "Select a location first"
+        : "Confirm Booking";
+
+  useEffect(() => {
+    if (!locationsQuery.data?.length) {
+      setSelectedLocationId(null);
+      return;
+    }
+
+    const selectedStillAvailable = locationsQuery.data.some(
+      (location) => location.id === selectedLocationId,
+    );
+
+    if (!selectedStillAvailable) {
+      setSelectedLocationId(locationsQuery.data[0].id);
+    }
+  }, [locationsQuery.data, selectedLocationId]);
 
   if (!user) {
     return (
@@ -97,8 +110,15 @@ export function BookClassScreen() {
       Alert.alert("Select a class", "Please select a class to book");
       return;
     }
+    if (!selectedLocationId) {
+      Alert.alert("Select a location", "Please select a location to book");
+      return;
+    }
     try {
-      const result = await bookMutation.mutateAsync(selectedClassId);
+      const result = await bookMutation.mutateAsync({
+        classId: selectedClassId,
+        locationId: selectedLocationId,
+      });
       Alert.alert("Booked!", result.message, [
         { text: "Done", onPress: () => router.back() },
       ]);
@@ -264,29 +284,52 @@ export function BookClassScreen() {
             <Text style={s.stepTitle}>Select Location</Text>
           </View>
 
-          <View style={{ gap: 10 }}>
-            {LOCATIONS.map((loc) => {
-              const active = loc.id === selectedLocation;
-              return (
-                <Pressable
-                  key={loc.id}
-                  style={[s.locCard, active && s.locCardActive]}
-                  onPress={() => setSelectedLocation(loc.id)}
-                >
-                  <Text style={s.locIcon}>{loc.icon}</Text>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={s.locName}>{loc.name}</Text>
-                    <Text style={s.locAddr}>{loc.address}</Text>
-                  </View>
-                  {active && (
-                    <View style={s.locCheck}>
-                      <Text style={{ color: "#22D3EE", fontSize: 14 }}>✓</Text>
+          {locationsQuery.isLoading ? (
+            <View style={s.loadingWrap}>
+              <ActivityIndicator color="#22D3EE" />
+            </View>
+          ) : locationsQuery.isError ? (
+            <View style={s.emptyWrap}>
+              <Text style={s.errorText}>Could not load locations.</Text>
+            </View>
+          ) : !locationsQuery.data || locationsQuery.data.length === 0 ? (
+            <View style={s.emptyWrap}>
+              <Text style={{ fontSize: 32 }}>📍</Text>
+              <Text style={s.emptyText}>No active locations available</Text>
+            </View>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {locationsQuery.data.map((loc) => {
+                const active = loc.id === selectedLocationId;
+                return (
+                  <Pressable
+                    key={loc.id}
+                    style={[s.locCard, active && s.locCardActive]}
+                    onPress={() => setSelectedLocationId(loc.id)}
+                  >
+                    <MaterialCommunityIcons
+                      name="map-marker-radius"
+                      size={26}
+                      color={active ? "#22D3EE" : "#666666"}
+                    />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={s.locName}>{loc.name}</Text>
+                      <Text style={s.locAddr}>
+                        {loc.address || "No address provided"}
+                      </Text>
                     </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
+                    {active && (
+                      <View style={s.locCheck}>
+                        <Text style={{ color: "#22D3EE", fontSize: 14 }}>
+                          ✓
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* ── Class Summary ── */}
@@ -320,7 +363,7 @@ export function BookClassScreen() {
             <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
               <Text style={s.summaryLabel}>Location</Text>
               <Text style={s.summaryValue}>
-                {LOCATIONS.find((l) => l.id === selectedLocation)?.name}
+                {selectedLocation?.name ?? "-"}
               </Text>
             </View>
           </View>
@@ -331,20 +374,40 @@ export function BookClassScreen() {
       <View style={s.floatingBar}>
         <Pressable
           style={({ pressed }) => [
-            s.bookBtn,
-            !selectedClassId && s.bookBtnDisabled,
-            pressed && !isBookDisabled && { opacity: 0.85 },
+            s.bookPressable,
+            pressed && !isBookDisabled && s.bookPressablePressed,
           ]}
           onPress={handleBook}
           disabled={isBookDisabled}
         >
-          {bookMutation.isPending ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={s.bookBtnText}>
-              {selectedClassId ? 'Confirm Booking →' : 'Select a class first'}
-            </Text>
-          )}
+          <View
+            style={[
+              s.bookVisual,
+              isReadyToBook ? s.bookVisualReady : s.bookVisualBlocked,
+            ]}
+          >
+            {bookMutation.isPending ? (
+              <ActivityIndicator color={isReadyToBook ? "#000" : "#777"} />
+            ) : (
+              <View style={s.bookCtaContent}>
+                <Text
+                  style={[
+                    s.bookCtaText,
+                    !isReadyToBook && s.bookCtaTextBlocked,
+                  ]}
+                >
+                  {bookButtonLabel}
+                </Text>
+                {isReadyToBook ? (
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={20}
+                    color="#000"
+                  />
+                ) : null}
+              </View>
+            )}
+          </View>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -398,6 +461,7 @@ const s = StyleSheet.create({
   loadingWrap: { paddingVertical: 32, alignItems: "center" },
   emptyWrap: { paddingVertical: 28, alignItems: "center", gap: 8 },
   emptyText: { color: "#555", fontSize: 14 },
+  errorText: { color: "#f87171", fontSize: 14 },
   classRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -445,7 +509,6 @@ const s = StyleSheet.create({
     borderColor: "#1E1E1E",
   },
   locCardActive: { borderColor: "#22D3EE44", backgroundColor: "#0F2A2E" },
-  locIcon: { fontSize: 26 },
   locName: { color: "#FFF", fontSize: 14, fontWeight: "700" },
   locAddr: { color: "#666", fontSize: 12, marginTop: 2 },
   locCheck: {
@@ -499,13 +562,31 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#1A1A1A",
   },
-  bookBtn: {
-    height: 56,
-    backgroundColor: "#22D3EE",
-    borderRadius: 14,
+  bookPressable: {
+    borderRadius: 18,
+  },
+  bookPressablePressed: { opacity: 0.85 },
+  bookVisual: {
+    height: 58,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
-  bookBtnDisabled: { backgroundColor: '#1A1A1A' },
-  bookBtnText: { color: '#000', fontSize: 16, fontWeight: '800' },
+  bookVisualReady: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#FFFFFF",
+  },
+  bookVisualBlocked: {
+    backgroundColor: "#141414",
+    borderColor: "#2A2A2A",
+  },
+  bookCtaContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+  },
+  bookCtaText: { color: "#000", fontSize: 16, fontWeight: "900" },
+  bookCtaTextBlocked: { color: "#9CA3AF" },
 });

@@ -1,11 +1,10 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from functools import lru_cache
 import logging
 from typing import Any, AsyncIterator
 
 import asyncpg
-import jwt
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -23,6 +22,7 @@ class ApiResponse(BaseModel):
 
 class BookingRequest(BaseModel):
     session_id: str
+    location_id: str | None = None
 
 
 @asynccontextmanager
@@ -76,16 +76,29 @@ def _database_unavailable_response():
     )
 
 
-@lru_cache
-def _get_jwks_client(supabase_url: str) -> PyJWKClient:
-    jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
-    return PyJWKClient(jwks_url)
-
-
-def _read_user_id_from_token(token: str, settings: Settings) -> str:
+async def _read_user_id_from_token(token: str, settings: Settings) -> str:
+    url = f"{settings.supabase_url.rstrip('/')}/auth/v1/user"
     try:
-        payload: dict[str, Any] = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
-    except jwt.InvalidTokenError as exc:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                url,
+                headers={
+                    "apikey": settings.supabase_anon_key,
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+    except httpx.HTTPError as exc:
+        logger.warning("Supabase token validation request failed: %s", exc)
+        raise _unauthorized("invalid token") from exc
+
+    if response.status_code != status.HTTP_200_OK:
+        logger.warning("Supabase token validation failed with status %d", response.status_code)
+        raise _unauthorized("invalid token")
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        logger.warning("Supabase token validation returned invalid JSON")
         raise _unauthorized("invalid token") from exc
 
     user_id = payload.get("id")
@@ -148,11 +161,30 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ApiResponse(success=False, message="session_id is required").model_dump(),
         )
+    if not request.location_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="location_id is required").model_dump(),
+        )
 
     pool: asyncpg.Pool = app.state.db_pool
 
     async with pool.acquire() as conn:
         async with conn.transaction():
+            location_exists = await conn.fetchval(
+                """
+                select exists(
+                  select 1 from locations where id = $1 and is_active = true
+                )
+                """,
+                request.location_id,
+            )
+            if not location_exists:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=ApiResponse(success=False, message="active location not found").model_dump(),
+                )
+
             row = await conn.fetchrow(
                 """
                 select cs.scheduled_at, cs.capacity
@@ -192,13 +224,14 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
 
             await conn.execute(
                 """
-                insert into bookings (user_id, session_id, status)
-                values ($1, $2, 'confirmed')
+                insert into bookings (user_id, session_id, location_id, status)
+                values ($1, $2, $3, 'confirmed')
                 on conflict (user_id, session_id)
-                do update set status = 'confirmed', cancelled_at = null
+                do update set location_id = $3, status = 'confirmed', cancelled_at = null
                 """,
                 user_id,
                 request.session_id,
+                request.location_id,
             )
 
     return ApiResponse(success=True, message="Booking confirmed")
