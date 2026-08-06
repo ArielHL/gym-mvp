@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: gym-mvp-backend
+    runtime: docker
+    autoDeploy: false
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
