@@ -50,6 +50,7 @@ jobs:
           docker run --rm \
             --volume "${GITHUB_WORKSPACE}:/workspace" \
             --env CI=1 \
+            --env GIT_ALLOW_PROTOCOL=file:https:http:ssh:git \
             --env EXPO_TOKEN \
             --env EXPO_PUBLIC_SUPABASE_URL \
             --env EXPO_PUBLIC_SUPABASE_ANON_KEY \
@@ -57,7 +58,8 @@ jobs:
             gym-frontend-ci:${GITHUB_SHA} \
             bash -lc '
               : "${EXPO_TOKEN:?EXPO_TOKEN is required}"
-              git config --global --add safe.directory /workspace
+              git config --global --add safe.directory "*"
+              git config --global protocol.file.allow always
               npm ci
               eas build --platform all --profile production --non-interactive --no-wait
             '
