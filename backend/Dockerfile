@@ -11,7 +11,7 @@ RUN pip install --upgrade pip \
     && pip install -r requirements.txt \
     && useradd --create-home --shell /usr/sbin/nologin appuser
 
-COPY backend/app ./app
+COPY --chown=appuser:appuser backend/app ./app
 
 USER appuser
 
