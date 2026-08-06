@@ -152,8 +152,7 @@ SUPABASE_JWT_SECRET=<your-supabase-jwt-secret>
 
 Start the server:
 
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+```
 ```
 
 Health check: [http://localhost:8080/health](http://localhost:8080/health)
