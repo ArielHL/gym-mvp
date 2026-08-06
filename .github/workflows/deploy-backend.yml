@@ -1,0 +1,50 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "render.yaml"
+      - ".dockerignore"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build container and trigger Render
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        run: docker build --file backend/Dockerfile --tag gym-backend:${GITHUB_SHA} .
+
+      - name: Validate backend Python modules
+        run: docker run --rm --entrypoint python gym-backend:${GITHUB_SHA} -m compileall app
+
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL is not configured."
+            exit 1
+          fi
+
+          if printf '%s' "$RENDER_DEPLOY_HOOK_URL" | grep -q '?'; then
+            deploy_url="${RENDER_DEPLOY_HOOK_URL}&ref=${GITHUB_SHA}"
+          else
+            deploy_url="${RENDER_DEPLOY_HOOK_URL}?ref=${GITHUB_SHA}"
+          fi
+
+          curl --fail --silent --show-error --request POST "$deploy_url"

@@ -98,7 +98,8 @@ Create `backend/.env`:
 ```env
 PORT=8080
 DATABASE_URL=postgresql://postgres:<password>@<host>:5432/postgres?sslmode=require
-SUPABASE_JWT_SECRET=<your-jwt-secret>
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 Start:

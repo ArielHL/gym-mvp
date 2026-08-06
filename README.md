@@ -61,6 +61,7 @@ Built with **React Native + Expo**, **Supabase** (auth & database), and **FastAP
 
 - **Node.js 20+** and **npm**
 - **Python 3.11+** (for the optional FastAPI backend)
+- **Docker Desktop** (for containerized local runs)
 - **Supabase project** — [supabase.com](https://supabase.com) (free tier works)
 - **Expo Go** app on your phone (iOS or Android) — or an emulator
 
@@ -147,15 +148,76 @@ PORT=8080
 DATABASE_URL=postgresql://postgres:<password>@<host>:5432/postgres?sslmode=require
 # Optional fallback (recommended): IPv4 Session Pooler URL for networks without IPv6
 # DATABASE_URL_FALLBACK=postgresql://postgres.<project-ref>:<password>@<pooler-host>:6543/postgres?sslmode=require
-SUPABASE_JWT_SECRET=<your-supabase-jwt-secret>
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 Start the server:
 
 ```
+uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 Health check: [http://localhost:8080/health](http://localhost:8080/health)
+
+---
+
+## Docker
+
+Build both containers:
+
+```bash
+docker compose build
+```
+
+Run the FastAPI backend and Expo frontend containers:
+
+```bash
+docker compose up
+```
+
+Backend health check: [http://localhost:8080/health](http://localhost:8080/health)
+
+The frontend container runs Expo through `Dockerfile.frontend`. For physical devices, Docker networking can affect LAN discovery; use Expo tunnel mode if your phone cannot reach Metro.
+
+---
+
+## CI/CD
+
+GitHub Actions owns deployments for both services.
+
+Backend flow:
+
+```text
+push to main -> build backend Docker image -> validate Python modules -> call Render deploy hook
+```
+
+Frontend flow:
+
+```text
+push to main -> build frontend tooling image -> run EAS Build inside container -> queue Expo production build
+```
+
+Required GitHub repository secrets:
+
+| Secret | Used by | Purpose |
+|---|---|---|
+| `RENDER_DEPLOY_HOOK_URL` | Backend workflow | Triggers the Render backend deploy for the pushed commit |
+| `EXPO_TOKEN` | Frontend workflow | Authenticates EAS CLI in CI |
+| `EXPO_PUBLIC_SUPABASE_URL` | Frontend workflow | Supabase URL embedded in the Expo build |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Frontend workflow | Supabase publishable anon key embedded in the Expo build |
+| `EXPO_PUBLIC_API_BASE_URL` | Frontend workflow | Public Render backend URL embedded in the Expo build |
+
+Required Render environment variables:
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Primary Supabase/Postgres connection string |
+| `DATABASE_URL_FALLBACK` | Optional fallback connection string |
+| `SUPABASE_URL` | Supabase project URL for token validation |
+| `SUPABASE_ANON_KEY` | Supabase anon key for token validation |
+
+Render should have automatic deploys disabled. The included `render.yaml` sets `autoDeploy: false`; GitHub Actions triggers deployments through `RENDER_DEPLOY_HOOK_URL`.
 
 ---
 
