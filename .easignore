@@ -43,7 +43,7 @@ firebase.json
 .firebaserc
 
 # Supabase local/dev files: remote Supabase is used at runtime
-supabase/
+/supabase/
 seed/
 
 # Generated Expo/native artifacts
