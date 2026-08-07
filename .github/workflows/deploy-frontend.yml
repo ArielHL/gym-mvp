@@ -74,5 +74,5 @@ jobs:
               git config --global --add safe.directory "*"
               git config --global protocol.file.allow always
               npm ci
-              eas build --platform "$BUILD_PLATFORM" --profile production --non-interactive --no-wait
+              eas build --platform "$BUILD_PLATFORM" --profile development --non-interactive --no-wait
             '
