@@ -57,13 +57,16 @@ Set these Render environment variables:
 2. GitHub Actions runs `.github/workflows/deploy-frontend.yml`.
 3. The workflow builds `Dockerfile.frontend`.
 4. The workflow runs EAS inside the frontend tooling container.
-5. Expo queues production builds for iOS and Android.
+5. Expo queues a production Android build by default.
+6. Manual workflow runs can choose `android`, `ios`, or `all` after iOS credentials are configured.
 
 The EAS command used by CI is:
 
 ```bash
-eas build --platform all --profile production --non-interactive --no-wait
+eas build --platform android --profile production --non-interactive --no-wait
 ```
+
+The workflow uses Android by default because iOS production builds require one-time interactive Apple credential validation before they can run in non-interactive GitHub Actions.
 
 ## Local Docker Commands
 
