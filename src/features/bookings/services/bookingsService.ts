@@ -74,12 +74,23 @@ function mapBookingFeedRow(row: BookingFeedRow): {
 }
 
 async function getBearerToken(): Promise<string> {
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session?.access_token) {
-    throw error ?? new Error("No active session token found.");
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+  if (sessionError || !sessionData.session?.refresh_token) {
+    throw new Error("Your session expired. Please sign in again.");
   }
 
-  return data.session.access_token;
+  const { data: refreshedData, error: refreshError } =
+    await supabase.auth.refreshSession({
+      refresh_token: sessionData.session.refresh_token,
+    });
+
+  const accessToken = refreshedData.session?.access_token;
+  if (refreshError || !accessToken) {
+    throw new Error("Your session expired. Please sign in again.");
+  }
+
+  return accessToken;
 }
 
 export async function bookClass({ classId, locationId }: BookClassInput) {
