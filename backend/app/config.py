@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     database_url: str = Field(validation_alias="DATABASE_URL")
     database_url_fallback: str | None = Field(default=None, validation_alias="DATABASE_URL_FALLBACK")
     supabase_url: str = Field(validation_alias="SUPABASE_URL")
-    supabase_anon_key: str = Field(validation_alias="SUPABASE_ANON_KEY")
+    supabase_publishable_key: str = Field(
+        validation_alias=AliasChoices("SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY")
+    )
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, populate_by_name=True, extra="ignore")
 

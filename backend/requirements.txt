@@ -3,4 +3,3 @@ uvicorn[standard]==0.35.0
 asyncpg==0.31.0
 httpx==0.28.1
 pydantic-settings==2.11.0
-cryptography==45.0.7

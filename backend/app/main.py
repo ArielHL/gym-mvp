@@ -83,27 +83,31 @@ async def _read_user_id_from_token(token: str, settings: Settings) -> str:
             response = await client.get(
                 url,
                 headers={
-                    "apikey": settings.supabase_anon_key,
+                    "apikey": settings.supabase_publishable_key,
                     "Authorization": f"Bearer {token}",
                 },
             )
     except httpx.HTTPError as exc:
         logger.warning("Supabase token validation request failed: %s", exc)
-        raise _unauthorized("invalid token") from exc
+        raise _unauthorized("session validation failed") from exc
 
     if response.status_code != status.HTTP_200_OK:
-        logger.warning("Supabase token validation failed with status %d", response.status_code)
-        raise _unauthorized("invalid token")
+        logger.warning(
+            "Supabase token validation failed with status %d: %s",
+            response.status_code,
+            response.text[:200],
+        )
+        raise _unauthorized("session expired or invalid")
 
     try:
         payload = response.json()
     except ValueError as exc:
         logger.warning("Supabase token validation returned invalid JSON")
-        raise _unauthorized("invalid token") from exc
+        raise _unauthorized("session validation failed") from exc
 
     user_id = payload.get("id")
     if not isinstance(user_id, str) or not user_id:
-        raise _unauthorized("invalid token")
+        raise _unauthorized("session validation failed")
 
     return user_id
 
