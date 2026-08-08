@@ -54,6 +54,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="classes/[classId]" />
+      <Stack.Screen name="auth/callback" />
       <Stack.Screen name="bookings/index" />
       <Stack.Screen name="bookings/new" />
       <Stack.Screen name="admin/classes" />
