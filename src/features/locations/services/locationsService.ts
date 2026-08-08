@@ -1,4 +1,5 @@
-import { supabase } from "@/services/supabase/client";
+import { apiGet, apiPatch, apiPost } from "@/services/api/client";
+import type { CallableResponse } from "@/types/models";
 
 export type Location = {
   id: string;
@@ -19,95 +20,46 @@ export type LocationInput = {
 };
 
 export async function fetchLocations(): Promise<Location[]> {
-  const { data, error } = await supabase
-    .from("locations")
-    .select("*")
-    .order("is_active", { ascending: false })
-    .order("name", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as Location[];
+  return apiGet<Location[]>("/admin/locations");
 }
 
 export async function fetchActiveLocations(): Promise<Location[]> {
-  const { data, error } = await supabase
-    .from("locations")
-    .select("*")
-    .eq("is_active", true)
-    .order("name", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as Location[];
+  return apiGet<Location[]>("/locations/active", { auth: false });
 }
 
 export async function createLocation(input: LocationInput): Promise<Location> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("You need to be logged in as admin.");
-  }
-
-  const { data, error } = await supabase
-    .from("locations")
-    .insert({
-      name: input.name,
-      description: input.description || null,
-      address: input.address || null,
-      is_active: input.is_active ?? true,
-      created_by: user.id,
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as Location;
+  return apiPost<Location>("/admin/locations", {
+    name: input.name,
+    description: input.description || null,
+    address: input.address || null,
+    is_active: input.is_active ?? true,
+  });
 }
 
 export async function updateLocation(
   locationId: string,
   input: LocationInput,
 ): Promise<Location> {
-  const { data, error } = await supabase
-    .from("locations")
-    .update({
+  return apiPatch<Location>(
+    `/admin/locations/${encodeURIComponent(locationId)}`,
+    {
       name: input.name,
       description: input.description || null,
       address: input.address || null,
       is_active: input.is_active ?? true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", locationId)
-    .select("*")
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as Location;
+    },
+  );
 }
 
 export async function setLocationActive(
   locationId: string,
   isActive: boolean,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("locations")
-    .update({ is_active: isActive, updated_at: new Date().toISOString() })
-    .eq("id", locationId);
-
-  if (error) {
-    throw error;
+  const payload = await apiPatch<CallableResponse>(
+    `/admin/locations/${encodeURIComponent(locationId)}/active`,
+    { is_active: isActive },
+  );
+  if (!payload.success) {
+    throw new Error(payload.message || "Location status update failed.");
   }
 }

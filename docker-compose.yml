@@ -10,26 +10,28 @@ services:
     ports:
       - "8080:8080"
 
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    env_file:
-      - .env
-    environment:
-      CI: "0"
-    volumes:
-      - .:/workspace
-      - frontend_node_modules:/workspace/node_modules
-    ports:
-      - "8081:8081"
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
-    depends_on:
-      - backend
-    stdin_open: true
-    tty: true
+#   frontend:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile.frontend
+#     env_file:
+#       - .env
+#       - path: .env.local
+#         required: false
+#     environment:
+#       CI: "0"
+#     volumes:
+#       - .:/workspace
+#       - frontend_node_modules:/workspace/node_modules
+#     ports:
+#       - "8081:8081"
+#       - "19000:19000"
+#       - "19001:19001"
+#       - "19002:19002"
+#     depends_on:
+#       - backend
+#     stdin_open: true
+#     tty: true
 
-volumes:
-  frontend_node_modules:
+# volumes:
+#   frontend_node_modules:

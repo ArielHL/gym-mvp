@@ -1,4 +1,4 @@
-import { env } from "@/lib/env";
+import { apiGet, apiPost } from "@/services/api/client";
 import { supabase } from "@/services/supabase/client";
 import type { Booking, CallableResponse, GymClass } from "@/types/models";
 
@@ -73,39 +73,12 @@ function mapBookingFeedRow(row: BookingFeedRow): {
   };
 }
 
-async function getBearerToken(): Promise<string> {
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
-  if (sessionError || !sessionData.session?.refresh_token) {
-    throw new Error("Your session expired. Please sign in again.");
-  }
-
-  const { data: refreshedData, error: refreshError } =
-    await supabase.auth.refreshSession({
-      refresh_token: sessionData.session.refresh_token,
-    });
-
-  const accessToken = refreshedData.session?.access_token;
-  if (refreshError || !accessToken) {
-    throw new Error("Your session expired. Please sign in again.");
-  }
-
-  return accessToken;
-}
-
 export async function bookClass({ classId, locationId }: BookClassInput) {
-  const token = await getBearerToken();
-  const response = await fetch(`${env.apiBaseUrl}/bookings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ session_id: classId, location_id: locationId }),
+  const payload = await apiPost<CallableResponse>("/bookings", {
+    session_id: classId,
+    location_id: locationId,
   });
-
-  const payload = (await response.json()) as CallableResponse;
-  if (!response.ok || !payload.success) {
+  if (!payload.success) {
     throw new Error(payload.message || "Booking request failed.");
   }
 
@@ -113,18 +86,10 @@ export async function bookClass({ classId, locationId }: BookClassInput) {
 }
 
 export async function cancelBooking(classId: string) {
-  const token = await getBearerToken();
-  const response = await fetch(`${env.apiBaseUrl}/bookings/cancel`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ session_id: classId }),
+  const payload = await apiPost<CallableResponse>("/bookings/cancel", {
+    session_id: classId,
   });
-
-  const payload = (await response.json()) as CallableResponse;
-  if (!response.ok || !payload.success) {
+  if (!payload.success) {
     throw new Error(payload.message || "Cancellation request failed.");
   }
 
@@ -134,74 +99,33 @@ export async function cancelBooking(classId: string) {
 export async function fetchMyBookingsWithClasses(): Promise<
   Array<{ booking: Booking; gymClass: GymClass }>
 > {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("bookings_feed")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("status", "confirmed")
-    .order("date", { ascending: true })
-    .order("start_time", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return ((data ?? []) as BookingFeedRow[]).map(mapBookingFeedRow);
+  const data = await apiGet<BookingFeedRow[]>("/bookings/me");
+  return data.map(mapBookingFeedRow);
 }
 
 export async function fetchAllBookingsWithClasses(): Promise<
   Array<{ booking: Booking; gymClass: GymClass }>
 > {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("bookings_feed")
-    .select("*")
-    .eq("status", "confirmed")
-    .order("date", { ascending: true })
-    .order("start_time", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return ((data ?? []) as BookingFeedRow[]).map(mapBookingFeedRow);
+  const data = await apiGet<BookingFeedRow[]>("/admin/bookings");
+  return data.map(mapBookingFeedRow);
 }
 
 export async function hasUserBookedClass(classId: string): Promise<boolean> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
     return false;
   }
 
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("session_id", classId)
-    .eq("status", "confirmed")
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return !!data;
+  const data = await apiGet<BookingFeedRow[]>("/bookings/me");
+  return data.some((row) => row.class_id === classId);
 }

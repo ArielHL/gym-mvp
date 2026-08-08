@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
-import { useAllBookings } from "@/features/bookings/hooks/useBookings";
+import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useClasses } from "@/features/classes/hooks/useClasses";
 import { toDateKey } from "@/utils/date";
 
@@ -87,7 +87,7 @@ export function HomeScreen() {
   const overlayAlpha = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const { user, displayName } = useAuthState();
-  const { data: bookings } = useAllBookings();
+  const { data: bookings } = useMyBookings();
   const todayDate = useMemo(() => toDateKey(new Date()), []);
   const { data: todayClasses, isLoading: isLoadingClasses } =
     useClasses(todayDate);
