@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timedelta, timezone
 import logging
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Literal
 from uuid import UUID
 
 import asyncpg
@@ -33,12 +33,12 @@ class ClassTemplateRequest(BaseModel):
     exercise_type: str
     duration_minutes: int
     day_of_week: int
-    start_time: str
+    start_time: time
     capacity: int
-    difficulty_level: str
+    difficulty_level: Literal["beginner", "intermediate", "advanced"]
     location_id: UUID
-    valid_from: str | None = None
-    valid_until: str | None = None
+    valid_from: date | None = None
+    valid_until: date | None = None
     is_active: bool = True
     weeks_ahead: int = 3
 
@@ -552,13 +552,12 @@ async def create_class_template(
                       capacity,
                       difficulty_level,
                       location_id,
-                      location,
                       valid_from,
                       valid_until,
                       created_by,
                       is_active
                     )
-                    values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10::uuid, $11, coalesce($12::date, current_date), $13::date, $14, $15)
+                    values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10::uuid, coalesce($11::date, current_date), $12::date, $13, $14)
                     returning *, (select name from locations where id = location_id) as location_name
                     """,
                     request.title,
@@ -571,7 +570,6 @@ async def create_class_template(
                     request.capacity,
                     request.difficulty_level,
                     str(request.location_id),
-                    location_name,
                     request.valid_from,
                     request.valid_until,
                     user_id,
@@ -598,6 +596,33 @@ async def create_class_template(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ApiResponse(success=False, message="missing required class template fields").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.CheckViolationError as exc:
+        logger.warning("Create class template failed due to check constraint: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="invalid class template values").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.DataError as exc:
+        logger.warning("Create class template failed due to invalid value format: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="invalid class template data format").model_dump(),
+        ) from exc
+    except (
+        asyncpg.exceptions.UndefinedColumnError,
+        asyncpg.exceptions.UndefinedTableError,
+    ) as exc:
+        logger.error("Create class template failed due to missing database objects: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=ApiResponse(success=False, message="class save is temporarily unavailable; database schema mismatch").model_dump(),
+        ) from exc
+    except asyncpg.PostgresError as exc:
+        logger.exception("Create class template failed with unexpected postgres error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=ApiResponse(success=False, message="class save failed due to a database error").model_dump(),
         ) from exc
 
     return _record_to_dict(row)
@@ -637,10 +662,9 @@ async def update_class_template(
                         capacity = $9,
                         difficulty_level = $10,
                         location_id = $11::uuid,
-                        location = $12,
-                        valid_from = coalesce($13::date, valid_from),
-                        valid_until = $14::date,
-                        is_active = $15,
+                        valid_from = coalesce($12::date, valid_from),
+                        valid_until = $13::date,
+                        is_active = $14,
                         updated_at = now()
                     where id = $1
                     returning *, (select name from locations where id = location_id) as location_name
@@ -656,7 +680,6 @@ async def update_class_template(
                     request.capacity,
                     request.difficulty_level,
                     str(request.location_id),
-                    location_name,
                     request.valid_from,
                     request.valid_until,
                     request.is_active,
@@ -688,6 +711,33 @@ async def update_class_template(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ApiResponse(success=False, message="missing required class template fields").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.CheckViolationError as exc:
+        logger.warning("Update class template failed due to check constraint: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="invalid class template values").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.DataError as exc:
+        logger.warning("Update class template failed due to invalid value format: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="invalid class template data format").model_dump(),
+        ) from exc
+    except (
+        asyncpg.exceptions.UndefinedColumnError,
+        asyncpg.exceptions.UndefinedTableError,
+    ) as exc:
+        logger.error("Update class template failed due to missing database objects: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=ApiResponse(success=False, message="class save is temporarily unavailable; database schema mismatch").model_dump(),
+        ) from exc
+    except asyncpg.PostgresError as exc:
+        logger.exception("Update class template failed with unexpected postgres error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=ApiResponse(success=False, message="class save failed due to a database error").model_dump(),
         ) from exc
 
     return _record_to_dict(row)
