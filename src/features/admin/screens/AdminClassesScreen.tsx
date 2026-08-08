@@ -14,7 +14,6 @@ import {
   type ClassTemplate,
   createClassTemplate,
   fetchClassTemplates,
-  generateUpcomingClassSessions,
   setClassTemplateActive,
   updateClassTemplate,
 } from "@/features/classes/services/classesService";
@@ -147,16 +146,11 @@ export function AdminClassesScreen() {
       template: ClassTemplate;
       isActive: boolean;
     }) => {
-      await setClassTemplateActive(template.id, isActive);
-      if (isActive) {
-        await generateUpcomingClassSessions(
-          template.id,
-          template.day_of_week,
-          template.start_time,
-          template.capacity,
-          settingsQuery.data ?? 3,
-        );
-      }
+      await setClassTemplateActive(
+        template.id,
+        isActive,
+        settingsQuery.data ?? 3,
+      );
     },
     onSuccess: async (_, variables) => {
       await invalidateClassData();

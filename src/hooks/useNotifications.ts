@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { apiPost } from '@/services/api/client';
 import { supabase } from '@/services/supabase/client';
 import { env } from '@/lib/env';
 
@@ -33,8 +34,7 @@ export function useNotifications() {
         const userId = user?.id;
         if (!userId) return;
 
-        await supabase.from('notification_tokens').insert({
-          user_id: userId,
+        await apiPost('/notification-tokens', {
           token: token.data,
           platform: Platform.OS
         });
