@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { authService } from '@/features/auth/services/authService';
+import { GoogleIcon } from '@/features/auth/components/icons/GoogleIcon';
 
 interface SocialLoginButtonsProps {
   disabled?: boolean;
@@ -25,6 +26,7 @@ export function SocialLoginButtons({ disabled }: SocialLoginButtonsProps) {
     <View>
       <Button
         label="Continue with Google"
+        icon={<GoogleIcon size={20} />}
         onPress={onGoogleSignIn}
         disabled={disabled}
         loading={googleLoading}
