@@ -22,8 +22,8 @@ class ApiResponse(BaseModel):
 
 
 class BookingRequest(BaseModel):
-    session_id: str
-    location_id: str | None = None
+    session_id: UUID
+    location_id: UUID | None = None
 
 
 class ClassTemplateRequest(BaseModel):
@@ -849,11 +849,6 @@ async def update_weeks_ahead_to_generate(
 
 @app.post("/bookings", response_model=ApiResponse)
 async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id)) -> ApiResponse:
-    if not request.session_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ApiResponse(success=False, message="session_id is required").model_dump(),
-        )
     if not request.location_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -862,82 +857,98 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
 
     pool: asyncpg.Pool = app.state.db_pool
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            location_exists = await conn.fetchval(
-                """
-                select exists(
-                  select 1 from locations where id = $1 and is_active = true
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                location_exists = await conn.fetchval(
+                    """
+                    select exists(
+                      select 1 from locations where id = $1 and is_active = true
+                    )
+                    """,
+                    request.location_id,
                 )
-                """,
-                request.location_id,
-            )
-            if not location_exists:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=ApiResponse(success=False, message="active location not found").model_dump(),
+                if not location_exists:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=ApiResponse(success=False, message="active location not found").model_dump(),
+                    )
+
+                row = await conn.fetchrow(
+                    """
+                    select cs.scheduled_at, cs.capacity
+                    from class_sessions cs
+                    join class_templates ct on ct.id = cs.template_id
+                    where cs.id = $1
+                      and cs.status = 'scheduled'
+                      and ct.is_active = true
+                      and (now() at time zone 'UTC')::date >= ct.valid_from
+                      and (ct.valid_until is null or (now() at time zone 'UTC')::date <= ct.valid_until)
+                      and (cs.scheduled_at at time zone 'UTC')::date >= ct.valid_from
+                      and (ct.valid_until is null or (cs.scheduled_at at time zone 'UTC')::date <= ct.valid_until)
+                    for update of cs
+                    """,
+                    request.session_id,
                 )
+                if row is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=ApiResponse(success=False, message="class session not found").model_dump(),
+                    )
 
-            row = await conn.fetchrow(
-                """
-                select cs.scheduled_at, cs.capacity
-                from class_sessions cs
-                join class_templates ct on ct.id = cs.template_id
-                where cs.id = $1
-                  and cs.status = 'scheduled'
-                  and ct.is_active = true
-                  and (now() at time zone 'UTC')::date >= ct.valid_from
-                  and (ct.valid_until is null or (now() at time zone 'UTC')::date <= ct.valid_until)
-                  and (cs.scheduled_at at time zone 'UTC')::date >= ct.valid_from
-                  and (ct.valid_until is null or (cs.scheduled_at at time zone 'UTC')::date <= ct.valid_until)
-                for update of cs
-                """,
-                request.session_id,
-            )
-            if row is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=ApiResponse(success=False, message="class session not found").model_dump(),
-                )
-
-            booked_count = await conn.fetchval(
-                """
-                select count(*)::int
-                from bookings
-                where session_id = $1 and status = 'confirmed'
-                """,
-                request.session_id,
-            )
-
-            if booked_count >= row["capacity"]:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=ApiResponse(success=False, message="class is full").model_dump(),
+                booked_count = await conn.fetchval(
+                    """
+                    select count(*)::int
+                    from bookings
+                    where session_id = $1 and status = 'confirmed'
+                    """,
+                    request.session_id,
                 )
 
-            await conn.execute(
-                """
-                insert into bookings (user_id, session_id, location_id, status)
-                values ($1, $2, $3, 'confirmed')
-                on conflict (user_id, session_id)
-                do update set location_id = $3, status = 'confirmed', cancelled_at = null
-                """,
-                user_id,
-                request.session_id,
-                request.location_id,
-            )
+                if booked_count >= row["capacity"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=ApiResponse(success=False, message="class is full").model_dump(),
+                    )
+
+                await conn.execute(
+                    """
+                    insert into bookings (user_id, session_id, location_id, status)
+                    values ($1, $2, $3, 'confirmed')
+                    on conflict (user_id, session_id)
+                    do update set location_id = $3, status = 'confirmed', cancelled_at = null
+                    """,
+                    user_id,
+                    request.session_id,
+                    request.location_id,
+                )
+    except asyncpg.exceptions.ForeignKeyViolationError as exc:
+        logger.warning("Booking failed due to foreign key constraint: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="class session or location not found").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.InvalidTextRepresentationError as exc:
+        logger.warning("Booking failed due to invalid identifier format: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="invalid class or location identifier").model_dump(),
+        ) from exc
+    except (
+        asyncpg.exceptions.UndefinedColumnError,
+        asyncpg.exceptions.UndefinedTableError,
+    ) as exc:
+        logger.error("Booking failed due to missing database objects (migration drift): %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=ApiResponse(success=False, message="booking is temporarily unavailable; database migration required").model_dump(),
+        ) from exc
 
     return ApiResponse(success=True, message="Booking confirmed")
 
 
 @app.post("/bookings/cancel", response_model=ApiResponse)
 async def cancel_booking(request: BookingRequest, user_id: str = Depends(get_user_id)) -> ApiResponse:
-    if not request.session_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ApiResponse(success=False, message="session_id is required").model_dump(),
-        )
-
     pool: asyncpg.Pool = app.state.db_pool
 
     async with pool.acquire() as conn:
