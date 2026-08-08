@@ -526,54 +526,79 @@ async def create_class_template(
 ) -> dict[str, Any]:
     weeks_ahead = _normalize_weeks_ahead(request.weeks_ahead)
     pool: asyncpg.Pool = app.state.db_pool
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            row = await conn.fetchrow(
-                """
-                insert into class_templates (
-                  title,
-                  description,
-                  trainer_name,
-                  exercise_type,
-                  duration_minutes,
-                  day_of_week,
-                  start_time,
-                  capacity,
-                  difficulty_level,
-                  location_id,
-                  valid_from,
-                  valid_until,
-                  created_by,
-                  is_active
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                location_name = await conn.fetchval(
+                    "select name from locations where id = $1",
+                    str(request.location_id),
                 )
-                values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10::uuid, coalesce($11::date, current_date), $12::date, $13, $14)
-                returning *, (select name from locations where id = location_id) as location_name
-                """,
-                request.title,
-                request.description,
-                request.trainer_name,
-                request.exercise_type,
-                request.duration_minutes,
-                request.day_of_week,
-                request.start_time,
-                request.capacity,
-                request.difficulty_level,
-                str(request.location_id),
-                request.valid_from,
-                request.valid_until,
-                user_id,
-                request.is_active,
-            )
+                if not location_name:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=ApiResponse(success=False, message="location not found").model_dump(),
+                    )
 
-            await _generate_upcoming_class_sessions(
-                conn,
-                str(row["id"]),
-                row["day_of_week"],
-                row["start_time"],
-                row["capacity"],
-                weeks_ahead,
-            )
-            await _update_future_class_session_capacity(conn, str(row["id"]), row["capacity"])
+                row = await conn.fetchrow(
+                    """
+                    insert into class_templates (
+                      title,
+                      description,
+                      trainer_name,
+                      exercise_type,
+                      duration_minutes,
+                      day_of_week,
+                      start_time,
+                      capacity,
+                      difficulty_level,
+                      location_id,
+                      location,
+                      valid_from,
+                      valid_until,
+                      created_by,
+                      is_active
+                    )
+                    values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10::uuid, $11, coalesce($12::date, current_date), $13::date, $14, $15)
+                    returning *, (select name from locations where id = location_id) as location_name
+                    """,
+                    request.title,
+                    request.description,
+                    request.trainer_name,
+                    request.exercise_type,
+                    request.duration_minutes,
+                    request.day_of_week,
+                    request.start_time,
+                    request.capacity,
+                    request.difficulty_level,
+                    str(request.location_id),
+                    location_name,
+                    request.valid_from,
+                    request.valid_until,
+                    user_id,
+                    request.is_active,
+                )
+
+                await _generate_upcoming_class_sessions(
+                    conn,
+                    str(row["id"]),
+                    row["day_of_week"],
+                    row["start_time"],
+                    row["capacity"],
+                    weeks_ahead,
+                )
+                await _update_future_class_session_capacity(conn, str(row["id"]), row["capacity"])
+    except asyncpg.exceptions.ForeignKeyViolationError as exc:
+        logger.warning("Create class template failed due to foreign key violation: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="location not found").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.NotNullViolationError as exc:
+        logger.warning("Create class template failed due to not-null constraint: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="missing required class template fields").model_dump(),
+        ) from exc
 
     return _record_to_dict(row)
 
@@ -586,59 +611,84 @@ async def update_class_template(
 ) -> dict[str, Any]:
     weeks_ahead = _normalize_weeks_ahead(request.weeks_ahead)
     pool: asyncpg.Pool = app.state.db_pool
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            row = await conn.fetchrow(
-                """
-                update class_templates
-                set title = $2,
-                    description = $3,
-                    trainer_name = $4,
-                    exercise_type = $5,
-                    duration_minutes = $6,
-                    day_of_week = $7,
-                    start_time = $8::time,
-                    capacity = $9,
-                    difficulty_level = $10,
-                    location_id = $11::uuid,
-                    valid_from = coalesce($12::date, valid_from),
-                    valid_until = $13::date,
-                    is_active = $14,
-                    updated_at = now()
-                where id = $1
-                returning *, (select name from locations where id = location_id) as location_name
-                """,
-                template_id,
-                request.title,
-                request.description,
-                request.trainer_name,
-                request.exercise_type,
-                request.duration_minutes,
-                request.day_of_week,
-                request.start_time,
-                request.capacity,
-                request.difficulty_level,
-                str(request.location_id),
-                request.valid_from,
-                request.valid_until,
-                request.is_active,
-            )
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                location_name = await conn.fetchval(
+                    "select name from locations where id = $1",
+                    str(request.location_id),
+                )
+                if not location_name:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=ApiResponse(success=False, message="location not found").model_dump(),
+                    )
 
-            if row is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=ApiResponse(success=False, message="class template not found").model_dump(),
+                row = await conn.fetchrow(
+                    """
+                    update class_templates
+                    set title = $2,
+                        description = $3,
+                        trainer_name = $4,
+                        exercise_type = $5,
+                        duration_minutes = $6,
+                        day_of_week = $7,
+                        start_time = $8::time,
+                        capacity = $9,
+                        difficulty_level = $10,
+                        location_id = $11::uuid,
+                        location = $12,
+                        valid_from = coalesce($13::date, valid_from),
+                        valid_until = $14::date,
+                        is_active = $15,
+                        updated_at = now()
+                    where id = $1
+                    returning *, (select name from locations where id = location_id) as location_name
+                    """,
+                    template_id,
+                    request.title,
+                    request.description,
+                    request.trainer_name,
+                    request.exercise_type,
+                    request.duration_minutes,
+                    request.day_of_week,
+                    request.start_time,
+                    request.capacity,
+                    request.difficulty_level,
+                    str(request.location_id),
+                    location_name,
+                    request.valid_from,
+                    request.valid_until,
+                    request.is_active,
                 )
 
-            await _generate_upcoming_class_sessions(
-                conn,
-                str(row["id"]),
-                row["day_of_week"],
-                row["start_time"],
-                row["capacity"],
-                weeks_ahead,
-            )
-            await _update_future_class_session_capacity(conn, str(row["id"]), row["capacity"])
+                if row is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=ApiResponse(success=False, message="class template not found").model_dump(),
+                    )
+
+                await _generate_upcoming_class_sessions(
+                    conn,
+                    str(row["id"]),
+                    row["day_of_week"],
+                    row["start_time"],
+                    row["capacity"],
+                    weeks_ahead,
+                )
+                await _update_future_class_session_capacity(conn, str(row["id"]), row["capacity"])
+    except asyncpg.exceptions.ForeignKeyViolationError as exc:
+        logger.warning("Update class template failed due to foreign key violation: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="location not found").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.NotNullViolationError as exc:
+        logger.warning("Update class template failed due to not-null constraint: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="missing required class template fields").model_dump(),
+        ) from exc
 
     return _record_to_dict(row)
 
