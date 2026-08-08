@@ -14,7 +14,8 @@ export type ClassTemplate = {
   start_time: string;
   capacity: number;
   difficulty_level: DifficultyLevel;
-  location: string;
+  location_id: string;
+  location_name?: string | null;
   valid_from: string;
   valid_until: string | null;
   is_active: boolean;
@@ -33,7 +34,7 @@ export type ClassTemplateInput = {
   start_time: string;
   capacity: number;
   difficulty_level: DifficultyLevel;
-  location: string;
+  location_id: string;
   valid_from?: string;
   valid_until?: string | null;
   is_active?: boolean;
