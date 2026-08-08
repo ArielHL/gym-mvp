@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timedelta, timezone
 import logging
 from typing import Any, AsyncIterator
+from uuid import UUID
 
 import asyncpg
 import httpx
@@ -35,7 +36,7 @@ class ClassTemplateRequest(BaseModel):
     start_time: str
     capacity: int
     difficulty_level: str
-    location: str
+    location_id: UUID
     valid_from: str | None = None
     valid_until: str | None = None
     is_active: bool = True
@@ -508,9 +509,10 @@ async def list_class_templates(_: str = Depends(require_admin_user)) -> list[dic
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select *
-            from class_templates
-            order by is_active desc, day_of_week asc, start_time asc
+            select ct.*, l.name as location_name
+            from class_templates ct
+            left join locations l on l.id = ct.location_id
+            order by ct.is_active desc, ct.day_of_week asc, ct.start_time asc
             """
         )
 
@@ -538,14 +540,14 @@ async def create_class_template(
                   start_time,
                   capacity,
                   difficulty_level,
-                  location,
+                  location_id,
                   valid_from,
                   valid_until,
                   created_by,
                   is_active
                 )
-                values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10, coalesce($11::date, current_date), $12::date, $13, $14)
-                returning *
+                values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10::uuid, coalesce($11::date, current_date), $12::date, $13, $14)
+                returning *, (select name from locations where id = location_id) as location_name
                 """,
                 request.title,
                 request.description,
@@ -556,7 +558,7 @@ async def create_class_template(
                 request.start_time,
                 request.capacity,
                 request.difficulty_level,
-                request.location,
+                str(request.location_id),
                 request.valid_from,
                 request.valid_until,
                 user_id,
@@ -598,13 +600,13 @@ async def update_class_template(
                     start_time = $8::time,
                     capacity = $9,
                     difficulty_level = $10,
-                    location = $11,
+                    location_id = $11::uuid,
                     valid_from = coalesce($12::date, valid_from),
                     valid_until = $13::date,
                     is_active = $14,
                     updated_at = now()
                 where id = $1
-                returning *
+                returning *, (select name from locations where id = location_id) as location_name
                 """,
                 template_id,
                 request.title,
@@ -616,7 +618,7 @@ async def update_class_template(
                 request.start_time,
                 request.capacity,
                 request.difficulty_level,
-                request.location,
+                str(request.location_id),
                 request.valid_from,
                 request.valid_until,
                 request.is_active,

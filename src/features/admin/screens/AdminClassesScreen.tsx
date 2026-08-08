@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -17,6 +17,7 @@ import {
   setClassTemplateActive,
   updateClassTemplate,
 } from "@/features/classes/services/classesService";
+import { fetchLocations } from "@/features/locations/services/locationsService";
 import { toDateKey } from "@/utils/date";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
@@ -31,7 +32,7 @@ const schema = z.object({
   start_time: z.string().regex(/^\d{2}:\d{2}$/, "Use HH:MM"),
   capacity: z.coerce.number().int().min(1).max(500),
   difficulty_level: z.enum(["beginner", "intermediate", "advanced"]),
-  location: z.string().min(2),
+  location_id: z.string().uuid("Select a location"),
   valid_from: dateSchema,
   valid_until: z.union([dateSchema, z.literal("")]).optional(),
 });
@@ -48,7 +49,7 @@ const emptyValues: FormValues = {
   start_time: "18:00",
   capacity: 20,
   difficulty_level: "beginner",
-  location: "Main Studio",
+  location_id: "",
   valid_from: toDateKey(new Date()),
   valid_until: "",
 };
@@ -66,7 +67,7 @@ function valuesFromTemplate(template: ClassTemplate): FormValues {
     start_time: template.start_time.slice(0, 5),
     capacity: template.capacity,
     difficulty_level: template.difficulty_level,
-    location: template.location,
+    location_id: template.location_id,
     valid_from: template.valid_from,
     valid_until: template.valid_until ?? "",
   };
@@ -78,7 +79,7 @@ export function AdminClassesScreen() {
   const [selectedTemplate, setSelectedTemplate] =
     useState<ClassTemplate | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const { control, handleSubmit, reset } = useForm<FormValues>({
+  const { control, handleSubmit, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
@@ -95,11 +96,29 @@ export function AdminClassesScreen() {
     enabled: role === "admin",
   });
 
+  const locationsQuery = useQuery({
+    queryKey: queryKeys.locations,
+    queryFn: fetchLocations,
+    enabled: role === "admin",
+  });
+
   useEffect(() => {
     if (selectedTemplate) {
       reset(valuesFromTemplate(selectedTemplate));
     }
   }, [reset, selectedTemplate]);
+
+  useEffect(() => {
+    if (selectedTemplate || !isFormVisible || !locationsQuery.data?.length) {
+      return;
+    }
+
+    setValue("location_id", locationsQuery.data[0].id, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [isFormVisible, locationsQuery.data, selectedTemplate, setValue]);
 
   const invalidateClassData = async () => {
     await Promise.all([
@@ -281,7 +300,8 @@ export function AdminClassesScreen() {
                       <Text className="mt-1 text-xs text-gray-400">
                         {dayLabels[template.day_of_week]} at{" "}
                         {template.start_time.slice(0, 5)} ·{" "}
-                        {template.trainer_name}
+                        {template.trainer_name} ·{" "}
+                        {template.location_name ?? "Unknown location"}
                       </Text>
                     </View>
                     <Pressable
@@ -367,11 +387,62 @@ export function AdminClassesScreen() {
             label="Difficulty (beginner/intermediate/advanced)"
             placeholder="beginner"
           />
-          <Input
+          <Controller
             control={control}
-            name="location"
-            label="Location"
-            placeholder="Main Studio"
+            name="location_id"
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <View className="mb-3">
+                <Text className="mb-1 text-sm font-medium text-white">
+                  Location
+                </Text>
+                {locationsQuery.isLoading ? (
+                  <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
+                    <ActivityIndicator color="#22D3EE" size="small" />
+                    <Text className="ml-2 text-sm text-gray-400">
+                      Loading locations...
+                    </Text>
+                  </View>
+                ) : locationsQuery.isError ? (
+                  <Text className="rounded-xl border border-rose-500/40 bg-rose-950/20 px-3 py-3 text-sm text-rose-300">
+                    Could not load locations.
+                  </Text>
+                ) : !locationsQuery.data?.length ? (
+                  <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                    No locations available. Create a location first.
+                  </Text>
+                ) : (
+                  <View className="gap-2">
+                    {locationsQuery.data.map((location) => {
+                      const selected = value === location.id;
+                      return (
+                        <Pressable
+                          key={location.id}
+                          className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-surface"}`}
+                          onPress={() => onChange(location.id)}
+                        >
+                          <Text className="font-semibold text-white">
+                            {location.name}
+                          </Text>
+                          <Text className="mt-1 text-xs text-gray-400">
+                            {location.address || "No address provided"}
+                          </Text>
+                          {!location.is_active ? (
+                            <Text className="mt-1 text-xs font-semibold text-amber-300">
+                              Inactive
+                            </Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+                {!!error?.message && (
+                  <Text className="mt-1 text-xs text-rose-400">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
           <Input
             control={control}
