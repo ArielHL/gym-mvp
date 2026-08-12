@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
-import { useClasses } from "@/features/classes/hooks/useClasses";
+import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
 import { toDateKey } from "@/utils/date";
 
 const { width: SW } = Dimensions.get("window");
@@ -89,8 +89,15 @@ export function HomeScreen() {
   const { user, displayName } = useAuthState();
   const { data: bookings } = useMyBookings();
   const todayDate = useMemo(() => toDateKey(new Date()), []);
-  const { data: todayClasses, isLoading: isLoadingClasses } =
-    useClasses(todayDate);
+  const { data: templates, isLoading: isLoadingClasses } =
+    usePublicClassTemplates();
+
+  const todayClasses = useMemo(() => {
+    const todayDay = new Date().getUTCDay();
+    return (templates ?? []).filter(
+      (item) => (item.days_of_week_mask & (1 << todayDay)) !== 0,
+    );
+  }, [templates]);
 
   const bookingStats = useMemo(() => {
     const bookedClasses = bookings ?? [];
@@ -125,9 +132,13 @@ export function HomeScreen() {
     }
 
     return [
-      { label: "Classes\nBooked", val: String(bookedClasses.length) },
       {
-        label: "This\nWeek",
+        label: "Classes\nReservadas",
+        val: String(bookedClasses.length),
+        filter: "all" as const,
+      },
+      {
+        label: "Esta\nSemana",
         val: String(
           bookedClasses.filter((item) => {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(item.gymClass.date)) return false;
@@ -136,8 +147,13 @@ export function HomeScreen() {
             return classDate >= weekStart && classDate <= weekEnd;
           }).length,
         ),
+        filter: "week" as const,
       },
-      { label: "Day\nStreak", val: dayStreak > 0 ? `${dayStreak}🔥` : "0" },
+      {
+        label: "Racha\nDiaria",
+        val: dayStreak > 0 ? `${dayStreak}🔥` : "0",
+        filter: "day" as const,
+      },
     ];
   }, [bookings]);
 
@@ -285,10 +301,21 @@ export function HomeScreen() {
           {/* Stats Row */}
           <View style={s.statsRow}>
             {bookingStats.map((st, i) => (
-              <View key={i} style={s.statCard}>
-                <Text style={s.statVal}>{st.val}</Text>
-                <Text style={s.statLabel}>{st.label}</Text>
-              </View>
+              <Pressable
+                key={i}
+                style={s.statPressable}
+                onPress={() =>
+                  router.push({
+                    pathname: "/bookings",
+                    params: { filter: st.filter },
+                  })
+                }
+              >
+                <View style={s.statCard}>
+                  <Text style={s.statVal}>{st.val}</Text>
+                  <Text style={s.statLabel}>{st.label}</Text>
+                </View>
+              </Pressable>
             ))}
           </View>
 
@@ -345,8 +372,9 @@ export function HomeScreen() {
                             pathname: "/bookings/new",
                             params: {
                               classId: c.id,
+                              templateId: c.id,
                               className: c.title,
-                              classDate: c.date,
+                              classDate: todayDate,
                             },
                           })
                         : router.push("/(tabs)/bookings")
@@ -378,9 +406,9 @@ export function HomeScreen() {
                       >
                         <Text style={[s.diffText, { color }]}>{diff}</Text>
                       </View>
-                      <Text className="mt-1 text-[11px] text-[#555]">
-                        {c.available_spots} spots
-                      </Text>
+                        <Text className="mt-1 text-[11px] text-[#555]">
+                          recurring
+                        </Text>
                     </View>
                   </Pressable>
                 );
@@ -560,12 +588,16 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     gap: 10,
     marginBottom: 24,
+    justifyContent: "space-between",
   },
+  statPressable: { width: 100 },
   statCard: {
-    flex: 1,
+    width: 100,
+    height: 94,
     backgroundColor: "#141414",
     borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: "#242424",

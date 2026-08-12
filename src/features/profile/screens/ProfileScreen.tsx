@@ -263,7 +263,7 @@ export function ProfileScreen() {
                   <View style={s.menuText}>
                     <Text style={s.menuLabel}>Class Settings</Text>
                     <Text style={s.menuSub}>
-                      Set how many weeks ahead sessions are generated
+                      Configure upcoming admin controls and preferences
                     </Text>
                   </View>
                 </View>

@@ -3,7 +3,8 @@ import { supabase } from "@/services/supabase/client";
 import type { Booking, CallableResponse, GymClass } from "@/types/models";
 
 export type BookClassInput = {
-  classId: string;
+  templateId: string;
+  requestedDate: string;
   locationId: string;
 };
 
@@ -73,9 +74,14 @@ function mapBookingFeedRow(row: BookingFeedRow): {
   };
 }
 
-export async function bookClass({ classId, locationId }: BookClassInput) {
+export async function bookClass({
+  templateId,
+  requestedDate,
+  locationId,
+}: BookClassInput) {
   const payload = await apiPost<CallableResponse>("/bookings", {
-    session_id: classId,
+    template_id: templateId,
+    requested_date: requestedDate,
     location_id: locationId,
   });
   if (!payload.success) {

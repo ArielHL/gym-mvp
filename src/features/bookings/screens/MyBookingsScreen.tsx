@@ -8,30 +8,76 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useMemo } from "react";
 import {
   useCancelBooking,
   useMyBookings,
 } from "@/features/bookings/hooks/useBookings";
 import { prettyDateTime } from "@/utils/date";
 
+type BookingsFilter = "all" | "week" | "day";
+
 export function MyBookingsScreen() {
   const router = useRouter();
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
   const { data, isLoading, isError } = useMyBookings();
   const cancelMutation = useCancelBooking();
 
+  const activeFilter: BookingsFilter =
+    filter === "week" || filter === "day" ? filter : "all";
+
+  const filteredBookings = useMemo(() => {
+    const bookings = data ?? [];
+    if (activeFilter === "all") {
+      return bookings;
+    }
+
+    const today = new Date();
+    const todayKey = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(
+      today.getUTCDate(),
+    ).padStart(2, "0")}`;
+
+    if (activeFilter === "day") {
+      return bookings.filter((item) => item.gymClass.date === todayKey);
+    }
+
+    const currentDay = today.getUTCDay();
+    const weekStart = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+    weekStart.setUTCDate(
+      weekStart.getUTCDate() - (currentDay === 0 ? 6 : currentDay - 1),
+    );
+    const weekEnd = new Date(weekStart);
+    weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+
+    return bookings.filter((item) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(item.gymClass.date)) return false;
+      const classDate = new Date(`${item.gymClass.date}T00:00:00Z`);
+      return classDate >= weekStart && classDate <= weekEnd;
+    });
+  }, [activeFilter, data]);
+
+  const subheading =
+    activeFilter === "week"
+      ? "Tus clases reservadas de esta semana"
+      : activeFilter === "day"
+        ? "Tus clases reservadas para hoy"
+        : "Tus próximas clases reservadas";
+
   const onCancelBooking = (classId: string) => {
-    Alert.alert("Cancel booking", "Remove this class from your bookings?", [
-      { text: "Keep it", style: "cancel" },
+    Alert.alert("Cancelar Clase", "¿Eliminar esta clase de tus reservas?", [
+      { text: "Mantener", style: "cancel" },
       {
-        text: "Cancel booking",
+        text: "Cancelar reserva",
         style: "destructive",
         onPress: async () => {
           try {
             const result = await cancelMutation.mutateAsync(classId);
-            Alert.alert("Cancelled", result.message);
+            Alert.alert("Cancelada", result.message);
           } catch (err) {
             Alert.alert("Error", (err as Error).message);
           }
@@ -59,8 +105,8 @@ export function MyBookingsScreen() {
           />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.heading}>Booking History</Text>
-          <Text style={styles.subheading}>Your upcoming booked classes</Text>
+          <Text style={styles.heading}>Mis Classes Reservadas</Text>
+          <Text style={styles.subheading}>{subheading}</Text>
         </View>
       </View>
 
@@ -74,20 +120,20 @@ export function MyBookingsScreen() {
 
       {isError && (
         <View style={styles.center}>
-          <Text style={styles.errorText}>Could not load bookings.</Text>
+          <Text style={styles.errorText}>No se pudieron cargar las reservas.</Text>
         </View>
       )}
 
       {!isLoading && !isError && (
         <FlatList
-          data={data ?? []}
+          data={filteredBookings}
           keyExtractor={(item) => item.booking.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyText}>No booked classes yet.</Text>
-              <Text style={styles.emptyHint}>Go to Classes and book one!</Text>
+              <Text style={styles.emptyText}>Aún no hay clases reservadas.</Text>
+              <Text style={styles.emptyHint}>¡Ve a Clases y reserva una!</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -117,7 +163,7 @@ export function MyBookingsScreen() {
               </View>
               <View style={styles.cardFooter}>
                 <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>Booked</Text>
+                  <Text style={styles.statusText}>Reservada</Text>
                 </View>
                 <Pressable
                   style={({ pressed }) => [
@@ -127,7 +173,7 @@ export function MyBookingsScreen() {
                   onPress={() => onCancelBooking(item.gymClass.id)}
                   disabled={cancelMutation.isPending}
                 >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>Cancelar</Text>
                 </Pressable>
               </View>
             </View>
