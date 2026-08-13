@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar } from "react-native-calendars";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { queryKeys } from "@/constants/queryKeys";
 import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
 import { useBookClass } from "@/features/bookings/hooks/useBookings";
@@ -29,6 +29,50 @@ const DIFF_COLORS: Record<string, string> = {
   intermediate: "#F59E0B",
   advanced: "#A855F7",
 };
+
+LocaleConfig.locales.es = {
+  monthNames: [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ],
+  monthNamesShort: [
+    "ene.",
+    "feb.",
+    "mar.",
+    "abr.",
+    "may.",
+    "jun.",
+    "jul.",
+    "ago.",
+    "sep.",
+    "oct.",
+    "nov.",
+    "dic.",
+  ],
+  dayNames: [
+    "domingo",
+    "lunes",
+    "martes",
+    "miércoles",
+    "jueves",
+    "viernes",
+    "sábado",
+  ],
+  dayNamesShort: ["dom.", "lun.", "mar.", "mié.", "jue.", "vie.", "sáb."],
+  today: "Hoy",
+};
+
+LocaleConfig.defaultLocale = "es";
 
 function parseDateKey(value: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -123,12 +167,12 @@ export function BookClassScreen() {
     selectedTemplateQuery.isLoading;
 
   const bookButtonLabel = locationsQuery.isLoading
-    ? "Loading locations..."
+    ? "Cargando ubicaciones..."
     : !selectedTemplateId
-      ? "Select a class first"
+      ? "Selecciona una clase primero"
         : !isDateValid
-          ? "Pick a valid date"
-          : "Confirm Booking";
+          ? "Elije una fecha válida"
+          : "Confirma Reserva";
 
   useEffect(() => {
     if (!locationsQuery.data?.length) {
@@ -186,22 +230,22 @@ export function BookClassScreen() {
       const alreadyBooked = hasCode(BOOKING_ERROR_CODES.ALREADY_BOOKED) || /already booked/i.test(message);
 
       if (alreadyBooked) {
-        Alert.alert("Already booked", "You already booked this class.", [{ text: "Accept" }]);
+        Alert.alert("Ya Reservado", "Ya reservaste esta clase.", [{ text: "Aceptar" }]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_FULL)) {
-        Alert.alert("Class full", "This class is full. Please choose another date or class.", [{ text: "Accept" }]);
+        Alert.alert("Clase llena", "Esta clase está llena. Por favor elige otra fecha o clase.", [{ text: "Aceptar" }]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_INACTIVE)) {
-        Alert.alert("Class unavailable", "This class is no longer active.", [{ text: "Accept" }]);
+        Alert.alert("Clase no disponible", "Esta clase ya no está activa.", [{ text: "Aceptar" }]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_NOT_AVAILABLE_FOR_DATE)) {
-        Alert.alert("Date unavailable", "This class is not available on the selected date.", [{ text: "Accept" }]);
+        Alert.alert("Fecha no disponible", "Esta clase no está disponible en la fecha seleccionada.", [{ text: "Aceptar" }]);
         return;
       }
 
@@ -209,21 +253,21 @@ export function BookClassScreen() {
         hasCode(BOOKING_ERROR_CODES.LOCATION_NOT_FOUND) ||
         hasCode(BOOKING_ERROR_CODES.LOCATION_ID_REQUIRED)
       ) {
-        Alert.alert("Location unavailable", "Please select an active location and try again.", [{ text: "Accept" }]);
+        Alert.alert("Ubicación no disponible", "Por favor selecciona una ubicación activa e inténtalo de nuevo.", [{ text: "Aceptar" }]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_TEMPLATE_NOT_FOUND)) {
-        Alert.alert("Class unavailable", "This class could not be found. Please refresh and try again.", [{ text: "Accept" }]);
+        Alert.alert("Clase no disponible", "No se pudo encontrar esta clase. Por favor actualiza e inténtalo de nuevo.", [{ text: "Aceptar" }]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.BOOKING_TEMPORARILY_UNAVAILABLE)) {
-        Alert.alert("Booking unavailable", "Booking is temporarily unavailable. Please try again in a moment.", [{ text: "Accept" }]);
+        Alert.alert("Reserva no disponible", "La reserva no está disponible temporalmente. Por favor inténtalo de nuevo en un momento.", [{ text: "Aceptar" }]);
         return;
       }
 
-      Alert.alert("Booking failed", message);
+      Alert.alert("Error al reservar", message);
     }
   };
 
@@ -346,83 +390,29 @@ export function BookClassScreen() {
           ) : null}
         </View>
 
-        {/* <View style={s.stepBlock}>
-          <View style={s.stepRow}>
-            <View style={s.stepNum}>
-              <Text style={s.stepNumText}>3</Text>
-            </View>
-            <Text style={s.stepTitle}>Elige la Ubicación</Text>
-          </View>
 
-          {locationsQuery.isLoading ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color="#22D3EE" />
-            </View>
-          ) : locationsQuery.isError ? (
-            <View style={s.emptyWrap}>
-              <Text style={s.errorText}>No se pudieron cargar las ubicaciones.</Text>
-            </View>
-          ) : !locationsQuery.data || locationsQuery.data.length === 0 ? (
-            <View style={s.emptyWrap}>
-              <Text style={{ fontSize: 32 }}>📍</Text>
-              <Text style={s.emptyText}>No active locations available</Text>
-            </View>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {locationsQuery.data.map((loc) => {
-                const active = loc.id === selectedLocationId;
-                return (
-                  <Pressable
-                    key={loc.id}
-                    style={[s.locCard, active && s.locCardActive]}
-                    onPress={() => setSelectedLocationId(loc.id)}
-                  >
-                    <MaterialCommunityIcons
-                      name="map-marker-radius"
-                      size={26}
-                      color={active ? "#22D3EE" : "#666666"}
-                    />
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={s.locName}>{loc.name}</Text>
-                      <Text style={s.locAddr}>
-                        {loc.address || "No address provided"}
-                      </Text>
-                    </View>
-                    {active && (
-                      <View style={s.locCheck}>
-                        <Text style={{ color: "#22D3EE", fontSize: 14 }}>
-                          ✓
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View> */}
 
         {selectedTemplate && (
           <View style={s.summaryCard}>
-            <Text style={s.summaryTitle}>Booking Summary</Text>
+            <Text style={s.summaryTitle}>Resumen de Reserva</Text>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Class</Text>
+              <Text style={s.summaryLabel}>Clase</Text>
               <Text style={s.summaryValue}>{selectedTemplate.title}</Text>
             </View>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Trainer</Text>
+              <Text style={s.summaryLabel}>Entrenador</Text>
               <Text style={s.summaryValue}>{selectedTemplate.trainer_name}</Text>
             </View>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Date</Text>
+              <Text style={s.summaryLabel}>Fecha</Text>
               <Text style={s.summaryValue}>{selectedDate}</Text>
             </View>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Time</Text>
+              <Text style={s.summaryLabel}>Hora</Text>
               <Text style={s.summaryValue}>{selectedTemplate.start_time}</Text>
             </View>
             <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
-              <Text style={s.summaryLabel}>Location</Text>
+              <Text style={s.summaryLabel}>Ubicación</Text>
               <Text style={s.summaryValue}>{selectedLocation?.name ?? "-"}</Text>
             </View>
           </View>

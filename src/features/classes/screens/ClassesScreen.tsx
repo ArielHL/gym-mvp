@@ -37,13 +37,13 @@ const CLASS_IMAGES: Record<string, string> = {
 const FILTERS = ["All", "Beginner", "Intermediate", "Advanced"];
 const DAY_FILTERS = [
   { label: "All", value: null },
-  { label: "Sun", value: 0 },
-  { label: "Mon", value: 1 },
-  { label: "Tue", value: 2 },
-  { label: "Wed", value: 3 },
-  { label: "Thu", value: 4 },
-  { label: "Fri", value: 5 },
-  { label: "Sat", value: 6 },
+  { label: "Dom", value: 0 },
+  { label: "Lun", value: 1 },
+  { label: "Mar", value: 2 },
+  { label: "Mié", value: 3 },
+  { label: "Jue", value: 4 },
+  { label: "Vie", value: 5 },
+  { label: "Sáb", value: 6 },
 ] as const;
 
 function hasDay(mask: number, day: number): boolean {
@@ -154,8 +154,8 @@ export function ClassesScreen() {
           />
         </Pressable>
         <View>
-          <Text style={s.heading}>Classes</Text>
-          <Text style={s.subHeading}>{filtered.length} templates</Text>
+          <Text style={s.heading}>Clases</Text>
+          <Text style={s.subHeading}>{filtered.length} Clases Disponibles</Text>
         </View>
       </View>
 
@@ -238,13 +238,13 @@ export function ClassesScreen() {
         </View>
       ) : isError ? (
         <View style={s.center}>
-          <Text style={s.errorText}>Could not load classes</Text>
+          <Text style={s.errorText}>No se pudieron cargar las clases</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={s.center}>
           <Text style={{ fontSize: 40 }}>🤸</Text>
-          <Text style={s.emptyText}>No classes found</Text>
-          <Text style={s.emptySubText}>Try another search or filter</Text>
+          <Text style={s.emptyText}>Sin clases disponibles</Text>
+          <Text style={s.emptySubText}>Prueba otra búsqueda o filtro</Text>
         </View>
       ) : (
         <FlatList

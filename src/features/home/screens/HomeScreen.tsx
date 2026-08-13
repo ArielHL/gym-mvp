@@ -206,9 +206,9 @@ export function HomeScreen() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
-    return "Good evening";
+    if (h < 12) return "Buen Día";
+    if (h < 18) return "Buenas Tardes";
+    return "Buenas Noches";
   })();
 
   return (
@@ -228,7 +228,7 @@ export function HomeScreen() {
             <View style={[s.burgerLine, { width: 14 }]} />
           </Pressable>
           <Text style={s.logo}>
-            CALI<Text style={s.logoAccent}>FIT</Text>
+            Flowly<Text style={s.logoAccent}></Text>
           </Text>
           <Pressable
             style={s.notifBtn}
@@ -282,7 +282,7 @@ export function HomeScreen() {
                       onPress={() => router.push("/(tabs)/classes")}
                     >
                       <Text style={[s.heroBtnText, { color: item.tagColor }]}>
-                        Explore Class →
+                        Mira Nuestras Clases →
                       </Text>
                     </Pressable>
                   </View>
@@ -321,12 +321,12 @@ export function HomeScreen() {
 
           {/* Section header */}
           <View style={s.sectionRow}>
-            <Text style={s.sectionTitle}>Today's Classes</Text>
+            <Text style={s.sectionTitle}>Las Clases de Hoy</Text>
             <Pressable
               onPress={() => goToTab("/(tabs)/classes")}
               accessibilityLabel="See all classes"
             >
-              <Text style={s.sectionLink}>See all →</Text>
+              <Text style={s.sectionLink}>Ver todas →</Text>
             </Pressable>
           </View>
 
@@ -350,11 +350,11 @@ export function HomeScreen() {
           <View style={{ paddingHorizontal: 20, gap: 12 }}>
             {isLoadingClasses ? (
               <View style={s.emptyClassCard}>
-                <Text style={s.emptyClassText}>Loading today's classes...</Text>
+                <Text style={s.emptyClassText}>Cargando las clases de hoy...</Text>
               </View>
             ) : !todayClasses?.length ? (
               <View style={s.emptyClassCard}>
-                <Text style={s.emptyClassText}>No classes today.</Text>
+                <Text style={s.emptyClassText}>No hay clases hoy.</Text>
               </View>
             ) : (
               todayClasses.map((c) => {
@@ -439,7 +439,7 @@ export function HomeScreen() {
         <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
           <View style={s.drawerHead}>
             <Text style={s.drawerLogo}>
-              CALI<Text style={s.drawerLogoAccent}>FIT</Text>
+              Flow<Text style={s.drawerLogoAccent}>ly</Text>
             </Text>
             <Pressable onPress={closeDrawer} style={s.drawerClose}>
               <Text style={s.drawerCloseText}>✕</Text>
@@ -496,7 +496,7 @@ export function HomeScreen() {
               <Text style={s.drawerProfileName}>
                 {user ? displayName || "My Account" : "Guest"}
               </Text>
-              <Text style={s.drawerProfileSub}>View profile →</Text>
+              <Text style={s.drawerProfileSub}>Ver Perfil →</Text>
             </View>
           </Pressable>
         </SafeAreaView>

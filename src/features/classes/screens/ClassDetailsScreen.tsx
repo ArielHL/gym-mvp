@@ -11,7 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePublicClassTemplate } from "@/features/classes/hooks/useClasses";
 
-const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function formatDays(mask: number): string {
   return dayLabels
@@ -48,7 +48,7 @@ export function ClassDetailsScreen() {
     return (
       <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
         <View style={styles.center}>
-          <Text style={styles.errorText}>Could not load this class</Text>
+          <Text style={styles.errorText}>No se pudo cargar esta clase</Text>
         </View>
       </SafeAreaView>
     );
@@ -74,7 +74,7 @@ export function ClassDetailsScreen() {
             color="#22D3EE"
           />
         </Pressable>
-        <Text style={styles.headerTitle}>Class Details</Text>
+        <Text style={styles.headerTitle}>Detalles de la Clase</Text>
       </View>
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -84,18 +84,18 @@ export function ClassDetailsScreen() {
         <Text style={styles.desc}>{template.description}</Text>
 
         <View style={styles.infoCard}>
-          <InfoRow label="Trainer" value={template.trainer_name} />
-          <InfoRow label="Type" value={template.exercise_type} />
+          <InfoRow label="Entrenador" value={template.trainer_name} />
+          <InfoRow label="Tipo de ejercicio" value={template.exercise_type} />
           <InfoRow
-            label="Duration"
+            label="Duración"
             value={`${template.duration_minutes} min`}
           />
-          <InfoRow label="Schedule" value={formatDays(template.days_of_week_mask)} />
-          <InfoRow label="Start time" value={template.start_time} />
-          <InfoRow label="Difficulty" value={template.difficulty_level} />
-          <InfoRow label="Location" value={template.location_name} />
-          <InfoRow label="Valid from" value={template.valid_from} />
-          <InfoRow label="Valid until" value={template.valid_until ?? "No end date"} />
+          <InfoRow label="Horario" value={formatDays(template.days_of_week_mask)} />
+          <InfoRow label="Hora de inicio" value={template.start_time} />
+          <InfoRow label="Dificultad" value={template.difficulty_level} />
+          <InfoRow label="Ubicación" value={template.location_name} />
+          <InfoRow label="Válido desde" value={template.valid_from} />
+          <InfoRow label="Válido hasta" value={template.valid_until ?? "Sin fecha de fin"} />
         </View>
 
         <View style={styles.btnShell}>
@@ -103,7 +103,7 @@ export function ClassDetailsScreen() {
             style={({ pressed }) => [styles.btnPressable, pressed && styles.btnDisabled]}
             onPress={onBook}
           >
-            <Text style={styles.btnText}>Choose Date & Book</Text>
+            <Text style={styles.btnText}>Elegir Fecha y Reservar</Text>
           </Pressable>
         </View>
       </ScrollView>
