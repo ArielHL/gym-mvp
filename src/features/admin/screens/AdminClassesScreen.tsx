@@ -5,11 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
+import { ClassTypePickerModal } from "@/components/ui/ClassTypePickerModal";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { TimePickerModal } from "@/components/ui/TimePickerModal";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import {
   type ClassTemplate,
   createClassTemplate,
@@ -72,7 +74,7 @@ const emptyValues: FormValues = {
   title: "",
   description: "",
   trainer_name: "",
-  exercise_type: "general fitness",
+  exercise_type: "",
   duration_minutes: 60,
   days_of_week: [1],
   start_time: "18:00",
@@ -107,6 +109,7 @@ export function AdminClassesScreen() {
     useState<ClassTemplate | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
+  const [isTypePickerVisible, setIsTypePickerVisible] = useState(false);
   const { control, handleSubmit, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
@@ -123,6 +126,8 @@ export function AdminClassesScreen() {
     queryFn: fetchLocations,
     enabled: role === "admin",
   });
+
+  const classTypesQuery = useActiveClassTypes(role === "admin");
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -141,6 +146,18 @@ export function AdminClassesScreen() {
       shouldValidate: false,
     });
   }, [isFormVisible, locationsQuery.data, selectedTemplate, setValue]);
+
+  useEffect(() => {
+    if (selectedTemplate || !isFormVisible || !classTypesQuery.data?.length) {
+      return;
+    }
+
+    setValue("exercise_type", classTypesQuery.data[0].slug, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [classTypesQuery.data, isFormVisible, selectedTemplate, setValue]);
 
   const invalidateClassData = async () => {
     await Promise.all([
@@ -369,11 +386,66 @@ export function AdminClassesScreen() {
             label="Trainer"
             placeholder="Alex"
           />
-          <Input
+          <Controller
             control={control}
             name="exercise_type"
-            label="Type"
-            placeholder="strength"
+            render={({ field: { value, onChange }, fieldState: { error } }) => {
+              const selectedType = classTypesQuery.data?.find(
+                (item) => item.slug === value,
+              );
+
+              return (
+                <View className="mb-3">
+                  <Text className="mb-1 text-sm font-medium text-white">Tipo</Text>
+                  {classTypesQuery.isLoading ? (
+                    <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
+                      <ActivityIndicator color="#22D3EE" size="small" />
+                      <Text className="ml-2 text-sm text-gray-400">
+                        Cargando tipos...
+                      </Text>
+                    </View>
+                  ) : classTypesQuery.isError ? (
+                    <Text className="rounded-xl border border-rose-500/40 bg-rose-950/20 px-3 py-3 text-sm text-rose-300">
+                      No se pudieron cargar los tipos de clase.
+                    </Text>
+                  ) : !classTypesQuery.data?.length ? (
+                    <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                      No hay tipos activos. Crea uno desde Admin / Tipos de Clase.
+                    </Text>
+                  ) : (
+                    <Pressable
+                      className="h-12 flex-row items-center justify-between rounded-xl border border-border bg-surface px-3"
+                      onPress={() => setIsTypePickerVisible(true)}
+                    >
+                      <Text className="text-base font-semibold text-white">
+                        {selectedType?.nombre ?? "Selecciona un tipo"}
+                      </Text>
+                      <Text className="text-xs text-cyan-300">Cambiar</Text>
+                    </Pressable>
+                  )}
+                  {!!selectedType?.descripcion && (
+                    <Text className="mt-1 text-xs text-gray-400">
+                      {selectedType.descripcion}
+                    </Text>
+                  )}
+                  {!!error?.message && (
+                    <Text className="mt-1 text-xs text-rose-400">
+                      {error.message}
+                    </Text>
+                  )}
+                  <ClassTypePickerModal
+                    visible={isTypePickerVisible}
+                    options={classTypesQuery.data ?? []}
+                    selectedSlug={value}
+                    onCancel={() => setIsTypePickerVisible(false)}
+                    onSelect={(option) => {
+                      onChange(option.slug);
+                      setIsTypePickerVisible(false);
+                    }}
+                  />
+                </View>
+              );
+            }}
           />
           <Input
             control={control}

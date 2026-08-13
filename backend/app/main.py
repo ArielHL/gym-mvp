@@ -59,6 +59,14 @@ class LocationRequest(BaseModel):
     is_active: bool = True
 
 
+class TipoClaseRequest(BaseModel):
+    nombre: str
+    slug: str
+    descripcion: str | None = None
+    is_active: bool = True
+    sort_order: int = 0
+
+
 class ActiveRequest(BaseModel):
     is_active: bool
 
@@ -100,7 +108,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -222,6 +230,26 @@ async def _update_future_class_session_capacity(
         template_id,
         capacity,
     )
+
+
+async def _ensure_active_class_type(conn: asyncpg.Connection, slug: str) -> None:
+    exists = await conn.fetchval(
+        """
+        select exists(
+          select 1
+          from class_types
+          where slug = lower(trim($1))
+            and is_active = true
+        )
+        """,
+        slug,
+    )
+
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="tipo de clase invalido o inactivo").model_dump(),
+        )
 
 
 async def _read_user_from_token(token: str, settings: Settings) -> dict[str, Any]:
@@ -468,6 +496,22 @@ async def list_active_locations() -> list[dict[str, Any]]:
     return _records_to_dicts(rows)
 
 
+@app.get("/tipos-clase/active")
+async def list_active_tipos_clase() -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select id, nombre, slug, descripcion, is_active, sort_order, created_at, updated_at
+            from class_types
+            where is_active = true
+            order by sort_order asc, nombre asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
 @app.get("/bookings/me")
 async def list_my_bookings(user_id: str = Depends(get_user_id)) -> list[dict[str, Any]]:
     pool: asyncpg.Pool = app.state.db_pool
@@ -600,6 +644,8 @@ async def create_class_template(
                         detail=ApiResponse(success=False, message="location not found").model_dump(),
                     )
 
+                await _ensure_active_class_type(conn, request.exercise_type)
+
                 row = await conn.fetchrow(
                     """
                     insert into class_templates (
@@ -624,7 +670,7 @@ async def create_class_template(
                     request.title,
                     request.description,
                     request.trainer_name,
-                    request.exercise_type,
+                    request.exercise_type.strip().lower(),
                     request.duration_minutes,
                     request.days_of_week_mask,
                     request.start_time,
@@ -700,6 +746,8 @@ async def update_class_template(
                         detail=ApiResponse(success=False, message="location not found").model_dump(),
                     )
 
+                await _ensure_active_class_type(conn, request.exercise_type)
+
                 row = await conn.fetchrow(
                     """
                     update class_templates
@@ -724,7 +772,7 @@ async def update_class_template(
                     request.title,
                     request.description,
                     request.trainer_name,
-                    request.exercise_type,
+                    request.exercise_type.strip().lower(),
                     request.duration_minutes,
                     request.days_of_week_mask,
                     request.start_time,
@@ -827,6 +875,147 @@ async def list_locations(_: str = Depends(require_admin_user)) -> list[dict[str,
         )
 
     return _records_to_dicts(rows)
+
+
+@app.get("/admin/tipos-clase")
+async def list_tipos_clase(_: str = Depends(require_admin_user)) -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            from class_types
+            order by is_active desc, sort_order asc, nombre asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.post("/admin/tipos-clase")
+async def create_tipo_clase(
+    request: TipoClaseRequest,
+    user_id: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            insert into class_types (nombre, slug, descripcion, is_active, sort_order, created_by)
+            values ($1, lower(trim($2)), $3, $4, $5, $6)
+            returning id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            """,
+            request.nombre.strip(),
+            request.slug,
+            request.descripcion,
+            request.is_active,
+            request.sort_order,
+            user_id,
+        )
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/tipos-clase/{tipo_id}")
+async def update_tipo_clase(
+    tipo_id: str,
+    request: TipoClaseRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            update class_types
+            set nombre = $2,
+                slug = lower(trim($3)),
+                descripcion = $4,
+                is_active = $5,
+                sort_order = $6,
+                updated_at = now()
+            where id = $1
+            returning id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            """,
+            tipo_id,
+            request.nombre.strip(),
+            request.slug,
+            request.descripcion,
+            request.is_active,
+            request.sort_order,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
+        )
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/tipos-clase/{tipo_id}/active", response_model=ApiResponse)
+async def set_tipo_clase_active(
+    tipo_id: str,
+    request: ActiveRequest,
+    _: str = Depends(require_admin_user),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            update class_types
+            set is_active = $2, updated_at = now()
+            where id = $1
+            """,
+            tipo_id,
+            request.is_active,
+        )
+
+    if result == "UPDATE 0":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
+        )
+
+    return ApiResponse(success=True, message="Estado del tipo de clase actualizado")
+
+
+@app.delete("/admin/tipos-clase/{tipo_id}", response_model=ApiResponse)
+async def delete_tipo_clase(
+    tipo_id: str,
+    _: str = Depends(require_admin_user),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        slug = await conn.fetchval("select slug from class_types where id = $1", tipo_id)
+        if slug is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
+            )
+
+        in_use = await conn.fetchval(
+            """
+            select exists(
+              select 1
+              from class_templates
+              where exercise_type = $1
+            )
+            """,
+            slug,
+        )
+        if in_use:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=ApiResponse(
+                    success=False,
+                    message="No se puede eliminar: hay clases usando este tipo",
+                ).model_dump(),
+            )
+
+        await conn.execute("delete from class_types where id = $1", tipo_id)
+
+    return ApiResponse(success=True, message="Tipo de clase eliminado")
 
 
 @app.post("/admin/locations")

@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
+import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
 import { toDateKey } from "@/utils/date";
 
@@ -83,6 +84,7 @@ type TabRoute = "/(tabs)/classes" | "/(tabs)/bookings" | "/(tabs)/profile";
 export function HomeScreen() {
   const [slide, setSlide] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedTypeSlug, setSelectedTypeSlug] = useState<string>("all");
   const drawerX = useRef(new Animated.Value(-DRAWER_W)).current;
   const overlayAlpha = useRef(new Animated.Value(0)).current;
   const router = useRouter();
@@ -91,6 +93,7 @@ export function HomeScreen() {
   const todayDate = useMemo(() => toDateKey(new Date()), []);
   const { data: templates, isLoading: isLoadingClasses } =
     usePublicClassTemplates();
+  const { data: classTypes } = useActiveClassTypes();
 
   const todayClasses = useMemo(() => {
     const todayDay = new Date().getUTCDay();
@@ -98,6 +101,26 @@ export function HomeScreen() {
       (item) => (item.days_of_week_mask & (1 << todayDay)) !== 0,
     );
   }, [templates]);
+
+  const typeChips = useMemo(
+    () => [
+      { id: "all", label: "Todas", slug: "all" },
+      ...(classTypes ?? []).map((item) => ({
+        id: item.id,
+        label: item.nombre,
+        slug: item.slug,
+      })),
+    ],
+    [classTypes],
+  );
+
+  const filteredTodayClasses = useMemo(() => {
+    if (selectedTypeSlug === "all") {
+      return todayClasses;
+    }
+
+    return todayClasses.filter((item) => item.exercise_type === selectedTypeSlug);
+  }, [selectedTypeSlug, todayClasses]);
 
   const bookingStats = useMemo(() => {
     const bookedClasses = bookings ?? [];
@@ -337,13 +360,21 @@ export function HomeScreen() {
             contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
             style={{ marginBottom: 16 }}
           >
-            {["All", "Strength", "Mobility", "Cardio", "Yoga"].map((c, i) => (
-              <Pressable key={c} style={[s.chip, i === 0 && s.chipActive]}>
-                <Text style={[s.chipText, i === 0 && s.chipTextActive]}>
-                  {c}
-                </Text>
-              </Pressable>
-            ))}
+            {typeChips.map((chip) => {
+              const active = chip.slug === selectedTypeSlug;
+
+              return (
+                <Pressable
+                  key={chip.id}
+                  style={[s.chip, active && s.chipActive]}
+                  onPress={() => setSelectedTypeSlug(chip.slug)}
+                >
+                  <Text style={[s.chipText, active && s.chipTextActive]}>
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
 
           {/* Mini class cards */}
@@ -352,12 +383,12 @@ export function HomeScreen() {
               <View style={s.emptyClassCard}>
                 <Text style={s.emptyClassText}>Cargando las clases de hoy...</Text>
               </View>
-            ) : !todayClasses?.length ? (
+            ) : !filteredTodayClasses?.length ? (
               <View style={s.emptyClassCard}>
                 <Text style={s.emptyClassText}>No hay clases hoy.</Text>
               </View>
             ) : (
-              todayClasses.map((c) => {
+              filteredTodayClasses.map((c) => {
                 const color = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
                 const diff = c.difficulty_level.slice(0, 3).toUpperCase();
 
