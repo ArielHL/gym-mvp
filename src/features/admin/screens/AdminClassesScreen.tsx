@@ -28,7 +28,7 @@ const schema = z.object({
   title: z.string().min(2),
   description: z.string().min(5),
   trainer_name: z.string().min(2),
-  exercise_type: z.string().min(2),
+  class_type_id: z.string().uuid("Selecciona un tipo de clase"),
   duration_minutes: z.coerce.number().int().min(10).max(240),
   days_of_week: z
     .array(z.number().int().min(0).max(6))
@@ -74,7 +74,7 @@ const emptyValues: FormValues = {
   title: "",
   description: "",
   trainer_name: "",
-  exercise_type: "",
+  class_type_id: "",
   duration_minutes: 60,
   days_of_week: [1],
   start_time: "18:00",
@@ -90,7 +90,7 @@ function valuesFromTemplate(template: ClassTemplate): FormValues {
     title: template.title,
     description: template.description,
     trainer_name: template.trainer_name,
-    exercise_type: template.exercise_type,
+    class_type_id: template.class_type_id,
     duration_minutes: template.duration_minutes,
     days_of_week: daysFromMask(template.days_of_week_mask),
     start_time: template.start_time.slice(0, 5),
@@ -152,7 +152,7 @@ export function AdminClassesScreen() {
       return;
     }
 
-    setValue("exercise_type", classTypesQuery.data[0].slug, {
+    setValue("class_type_id", classTypesQuery.data[0].id, {
       shouldDirty: false,
       shouldTouch: false,
       shouldValidate: false,
@@ -388,10 +388,10 @@ export function AdminClassesScreen() {
           />
           <Controller
             control={control}
-            name="exercise_type"
+            name="class_type_id"
             render={({ field: { value, onChange }, fieldState: { error } }) => {
               const selectedType = classTypesQuery.data?.find(
-                (item) => item.slug === value,
+                (item) => item.id === value,
               );
 
               return (
@@ -436,10 +436,10 @@ export function AdminClassesScreen() {
                   <ClassTypePickerModal
                     visible={isTypePickerVisible}
                     options={classTypesQuery.data ?? []}
-                    selectedSlug={value}
+                    selectedId={value}
                     onCancel={() => setIsTypePickerVisible(false)}
                     onSelect={(option) => {
-                      onChange(option.slug);
+                      onChange(option.id);
                       setIsTypePickerVisible(false);
                     }}
                   />

@@ -84,7 +84,7 @@ type TabRoute = "/(tabs)/classes" | "/(tabs)/bookings" | "/(tabs)/profile";
 export function HomeScreen() {
   const [slide, setSlide] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedTypeSlug, setSelectedTypeSlug] = useState<string>("all");
+  const [selectedTypeId, setSelectedTypeId] = useState<string>("all");
   const drawerX = useRef(new Animated.Value(-DRAWER_W)).current;
   const overlayAlpha = useRef(new Animated.Value(0)).current;
   const router = useRouter();
@@ -104,23 +104,22 @@ export function HomeScreen() {
 
   const typeChips = useMemo(
     () => [
-      { id: "all", label: "Todas", slug: "all" },
+      { id: "all", label: "Todas" },
       ...(classTypes ?? []).map((item) => ({
         id: item.id,
         label: item.nombre,
-        slug: item.slug,
       })),
     ],
     [classTypes],
   );
 
   const filteredTodayClasses = useMemo(() => {
-    if (selectedTypeSlug === "all") {
+    if (selectedTypeId === "all") {
       return todayClasses;
     }
 
-    return todayClasses.filter((item) => item.exercise_type === selectedTypeSlug);
-  }, [selectedTypeSlug, todayClasses]);
+    return todayClasses.filter((item) => item.class_type_id === selectedTypeId);
+  }, [selectedTypeId, todayClasses]);
 
   const bookingStats = useMemo(() => {
     const bookedClasses = bookings ?? [];
@@ -361,13 +360,13 @@ export function HomeScreen() {
             style={{ marginBottom: 16 }}
           >
             {typeChips.map((chip) => {
-              const active = chip.slug === selectedTypeSlug;
+              const active = chip.id === selectedTypeId;
 
               return (
                 <Pressable
                   key={chip.id}
                   style={[s.chip, active && s.chipActive]}
-                  onPress={() => setSelectedTypeSlug(chip.slug)}
+                  onPress={() => setSelectedTypeId(chip.id)}
                 >
                   <Text style={[s.chipText, active && s.chipTextActive]}>
                     {chip.label}

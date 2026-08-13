@@ -85,7 +85,7 @@ export function ClassDetailsScreen() {
 
         <View style={styles.infoCard}>
           <InfoRow label="Entrenador" value={template.trainer_name} />
-          <InfoRow label="Tipo de ejercicio" value={template.exercise_type} />
+          <InfoRow label="Tipo de ejercicio" value={template.class_type_nombre} />
           <InfoRow
             label="Duración"
             value={`${template.duration_minutes} min`}

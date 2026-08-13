@@ -61,7 +61,7 @@ interface ClassCardProps {
 
 function ClassCard({ item, onPress }: ClassCardProps) {
   const diffColor = DIFF_COLORS[item.difficulty_level] ?? "#22D3EE";
-  const typeKey = item.exercise_type?.toLowerCase() ?? "default";
+  const typeKey = item.class_type_slug?.toLowerCase() ?? "default";
   const imgUri = CLASS_IMAGES[typeKey] ?? CLASS_IMAGES.default;
 
   return (

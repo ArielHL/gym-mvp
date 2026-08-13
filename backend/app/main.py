@@ -36,7 +36,7 @@ class ClassTemplateRequest(BaseModel):
     title: str
     description: str
     trainer_name: str
-    exercise_type: str
+    class_type_id: UUID
     duration_minutes: int
     days_of_week_mask: int
     start_time: time
@@ -232,17 +232,17 @@ async def _update_future_class_session_capacity(
     )
 
 
-async def _ensure_active_class_type(conn: asyncpg.Connection, slug: str) -> None:
+async def _ensure_active_class_type(conn: asyncpg.Connection, class_type_id: UUID) -> None:
     exists = await conn.fetchval(
         """
         select exists(
           select 1
           from class_types
-          where slug = lower(trim($1))
+          where id = $1
             and is_active = true
         )
         """,
-        slug,
+        class_type_id,
     )
 
     if not exists:
@@ -404,7 +404,9 @@ async def list_public_class_templates() -> list[dict[str, Any]]:
               ct.title,
               ct.description,
               ct.trainer_name,
-              ct.exercise_type,
+              ct.class_type_id,
+              ctype.nombre as class_type_nombre,
+              ctype.slug as class_type_slug,
               ct.duration_minutes,
               ct.days_of_week_mask,
               ct.start_time,
@@ -417,6 +419,7 @@ async def list_public_class_templates() -> list[dict[str, Any]]:
               ct.created_at,
               ct.updated_at
             from class_templates ct
+            join class_types ctype on ctype.id = ct.class_type_id
             join locations l on l.id = ct.location_id
             where ct.is_active = true
             order by ct.start_time asc, ct.title asc
@@ -437,7 +440,9 @@ async def get_public_class_template(template_id: str) -> dict[str, Any]:
               ct.title,
               ct.description,
               ct.trainer_name,
-              ct.exercise_type,
+              ct.class_type_id,
+              ctype.nombre as class_type_nombre,
+              ctype.slug as class_type_slug,
               ct.duration_minutes,
               ct.days_of_week_mask,
               ct.start_time,
@@ -450,6 +455,7 @@ async def get_public_class_template(template_id: str) -> dict[str, Any]:
               ct.created_at,
               ct.updated_at
             from class_templates ct
+            join class_types ctype on ctype.id = ct.class_type_id
             join locations l on l.id = ct.location_id
             where ct.id = $1 and ct.is_active = true
             """,
@@ -615,8 +621,9 @@ async def list_class_templates(_: str = Depends(require_admin_user)) -> list[dic
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select ct.*, l.name as location_name
+            select ct.*, ctype.nombre as class_type_nombre, ctype.slug as class_type_slug, l.name as location_name
             from class_templates ct
+            left join class_types ctype on ctype.id = ct.class_type_id
             left join locations l on l.id = ct.location_id
             order by ct.is_active desc, ct.days_of_week_mask asc, ct.start_time asc
             """
@@ -644,7 +651,7 @@ async def create_class_template(
                         detail=ApiResponse(success=False, message="location not found").model_dump(),
                     )
 
-                await _ensure_active_class_type(conn, request.exercise_type)
+                await _ensure_active_class_type(conn, request.class_type_id)
 
                 row = await conn.fetchrow(
                     """
@@ -652,7 +659,7 @@ async def create_class_template(
                       title,
                       description,
                       trainer_name,
-                      exercise_type,
+                      class_type_id,
                       duration_minutes,
                       days_of_week_mask,
                       start_time,
@@ -670,7 +677,7 @@ async def create_class_template(
                     request.title,
                     request.description,
                     request.trainer_name,
-                    request.exercise_type.strip().lower(),
+                    request.class_type_id,
                     request.duration_minutes,
                     request.days_of_week_mask,
                     request.start_time,
@@ -746,7 +753,7 @@ async def update_class_template(
                         detail=ApiResponse(success=False, message="location not found").model_dump(),
                     )
 
-                await _ensure_active_class_type(conn, request.exercise_type)
+                await _ensure_active_class_type(conn, request.class_type_id)
 
                 row = await conn.fetchrow(
                     """
@@ -754,7 +761,7 @@ async def update_class_template(
                     set title = $2,
                         description = $3,
                         trainer_name = $4,
-                        exercise_type = $5,
+                        class_type_id = $5::uuid,
                         duration_minutes = $6,
                         days_of_week_mask = $7,
                         start_time = $8::time,
@@ -772,7 +779,7 @@ async def update_class_template(
                     request.title,
                     request.description,
                     request.trainer_name,
-                    request.exercise_type.strip().lower(),
+                    request.class_type_id,
                     request.duration_minutes,
                     request.days_of_week_mask,
                     request.start_time,
@@ -987,8 +994,8 @@ async def delete_tipo_clase(
 ) -> ApiResponse:
     pool: asyncpg.Pool = app.state.db_pool
     async with pool.acquire() as conn:
-        slug = await conn.fetchval("select slug from class_types where id = $1", tipo_id)
-        if slug is None:
+        exists = await conn.fetchval("select exists(select 1 from class_types where id = $1)", tipo_id)
+        if not exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
@@ -999,10 +1006,10 @@ async def delete_tipo_clase(
             select exists(
               select 1
               from class_templates
-              where exercise_type = $1
+              where class_type_id = $1
             )
             """,
-            slug,
+            tipo_id,
         )
         if in_use:
             raise HTTPException(

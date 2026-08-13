@@ -4,7 +4,7 @@ import type { ClassType } from "@/features/class-types/services/classTypesServic
 type ClassTypePickerModalProps = {
   visible: boolean;
   options: ClassType[];
-  selectedSlug?: string;
+  selectedId?: string;
   onCancel: () => void;
   onSelect: (option: ClassType) => void;
 };
@@ -12,7 +12,7 @@ type ClassTypePickerModalProps = {
 export function ClassTypePickerModal({
   visible,
   options,
-  selectedSlug,
+  selectedId,
   onCancel,
   onSelect,
 }: ClassTypePickerModalProps) {
@@ -35,7 +35,7 @@ export function ClassTypePickerModal({
           <ScrollView className="mt-4 max-h-80" showsVerticalScrollIndicator={false}>
             <View className="gap-2">
               {options.map((option) => {
-                const selected = selectedSlug === option.slug;
+                const selected = selectedId === option.id;
                 return (
                   <Pressable
                     key={option.id}

@@ -8,7 +8,9 @@ export type ClassTemplate = {
   title: string;
   description: string;
   trainer_name: string;
-  exercise_type: string;
+  class_type_id: string;
+  class_type_nombre?: string | null;
+  class_type_slug?: string | null;
   duration_minutes: number;
   days_of_week_mask: number;
   start_time: string;
@@ -28,7 +30,7 @@ export type ClassTemplateInput = {
   title: string;
   description: string;
   trainer_name: string;
-  exercise_type: string;
+  class_type_id: string;
   duration_minutes: number;
   days_of_week_mask: number;
   start_time: string;
@@ -98,7 +100,9 @@ export type PublicClassTemplate = {
   title: string;
   description: string;
   trainer_name: string;
-  exercise_type: string;
+  class_type_id: string;
+  class_type_nombre: string;
+  class_type_slug: string;
   duration_minutes: number;
   days_of_week_mask: number;
   start_time: string;
