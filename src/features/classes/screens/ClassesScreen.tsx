@@ -51,7 +51,11 @@ function hasDay(mask: number, day: number): boolean {
 }
 
 function formatDays(mask: number): string {
-  return DAY_FILTERS.filter((item) => item.value !== null && hasDay(mask, item.value)).map((item) => item.label).join(" + ");
+  return DAY_FILTERS.filter(
+    (item) => item.value !== null && hasDay(mask, item.value),
+  )
+    .map((item) => item.label)
+    .join(" + ");
 }
 
 interface ClassCardProps {
@@ -110,10 +114,9 @@ function ClassCard({ item, onPress }: ClassCardProps) {
           </View>
         </View>
 
-        <View style={s.cardFooter}>
-          <Text style={s.validityText}>From {item.valid_from}</Text>
+        <View style={[s.cardFooter, { justifyContent: "flex-end" }]}>
           <View style={s.bookBtn}>
-            <Text style={s.bookBtnText}>Choose Date</Text>
+            <Text style={s.bookBtnText}>La Reservamos?</Text>
           </View>
         </View>
       </View>
@@ -134,7 +137,8 @@ export function ClassesScreen() {
       const matchDiff =
         filter === "All" ||
         c.difficulty_level.toLowerCase() === filter.toLowerCase();
-      const matchDay = dayFilter === null || hasDay(c.days_of_week_mask, dayFilter);
+      const matchDay =
+        dayFilter === null || hasDay(c.days_of_week_mask, dayFilter);
       const matchSearch =
         search === "" || c.title.toLowerCase().includes(search.toLowerCase());
       return matchDiff && matchDay && matchSearch;

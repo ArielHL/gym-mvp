@@ -56,19 +56,19 @@ const DRAWER_ITEMS = [
   {
     id: "book",
     icon: "📅",
-    label: "Book Classes",
+    label: "Reserva una Clase",
     tab: "/(tabs)/bookings" as const,
   },
   {
     id: "sub",
     icon: "💳",
-    label: "Pay a Subscription",
+    label: "Paga una Suscripción",
     tab: "/(tabs)/bookings" as const,
   },
   {
     id: "find",
     icon: "🔍",
-    label: "Find a Class for You",
+    label: "Encuentra una Clase para Ti",
     tab: "/(tabs)/classes" as const,
   },
 ];
@@ -380,7 +380,9 @@ export function HomeScreen() {
           <View style={{ paddingHorizontal: 20, gap: 12 }}>
             {isLoadingClasses ? (
               <View style={s.emptyClassCard}>
-                <Text style={s.emptyClassText}>Cargando las clases de hoy...</Text>
+                <Text style={s.emptyClassText}>
+                  Cargando las clases de hoy...
+                </Text>
               </View>
             ) : !filteredTodayClasses?.length ? (
               <View style={s.emptyClassCard}>
@@ -436,9 +438,9 @@ export function HomeScreen() {
                       >
                         <Text style={[s.diffText, { color }]}>{diff}</Text>
                       </View>
-                        <Text className="mt-1 text-[11px] text-[#555]">
-                          recurring
-                        </Text>
+                      <Text className="mt-1 text-[11px] text-[#555]">
+                        {c.duration_minutes} min
+                      </Text>
                     </View>
                   </Pressable>
                 );
@@ -480,12 +482,12 @@ export function HomeScreen() {
             style={{ paddingHorizontal: 24, marginTop: 16, marginBottom: 8 }}
           >
             <Text style={s.drawerGreet}>
-              {user ? `Hey, ${displayName || "Athlete"}` : "Welcome"}
+              {user ? `Hola, ${displayName || "Amigo"}` : "Bienvenido!"}
             </Text>
             <Text style={s.drawerGreetSub}>
               {user
-                ? "What do you want to do today?"
-                : "Sign in to unlock bookings and your profile."}
+                ? "Qué quieres hacer hoy?"
+                : "Inicia sesión para desbloquear reservas y tu perfil."}
             </Text>
           </View>
           <View style={{ paddingHorizontal: 16, marginTop: 8, gap: 4 }}>
@@ -498,9 +500,11 @@ export function HomeScreen() {
                 ]}
                 onPress={() => handleDrawerNav(item.tab)}
               >
-                <Text style={s.drawerItemIcon}>{item.icon}</Text>
-                <Text style={s.drawerItemLabel}>{item.label}</Text>
-                <Text style={s.drawerItemArrow}>›</Text>
+                <View style={s.drawerItemMain}>
+                  <Text style={s.drawerItemIcon}>{item.icon}</Text>
+                  <Text style={s.drawerItemLabel}>{item.label}</Text>
+                  <Text style={s.drawerItemArrow}>›</Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -730,15 +734,27 @@ const s = StyleSheet.create({
   drawerItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 16,
     borderRadius: 12,
   },
   drawerItemPressed: { backgroundColor: "#1A1A1A" },
-  drawerItemIcon: { fontSize: 20, width: 28 },
-  drawerItemLabel: { flex: 1, color: "#DDD", fontSize: 15, fontWeight: "600" },
-  drawerItemArrow: { color: "#444", fontSize: 22 },
+  drawerItemMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  drawerItemIcon: { fontSize: 20, width: 28, marginRight: 14 },
+  drawerItemLabel: {
+    flexGrow: 1,
+    flexShrink: 1,
+    color: "#F3F4F6",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  drawerItemArrow: { color: "#666", fontSize: 22, marginLeft: 12 },
   drawerProfileBtn: {
     flexDirection: "row",
     alignItems: "center",

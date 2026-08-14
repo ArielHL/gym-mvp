@@ -222,7 +222,7 @@ export function BookClassScreen() {
         locationId: selectedLocationId,
       });
       Alert.alert("Booked!", result.message, [
-        { text: "Done", onPress: () => router.back() },
+        { text: "Done", onPress: () => router.push("/")},
       ]);
     } catch (err) {
       const message = (err as Error).message;
