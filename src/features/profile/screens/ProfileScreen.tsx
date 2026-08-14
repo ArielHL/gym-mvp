@@ -18,32 +18,32 @@ const MENU_ITEMS = [
   {
     id: "edit",
     icon: "✏️",
-    label: "Edit Profile",
-    sub: "Update your name and photo",
+    label: "Editar Perfil",
+    sub: "Actualiza tu nombre y foto",
   },
   {
     id: "notif",
     icon: "🔔",
-    label: "Notifications",
-    sub: "Manage push preferences",
+    label: "Notificaciones",
+    sub: "Gestiona las preferencias de notificación",
   },
   {
     id: "plan",
     icon: "💳",
-    label: "My Subscription",
-    sub: "View and manage your plan",
+    label: "Mi Suscripción",
+    sub: "Ver y gestionar tu plan",
   },
   {
     id: "history",
     icon: "📅",
-    label: "Booking History",
-    sub: "Past and upcoming classes",
+    label: "Historial de Reservas",
+    sub: "Clases pasadas y próximas",
   },
   {
     id: "help",
     icon: "🤝",
-    label: "Help & Support",
-    sub: "FAQ and contact us",
+    label: "Ayuda y Soporte",
+    sub: "Preguntas frecuentes y contáctanos",
   },
 ];
 
@@ -253,6 +253,28 @@ export function ProfileScreen() {
                 s.menuItem,
                 pressed && { backgroundColor: "#1A1A1A" },
               ]}
+              onPress={() => router.push("/admin/class-types" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>🏷️</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Gestionar Tipos de Clase</Text>
+                    <Text style={s.menuSub}>
+                      Crear, editar, desactivar y eliminar categorias
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
               onPress={() => router.push("/admin/settings" as never)}
             >
               <View style={s.menuItemContent}>
@@ -263,7 +285,7 @@ export function ProfileScreen() {
                   <View style={s.menuText}>
                     <Text style={s.menuLabel}>Class Settings</Text>
                     <Text style={s.menuSub}>
-                      Set how many weeks ahead sessions are generated
+                      Configure upcoming admin controls and preferences
                     </Text>
                   </View>
                 </View>

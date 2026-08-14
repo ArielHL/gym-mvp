@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,13 +13,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar } from "react-native-calendars";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { queryKeys } from "@/constants/queryKeys";
 import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
-import { useClasses } from "@/features/classes/hooks/useClasses";
 import { useBookClass } from "@/features/bookings/hooks/useBookings";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { fetchActiveLocations } from "@/features/locations/services/locationsService";
+import { usePublicClassTemplate, usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
+import { BOOKING_ERROR_CODES } from "@/features/bookings/constants/bookingErrorCodes";
+import { isApiErrorWithCode } from "@/services/api/client";
 import { toDateKey } from "@/utils/date";
 
 const DIFF_COLORS: Record<string, string> = {
@@ -28,28 +30,115 @@ const DIFF_COLORS: Record<string, string> = {
   advanced: "#A855F7",
 };
 
+LocaleConfig.locales.es = {
+  monthNames: [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ],
+  monthNamesShort: [
+    "ene.",
+    "feb.",
+    "mar.",
+    "abr.",
+    "may.",
+    "jun.",
+    "jul.",
+    "ago.",
+    "sep.",
+    "oct.",
+    "nov.",
+    "dic.",
+  ],
+  dayNames: [
+    "domingo",
+    "lunes",
+    "martes",
+    "miércoles",
+    "jueves",
+    "viernes",
+    "sábado",
+  ],
+  dayNamesShort: ["dom.", "lun.", "mar.", "mié.", "jue.", "vie.", "sáb."],
+  today: "Hoy",
+};
+
+LocaleConfig.defaultLocale = "es";
+
+function parseDateKey(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function dayInMask(mask: number, jsDay: number): boolean {
+  return (mask & (1 << jsDay)) !== 0;
+}
+
+function getDateAvailabilityReason(
+  selectedDate: string,
+  validFrom: string,
+  validUntil: string | null,
+  daysOfWeekMask: number,
+): string | null {
+  const date = parseDateKey(selectedDate);
+  const from = parseDateKey(validFrom);
+  const until = validUntil ? parseDateKey(validUntil) : null;
+
+  if (!date || !from) {
+    return "Invalid date selected.";
+  }
+
+  if (date < from) {
+    return `This class starts on ${validFrom}.`;
+  }
+
+  if (until && date > until) {
+    return `This class is available only until ${validUntil}.`;
+  }
+
+  const jsDay = date.getUTCDay();
+  if (!dayInMask(daysOfWeekMask, jsDay)) {
+    return "This class does not run on the selected weekday.";
+  }
+
+  return null;
+}
+
 export function BookClassScreen() {
   const {
     className,
     classDate,
-    classId: initialClassId,
+    templateId: initialTemplateId,
   } = useLocalSearchParams<{
     className?: string;
     classDate?: string;
-    classId?: string;
+    templateId?: string;
   }>();
   const router = useRouter();
   const { user } = useAuthState();
   const today = toDateKey(new Date());
   const [selectedDate, setSelectedDate] = useState(classDate ?? today);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(
-    initialClassId ?? null,
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    initialTemplateId ?? null,
   );
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
     null,
   );
 
-  const { data: classes, isLoading } = useClasses(selectedDate, Boolean(user));
+  const { data: templates, isLoading: isLoadingTemplates } = usePublicClassTemplates(Boolean(user));
+  const selectedTemplateQuery = usePublicClassTemplate(selectedTemplateId ?? undefined);
+  const selectedTemplate = selectedTemplateQuery.data ?? templates?.find((c) => c.id === selectedTemplateId) ?? null;
+
   const locationsQuery = useQuery({
     queryKey: queryKeys.activeLocations,
     queryFn: fetchActiveLocations,
@@ -57,19 +146,33 @@ export function BookClassScreen() {
   });
   const bookMutation = useBookClass();
 
-  const selectedClass = classes?.find((c) => c.id === selectedClassId) ?? null;
   const selectedLocation =
     locationsQuery.data?.find((loc) => loc.id === selectedLocationId) ?? null;
-  const isReadyToBook = Boolean(selectedClassId && selectedLocationId);
+
+  const dateReason = selectedTemplate
+    ? getDateAvailabilityReason(
+        selectedDate,
+        selectedTemplate.valid_from,
+        selectedTemplate.valid_until,
+        selectedTemplate.days_of_week_mask,
+      )
+    : "Select a class first.";
+
+  const isDateValid = dateReason === null;
+  const isReadyToBook = Boolean(selectedTemplateId && isDateValid);
   const isBookDisabled =
-    !isReadyToBook || locationsQuery.isLoading || bookMutation.isPending;
+    !isReadyToBook ||
+    locationsQuery.isLoading ||
+    bookMutation.isPending ||
+    selectedTemplateQuery.isLoading;
+
   const bookButtonLabel = locationsQuery.isLoading
-    ? "Loading locations..."
-    : !selectedClassId
-      ? "Select a class first"
-      : !selectedLocationId
-        ? "Select a location first"
-        : "Confirm Booking";
+    ? "Cargando ubicaciones..."
+    : !selectedTemplateId
+      ? "Selecciona una clase primero"
+        : !isDateValid
+          ? "Elije una fecha válida"
+          : "Confirma Reserva";
 
   useEffect(() => {
     if (!locationsQuery.data?.length) {
@@ -81,9 +184,9 @@ export function BookClassScreen() {
       (location) => location.id === selectedLocationId,
     );
 
-    if (!selectedStillAvailable) {
-      setSelectedLocationId(locationsQuery.data[0].id);
-    }
+     if (!selectedStillAvailable) {
+       setSelectedLocationId(locationsQuery.data[0].id);
+     }
   }, [locationsQuery.data, selectedLocationId]);
 
   if (!user) {
@@ -99,14 +202,7 @@ export function BookClassScreen() {
   }
 
   const handleBook = async () => {
-    if (!user) {
-      Alert.alert("Sign in required", "Please sign in to book a class", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Sign In", onPress: () => router.push("/auth") },
-      ]);
-      return;
-    }
-    if (!selectedClassId) {
+    if (!selectedTemplateId) {
       Alert.alert("Select a class", "Please select a class to book");
       return;
     }
@@ -114,16 +210,64 @@ export function BookClassScreen() {
       Alert.alert("Select a location", "Please select a location to book");
       return;
     }
+    if (!isDateValid) {
+      Alert.alert("Invalid date", dateReason ?? "Pick a valid date for this class.");
+      return;
+    }
+
     try {
       const result = await bookMutation.mutateAsync({
-        classId: selectedClassId,
+        templateId: selectedTemplateId,
+        requestedDate: selectedDate,
         locationId: selectedLocationId,
       });
       Alert.alert("Booked!", result.message, [
-        { text: "Done", onPress: () => router.back() },
+        { text: "Done", onPress: () => router.push("/")},
       ]);
     } catch (err) {
-      Alert.alert("Booking failed", (err as Error).message);
+      const message = (err as Error).message;
+      const hasCode = (code: string) => isApiErrorWithCode(err, code);
+      const alreadyBooked = hasCode(BOOKING_ERROR_CODES.ALREADY_BOOKED) || /already booked/i.test(message);
+
+      if (alreadyBooked) {
+        Alert.alert("Ya Reservado", "Ya reservaste esta clase.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      if (hasCode(BOOKING_ERROR_CODES.CLASS_FULL)) {
+        Alert.alert("Clase llena", "Esta clase está llena. Por favor elige otra fecha o clase.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      if (hasCode(BOOKING_ERROR_CODES.CLASS_INACTIVE)) {
+        Alert.alert("Clase no disponible", "Esta clase ya no está activa.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      if (hasCode(BOOKING_ERROR_CODES.CLASS_NOT_AVAILABLE_FOR_DATE)) {
+        Alert.alert("Fecha no disponible", "Esta clase no está disponible en la fecha seleccionada.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      if (
+        hasCode(BOOKING_ERROR_CODES.LOCATION_NOT_FOUND) ||
+        hasCode(BOOKING_ERROR_CODES.LOCATION_ID_REQUIRED)
+      ) {
+        Alert.alert("Ubicación no disponible", "Por favor selecciona una ubicación activa e inténtalo de nuevo.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      if (hasCode(BOOKING_ERROR_CODES.CLASS_TEMPLATE_NOT_FOUND)) {
+        Alert.alert("Clase no disponible", "No se pudo encontrar esta clase. Por favor actualiza e inténtalo de nuevo.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      if (hasCode(BOOKING_ERROR_CODES.BOOKING_TEMPORARILY_UNAVAILABLE)) {
+        Alert.alert("Reserva no disponible", "La reserva no está disponible temporalmente. Por favor inténtalo de nuevo en un momento.", [{ text: "Aceptar" }]);
+        return;
+      }
+
+      Alert.alert("Error al reservar", message);
     }
   };
 
@@ -139,7 +283,6 @@ export function BookClassScreen() {
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
 
-      {/* Header */}
       <View style={s.header}>
         <Pressable style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons
@@ -149,8 +292,8 @@ export function BookClassScreen() {
           />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={s.heading}>{className || "Book a Class"}</Text>
-          <Text style={s.subHeading}>Pick date · Choose class · Confirm</Text>
+          <Text style={s.heading}>{className || "Reserva una clase"}</Text>
+          <Text style={s.subHeading}>Elije Una Clase · Elige la Fecha · Confirma</Text>
         </View>
       </View>
 
@@ -158,20 +301,69 @@ export function BookClassScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* ── Step 1: Pick Date ── */}
         <View style={s.stepBlock}>
           <View style={s.stepRow}>
             <View style={s.stepNum}>
               <Text style={s.stepNumText}>1</Text>
             </View>
-            <Text style={s.stepTitle}>Pick a Date</Text>
+            <Text style={s.stepTitle}>Elije Una Clase</Text>
+          </View>
+
+          {isLoadingTemplates ? (
+            <View style={s.loadingWrap}>
+              <ActivityIndicator color="#22D3EE" />
+            </View>
+          ) : !templates || templates.length === 0 ? (
+            <View style={s.emptyWrap}>
+              <Text style={{ fontSize: 32 }}>🤸</Text>
+              <Text style={s.emptyText}>No hay clases disponibles</Text>
+            </View>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {templates.map((c) => {
+                const active = c.id === selectedTemplateId;
+                const diffColor = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
+                const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+                  .filter((_, day) => (c.days_of_week_mask & (1 << day)) !== 0)
+                  .join(" + ");
+                return (
+                  <Pressable
+                    key={c.id}
+                    style={[s.classRow, active && s.classRowActive]}
+                    onPress={() => setSelectedTemplateId(c.id)}
+                  >
+                    <View
+                      style={[
+                        s.classAccent,
+                        { backgroundColor: active ? diffColor : "#2A2A2A" },
+                      ]}
+                    />
+                    <View style={{ flex: 1, paddingLeft: 14 }}>
+                      <Text style={s.classTitle}>{c.title}</Text>
+                      <Text style={s.classMeta}>
+                        {c.trainer_name} · {c.start_time} · {weekdays}
+                      </Text>
+                    </View>
+                    {active && <Text style={s.checkIcon}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        <View style={s.stepBlock}>
+          <View style={s.stepRow}>
+            <View style={s.stepNum}>
+              <Text style={s.stepNumText}>2</Text>
+            </View>
+            <Text style={s.stepTitle}>Elige la Fecha</Text>
           </View>
 
           <Calendar
             current={selectedDate}
             onDayPress={(day) => {
               setSelectedDate(day.dateString);
-              setSelectedClassId(null);
             }}
             markedDates={markedDates}
             minDate={today}
@@ -193,184 +385,40 @@ export function BookClassScreen() {
             }}
             style={s.calendar}
           />
+          {!isDateValid && selectedTemplate ? (
+            <Text style={s.dateErrorText}>{dateReason}</Text>
+          ) : null}
         </View>
 
-        {/* ── Step 2: Choose Class ── */}
-        <View style={s.stepBlock}>
-          <View style={s.stepRow}>
-            <View style={s.stepNum}>
-              <Text style={s.stepNumText}>2</Text>
-            </View>
-            <Text style={s.stepTitle}>Choose a Class</Text>
-          </View>
 
-          {isLoading ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color="#22D3EE" />
-            </View>
-          ) : !classes || classes.length === 0 ? (
-            <View style={s.emptyWrap}>
-              <Text style={{ fontSize: 32 }}>🤸</Text>
-              <Text style={s.emptyText}>No classes on this date</Text>
-            </View>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {classes.map((c) => {
-                const active = c.id === selectedClassId;
-                const full = c.available_spots <= 0;
-                const diffColor = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
-                return (
-                  <Pressable
-                    key={c.id}
-                    style={[
-                      s.classRow,
-                      active && s.classRowActive,
-                      full && s.classRowFull,
-                    ]}
-                    onPress={() => !full && setSelectedClassId(c.id)}
-                  >
-                    <View
-                      style={[
-                        s.classAccent,
-                        { backgroundColor: active ? diffColor : "#2A2A2A" },
-                      ]}
-                    />
-                    <View style={{ flex: 1, paddingLeft: 14 }}>
-                      <Text style={[s.classTitle, full && { color: "#444" }]}>
-                        {c.title}
-                      </Text>
-                      <Text style={s.classMeta}>
-                        {c.trainer_name} · {c.start_time} – {c.end_time}
-                      </Text>
-                    </View>
-                    <View style={{ alignItems: "flex-end", gap: 4 }}>
-                      {full ? (
-                        <Text style={s.fullTag}>FULL</Text>
-                      ) : (
-                        <>
-                          <View
-                            style={[
-                              s.diffTag,
-                              {
-                                backgroundColor: diffColor + "22",
-                                borderColor: diffColor + "55",
-                              },
-                            ]}
-                          >
-                            <Text style={[s.diffTagText, { color: diffColor }]}>
-                              {c.difficulty_level.slice(0, 3).toUpperCase()}
-                            </Text>
-                          </View>
-                          <Text style={s.spotsTag}>
-                            {c.available_spots} spots
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                    {active && <Text style={s.checkIcon}>✓</Text>}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
 
-        {/* ── Step 3: Location ── */}
-        <View style={s.stepBlock}>
-          <View style={s.stepRow}>
-            <View style={s.stepNum}>
-              <Text style={s.stepNumText}>3</Text>
-            </View>
-            <Text style={s.stepTitle}>Select Location</Text>
-          </View>
-
-          {locationsQuery.isLoading ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color="#22D3EE" />
-            </View>
-          ) : locationsQuery.isError ? (
-            <View style={s.emptyWrap}>
-              <Text style={s.errorText}>Could not load locations.</Text>
-            </View>
-          ) : !locationsQuery.data || locationsQuery.data.length === 0 ? (
-            <View style={s.emptyWrap}>
-              <Text style={{ fontSize: 32 }}>📍</Text>
-              <Text style={s.emptyText}>No active locations available</Text>
-            </View>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {locationsQuery.data.map((loc) => {
-                const active = loc.id === selectedLocationId;
-                return (
-                  <Pressable
-                    key={loc.id}
-                    style={[s.locCard, active && s.locCardActive]}
-                    onPress={() => setSelectedLocationId(loc.id)}
-                  >
-                    <MaterialCommunityIcons
-                      name="map-marker-radius"
-                      size={26}
-                      color={active ? "#22D3EE" : "#666666"}
-                    />
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={s.locName}>{loc.name}</Text>
-                      <Text style={s.locAddr}>
-                        {loc.address || "No address provided"}
-                      </Text>
-                    </View>
-                    {active && (
-                      <View style={s.locCheck}>
-                        <Text style={{ color: "#22D3EE", fontSize: 14 }}>
-                          ✓
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
-
-        {/* ── Class Summary ── */}
-        {selectedClass && (
+        {selectedTemplate && (
           <View style={s.summaryCard}>
-            <Text style={s.summaryTitle}>Booking Summary</Text>
+            <Text style={s.summaryTitle}>Resumen de Reserva</Text>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Class</Text>
-              <Text style={s.summaryValue}>{selectedClass.title}</Text>
+              <Text style={s.summaryLabel}>Clase</Text>
+              <Text style={s.summaryValue}>{selectedTemplate.title}</Text>
             </View>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Trainer</Text>
-              <Text style={s.summaryValue}>{selectedClass.trainer_name}</Text>
+              <Text style={s.summaryLabel}>Entrenador</Text>
+              <Text style={s.summaryValue}>{selectedTemplate.trainer_name}</Text>
             </View>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Date</Text>
+              <Text style={s.summaryLabel}>Fecha</Text>
               <Text style={s.summaryValue}>{selectedDate}</Text>
             </View>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Time</Text>
-              <Text style={s.summaryValue}>
-                {selectedClass.start_time} – {selectedClass.end_time}
-              </Text>
-            </View>
-            <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Duration</Text>
-              <Text style={s.summaryValue}>
-                {selectedClass.duration_minutes} min
-              </Text>
+              <Text style={s.summaryLabel}>Hora</Text>
+              <Text style={s.summaryValue}>{selectedTemplate.start_time}</Text>
             </View>
             <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
-              <Text style={s.summaryLabel}>Location</Text>
-              <Text style={s.summaryValue}>
-                {selectedLocation?.name ?? "-"}
-              </Text>
+              <Text style={s.summaryLabel}>Ubicación</Text>
+              <Text style={s.summaryValue}>{selectedLocation?.name ?? "-"}</Text>
             </View>
           </View>
         )}
       </ScrollView>
 
-      {/* ── Floating Book Button ── */}
       <View style={s.floatingBar}>
         <Pressable
           style={({ pressed }) => [
@@ -458,6 +506,11 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1E1E1E",
   },
+  dateErrorText: {
+    marginTop: 10,
+    color: "#fca5a5",
+    fontSize: 12,
+  },
   loadingWrap: { paddingVertical: 32, alignItems: "center" },
   emptyWrap: { paddingVertical: 28, alignItems: "center", gap: 8 },
   emptyText: { color: "#555", fontSize: 14 },
@@ -473,24 +526,9 @@ const s = StyleSheet.create({
     position: "relative",
   },
   classRowActive: { borderColor: "#22D3EE44", backgroundColor: "#0F2A2E" },
-  classRowFull: { opacity: 0.5 },
   classAccent: { width: 4, height: 42, borderRadius: 2 },
   classTitle: { color: "#FFF", fontSize: 14, fontWeight: "700" },
   classMeta: { color: "#666", fontSize: 12, marginTop: 3 },
-  fullTag: {
-    color: "#EF4444",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-  },
-  diffTag: {
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  diffTagText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
-  spotsTag: { color: "#555", fontSize: 11 },
   checkIcon: {
     position: "absolute",
     top: 10,

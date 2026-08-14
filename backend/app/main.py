@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timezone
 import logging
 from typing import Any, AsyncIterator, Literal
 from uuid import UUID
@@ -19,20 +19,26 @@ logger = logging.getLogger(__name__)
 class ApiResponse(BaseModel):
     success: bool
     message: str
+    error_code: str | None = None
 
 
 class BookingRequest(BaseModel):
-    session_id: UUID
+    template_id: UUID
+    requested_date: date
     location_id: UUID | None = None
+
+
+class CancelBookingRequest(BaseModel):
+    session_id: UUID
 
 
 class ClassTemplateRequest(BaseModel):
     title: str
     description: str
     trainer_name: str
-    exercise_type: str
+    class_type_id: UUID
     duration_minutes: int
-    day_of_week: int
+    days_of_week_mask: int
     start_time: time
     capacity: int
     difficulty_level: Literal["beginner", "intermediate", "advanced"]
@@ -40,12 +46,10 @@ class ClassTemplateRequest(BaseModel):
     valid_from: date | None = None
     valid_until: date | None = None
     is_active: bool = True
-    weeks_ahead: int = 3
 
 
 class ClassTemplateActiveRequest(BaseModel):
     is_active: bool
-    weeks_ahead: int = 3
 
 
 class LocationRequest(BaseModel):
@@ -55,12 +59,16 @@ class LocationRequest(BaseModel):
     is_active: bool = True
 
 
+class TipoClaseRequest(BaseModel):
+    nombre: str
+    slug: str
+    descripcion: str | None = None
+    is_active: bool = True
+    sort_order: int = 0
+
+
 class ActiveRequest(BaseModel):
     is_active: bool
-
-
-class WeeksAheadRequest(BaseModel):
-    weeks_ahead: int
 
 
 class NotificationTokenRequest(BaseModel):
@@ -100,7 +108,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -144,13 +152,6 @@ def _records_to_dicts(records: list[asyncpg.Record]) -> list[dict[str, Any]]:
     return [_record_to_dict(record) for record in records]
 
 
-def _normalize_weeks_ahead(value: int | None) -> int:
-    if value is None:
-        return 3
-
-    return min(12, max(1, int(value)))
-
-
 def _parse_start_time(value: str | time) -> tuple[int, int]:
     if isinstance(value, time):
         return value.hour, value.minute
@@ -180,40 +181,37 @@ def _parse_start_time(value: str | time) -> tuple[int, int]:
     return hours, minutes
 
 
-def _upcoming_session_times(day_of_week: int, start_time: str | time, weeks_ahead: int) -> list[datetime]:
+def _weekday_in_mask(days_of_week_mask: int, day_of_week: int) -> bool:
+    if day_of_week < 0 or day_of_week > 6:
+        return False
+    return (days_of_week_mask & (1 << day_of_week)) != 0
+
+
+def _is_template_available_for_date(
+    requested_date: date,
+    valid_from: date,
+    valid_until: date | None,
+    days_of_week_mask: int,
+) -> bool:
+    if requested_date < valid_from:
+        return False
+    if valid_until is not None and requested_date > valid_until:
+        return False
+
+    js_day = (requested_date.weekday() + 1) % 7
+    return _weekday_in_mask(days_of_week_mask, js_day)
+
+
+def _scheduled_at_for_date_and_time(requested_date: date, start_time: str | time) -> datetime:
     hours, minutes = _parse_start_time(start_time)
-    now = datetime.now(timezone.utc)
-    first = datetime(now.year, now.month, now.day, hours, minutes, tzinfo=timezone.utc)
-    first_js_day = (first.weekday() + 1) % 7
-    days_until_class = (day_of_week - first_js_day + 7) % 7
-    first = first + timedelta(days=days_until_class)
-
-    if first <= now:
-        first = first + timedelta(days=7)
-
-    return [first + timedelta(days=index * 7) for index in range(weeks_ahead)]
-
-
-async def _generate_upcoming_class_sessions(
-    conn: asyncpg.Connection,
-    template_id: str,
-    day_of_week: int,
-    start_time: str | time,
-    capacity: int,
-    weeks_ahead: int,
-) -> None:
-    scheduled_times = _upcoming_session_times(day_of_week, start_time, weeks_ahead)
-    for scheduled_at in scheduled_times:
-        await conn.execute(
-            """
-            insert into class_sessions (template_id, scheduled_at, capacity, status)
-            values ($1, $2, $3, 'scheduled')
-            on conflict (template_id, scheduled_at) do nothing
-            """,
-            template_id,
-            scheduled_at,
-            capacity,
-        )
+    return datetime(
+        requested_date.year,
+        requested_date.month,
+        requested_date.day,
+        hours,
+        minutes,
+        tzinfo=timezone.utc,
+    )
 
 
 async def _update_future_class_session_capacity(
@@ -232,6 +230,26 @@ async def _update_future_class_session_capacity(
         template_id,
         capacity,
     )
+
+
+async def _ensure_active_class_type(conn: asyncpg.Connection, class_type_id: UUID) -> None:
+    exists = await conn.fetchval(
+        """
+        select exists(
+          select 1
+          from class_types
+          where id = $1
+            and is_active = true
+        )
+        """,
+        class_type_id,
+    )
+
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="tipo de clase invalido o inactivo").model_dump(),
+        )
 
 
 async def _read_user_from_token(token: str, settings: Settings) -> dict[str, Any]:
@@ -375,6 +393,84 @@ async def list_classes(date: str | None = None) -> list[dict[str, Any]]:
     return _records_to_dicts(rows)
 
 
+@app.get("/class-templates/public")
+async def list_public_class_templates() -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select
+              ct.id,
+              ct.title,
+              ct.description,
+              ct.trainer_name,
+              ct.class_type_id,
+              ctype.nombre as class_type_nombre,
+              ctype.slug as class_type_slug,
+              ct.duration_minutes,
+              ct.days_of_week_mask,
+              ct.start_time,
+              ct.capacity,
+              ct.difficulty_level,
+              ct.location_id,
+              l.name as location_name,
+              ct.valid_from,
+              ct.valid_until,
+              ct.created_at,
+              ct.updated_at
+            from class_templates ct
+            join class_types ctype on ctype.id = ct.class_type_id
+            join locations l on l.id = ct.location_id
+            where ct.is_active = true
+            order by ct.start_time asc, ct.title asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.get("/class-templates/public/{template_id}")
+async def get_public_class_template(template_id: str) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            select
+              ct.id,
+              ct.title,
+              ct.description,
+              ct.trainer_name,
+              ct.class_type_id,
+              ctype.nombre as class_type_nombre,
+              ctype.slug as class_type_slug,
+              ct.duration_minutes,
+              ct.days_of_week_mask,
+              ct.start_time,
+              ct.capacity,
+              ct.difficulty_level,
+              ct.location_id,
+              l.name as location_name,
+              ct.valid_from,
+              ct.valid_until,
+              ct.created_at,
+              ct.updated_at
+            from class_templates ct
+            join class_types ctype on ctype.id = ct.class_type_id
+            join locations l on l.id = ct.location_id
+            where ct.id = $1 and ct.is_active = true
+            """,
+            template_id,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="class template not found").model_dump(),
+        )
+
+    return _record_to_dict(row)
+
+
 @app.get("/classes/{class_id}")
 async def get_class(class_id: str) -> dict[str, Any]:
     pool: asyncpg.Pool = app.state.db_pool
@@ -400,6 +496,22 @@ async def list_active_locations() -> list[dict[str, Any]]:
             from locations
             where is_active = true
             order by name asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.get("/tipos-clase/active")
+async def list_active_tipos_clase() -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select id, nombre, slug, descripcion, is_active, sort_order, created_at, updated_at
+            from class_types
+            where is_active = true
+            order by sort_order asc, nombre asc
             """
         )
 
@@ -509,10 +621,11 @@ async def list_class_templates(_: str = Depends(require_admin_user)) -> list[dic
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select ct.*, l.name as location_name
+            select ct.*, ctype.nombre as class_type_nombre, ctype.slug as class_type_slug, l.name as location_name
             from class_templates ct
+            left join class_types ctype on ctype.id = ct.class_type_id
             left join locations l on l.id = ct.location_id
-            order by ct.is_active desc, ct.day_of_week asc, ct.start_time asc
+            order by ct.is_active desc, ct.days_of_week_mask asc, ct.start_time asc
             """
         )
 
@@ -524,7 +637,6 @@ async def create_class_template(
     request: ClassTemplateRequest,
     user_id: str = Depends(require_admin_user),
 ) -> dict[str, Any]:
-    weeks_ahead = _normalize_weeks_ahead(request.weeks_ahead)
     pool: asyncpg.Pool = app.state.db_pool
     try:
         async with pool.acquire() as conn:
@@ -539,15 +651,17 @@ async def create_class_template(
                         detail=ApiResponse(success=False, message="location not found").model_dump(),
                     )
 
+                await _ensure_active_class_type(conn, request.class_type_id)
+
                 row = await conn.fetchrow(
                     """
                     insert into class_templates (
                       title,
                       description,
                       trainer_name,
-                      exercise_type,
+                      class_type_id,
                       duration_minutes,
-                      day_of_week,
+                      days_of_week_mask,
                       start_time,
                       capacity,
                       difficulty_level,
@@ -563,9 +677,9 @@ async def create_class_template(
                     request.title,
                     request.description,
                     request.trainer_name,
-                    request.exercise_type,
+                    request.class_type_id,
                     request.duration_minutes,
-                    request.day_of_week,
+                    request.days_of_week_mask,
                     request.start_time,
                     request.capacity,
                     request.difficulty_level,
@@ -574,15 +688,6 @@ async def create_class_template(
                     request.valid_until,
                     user_id,
                     request.is_active,
-                )
-
-                await _generate_upcoming_class_sessions(
-                    conn,
-                    str(row["id"]),
-                    row["day_of_week"],
-                    row["start_time"],
-                    row["capacity"],
-                    weeks_ahead,
                 )
                 await _update_future_class_session_capacity(conn, str(row["id"]), row["capacity"])
     except asyncpg.exceptions.ForeignKeyViolationError as exc:
@@ -634,7 +739,6 @@ async def update_class_template(
     request: ClassTemplateRequest,
     _: str = Depends(require_admin_user),
 ) -> dict[str, Any]:
-    weeks_ahead = _normalize_weeks_ahead(request.weeks_ahead)
     pool: asyncpg.Pool = app.state.db_pool
     try:
         async with pool.acquire() as conn:
@@ -649,15 +753,17 @@ async def update_class_template(
                         detail=ApiResponse(success=False, message="location not found").model_dump(),
                     )
 
+                await _ensure_active_class_type(conn, request.class_type_id)
+
                 row = await conn.fetchrow(
                     """
                     update class_templates
                     set title = $2,
                         description = $3,
                         trainer_name = $4,
-                        exercise_type = $5,
+                        class_type_id = $5::uuid,
                         duration_minutes = $6,
-                        day_of_week = $7,
+                        days_of_week_mask = $7,
                         start_time = $8::time,
                         capacity = $9,
                         difficulty_level = $10,
@@ -673,9 +779,9 @@ async def update_class_template(
                     request.title,
                     request.description,
                     request.trainer_name,
-                    request.exercise_type,
+                    request.class_type_id,
                     request.duration_minutes,
-                    request.day_of_week,
+                    request.days_of_week_mask,
                     request.start_time,
                     request.capacity,
                     request.difficulty_level,
@@ -690,15 +796,6 @@ async def update_class_template(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=ApiResponse(success=False, message="class template not found").model_dump(),
                     )
-
-                await _generate_upcoming_class_sessions(
-                    conn,
-                    str(row["id"]),
-                    row["day_of_week"],
-                    row["start_time"],
-                    row["capacity"],
-                    weeks_ahead,
-                )
                 await _update_future_class_session_capacity(conn, str(row["id"]), row["capacity"])
     except asyncpg.exceptions.ForeignKeyViolationError as exc:
         logger.warning("Update class template failed due to foreign key violation: %s", exc)
@@ -749,7 +846,6 @@ async def set_class_template_active(
     request: ClassTemplateActiveRequest,
     _: str = Depends(require_admin_user),
 ) -> ApiResponse:
-    weeks_ahead = _normalize_weeks_ahead(request.weeks_ahead)
     pool: asyncpg.Pool = app.state.db_pool
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -758,7 +854,7 @@ async def set_class_template_active(
                 update class_templates
                 set is_active = $2, updated_at = now()
                 where id = $1
-                returning id, day_of_week, start_time, capacity
+                returning id
                 """,
                 template_id,
                 request.is_active,
@@ -768,16 +864,6 @@ async def set_class_template_active(
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=ApiResponse(success=False, message="class template not found").model_dump(),
-                )
-
-            if request.is_active:
-                await _generate_upcoming_class_sessions(
-                    conn,
-                    str(row["id"]),
-                    row["day_of_week"],
-                    row["start_time"],
-                    row["capacity"],
-                    weeks_ahead,
                 )
 
     return ApiResponse(success=True, message="Class status updated")
@@ -796,6 +882,147 @@ async def list_locations(_: str = Depends(require_admin_user)) -> list[dict[str,
         )
 
     return _records_to_dicts(rows)
+
+
+@app.get("/admin/tipos-clase")
+async def list_tipos_clase(_: str = Depends(require_admin_user)) -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            from class_types
+            order by is_active desc, sort_order asc, nombre asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.post("/admin/tipos-clase")
+async def create_tipo_clase(
+    request: TipoClaseRequest,
+    user_id: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            insert into class_types (nombre, slug, descripcion, is_active, sort_order, created_by)
+            values ($1, lower(trim($2)), $3, $4, $5, $6)
+            returning id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            """,
+            request.nombre.strip(),
+            request.slug,
+            request.descripcion,
+            request.is_active,
+            request.sort_order,
+            user_id,
+        )
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/tipos-clase/{tipo_id}")
+async def update_tipo_clase(
+    tipo_id: str,
+    request: TipoClaseRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            update class_types
+            set nombre = $2,
+                slug = lower(trim($3)),
+                descripcion = $4,
+                is_active = $5,
+                sort_order = $6,
+                updated_at = now()
+            where id = $1
+            returning id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            """,
+            tipo_id,
+            request.nombre.strip(),
+            request.slug,
+            request.descripcion,
+            request.is_active,
+            request.sort_order,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
+        )
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/tipos-clase/{tipo_id}/active", response_model=ApiResponse)
+async def set_tipo_clase_active(
+    tipo_id: str,
+    request: ActiveRequest,
+    _: str = Depends(require_admin_user),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            update class_types
+            set is_active = $2, updated_at = now()
+            where id = $1
+            """,
+            tipo_id,
+            request.is_active,
+        )
+
+    if result == "UPDATE 0":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
+        )
+
+    return ApiResponse(success=True, message="Estado del tipo de clase actualizado")
+
+
+@app.delete("/admin/tipos-clase/{tipo_id}", response_model=ApiResponse)
+async def delete_tipo_clase(
+    tipo_id: str,
+    _: str = Depends(require_admin_user),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        exists = await conn.fetchval("select exists(select 1 from class_types where id = $1)", tipo_id)
+        if not exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=ApiResponse(success=False, message="tipo de clase no encontrado").model_dump(),
+            )
+
+        in_use = await conn.fetchval(
+            """
+            select exists(
+              select 1
+              from class_templates
+              where class_type_id = $1
+            )
+            """,
+            tipo_id,
+        )
+        if in_use:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=ApiResponse(
+                    success=False,
+                    message="No se puede eliminar: hay clases usando este tipo",
+                ).model_dump(),
+            )
+
+        await conn.execute("delete from class_types where id = $1", tipo_id)
+
+    return ApiResponse(success=True, message="Tipo de clase eliminado")
 
 
 @app.post("/admin/locations")
@@ -899,60 +1126,16 @@ async def list_all_bookings(_: str = Depends(require_admin_user)) -> list[dict[s
     return _records_to_dicts(rows)
 
 
-@app.get("/admin/settings/weeks-ahead")
-async def get_weeks_ahead_to_generate(_: str = Depends(require_admin_user)) -> int:
-    pool: asyncpg.Pool = app.state.db_pool
-    async with pool.acquire() as conn:
-        value = await conn.fetchval(
-            """
-            select value
-            from admin_settings
-            where key = 'weeks_ahead_to_generate'
-            """
-        )
-
-    try:
-        weeks = int(value) if value is not None else 3
-    except (TypeError, ValueError):
-        weeks = 3
-
-    return min(12, max(1, weeks))
-
-
-@app.patch("/admin/settings/weeks-ahead")
-async def update_weeks_ahead_to_generate(
-    request: WeeksAheadRequest,
-    user_id: str = Depends(require_admin_user),
-) -> int:
-    weeks = _normalize_weeks_ahead(request.weeks_ahead)
-    pool: asyncpg.Pool = app.state.db_pool
-    async with pool.acquire() as conn:
-        value = await conn.fetchval(
-            """
-            insert into admin_settings (key, value, updated_by, updated_at)
-            values ('weeks_ahead_to_generate', to_jsonb($1::int), $2, now())
-            on conflict (key) do update
-            set value = excluded.value,
-                updated_by = excluded.updated_by,
-                updated_at = now()
-            returning value
-            """,
-            weeks,
-            user_id,
-        )
-
-    try:
-        return _normalize_weeks_ahead(int(value))
-    except (TypeError, ValueError):
-        return weeks
-
-
 @app.post("/bookings", response_model=ApiResponse)
 async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id)) -> ApiResponse:
     if not request.location_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ApiResponse(success=False, message="location_id is required").model_dump(),
+            detail=ApiResponse(
+                success=False,
+                message="location_id is required",
+                error_code="LOCATION_ID_REQUIRED",
+            ).model_dump(),
         )
 
     pool: asyncpg.Pool = app.state.db_pool
@@ -971,29 +1154,82 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
                 if not location_exists:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=ApiResponse(success=False, message="active location not found").model_dump(),
+                        detail=ApiResponse(
+                            success=False,
+                            message="active location not found",
+                            error_code="LOCATION_NOT_FOUND",
+                        ).model_dump(),
                     )
 
                 row = await conn.fetchrow(
                     """
-                    select cs.scheduled_at, cs.capacity
-                    from class_sessions cs
-                    join class_templates ct on ct.id = cs.template_id
-                    where cs.id = $1
-                      and cs.status = 'scheduled'
-                      and ct.is_active = true
-                      and (now() at time zone 'UTC')::date >= ct.valid_from
-                      and (ct.valid_until is null or (now() at time zone 'UTC')::date <= ct.valid_until)
-                      and (cs.scheduled_at at time zone 'UTC')::date >= ct.valid_from
-                      and (ct.valid_until is null or (cs.scheduled_at at time zone 'UTC')::date <= ct.valid_until)
-                    for update of cs
+                    select id, days_of_week_mask, start_time, capacity, valid_from, valid_until, is_active
+                    from class_templates
+                    where id = $1
                     """,
-                    request.session_id,
+                    request.template_id,
                 )
                 if row is None:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=ApiResponse(success=False, message="class session not found").model_dump(),
+                        detail=ApiResponse(
+                            success=False,
+                            message="class template not found",
+                            error_code="CLASS_TEMPLATE_NOT_FOUND",
+                        ).model_dump(),
+                    )
+
+                if not row["is_active"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=ApiResponse(
+                            success=False,
+                            message="class is inactive",
+                            error_code="CLASS_INACTIVE",
+                        ).model_dump(),
+                    )
+
+                if not _is_template_available_for_date(
+                    request.requested_date,
+                    row["valid_from"],
+                    row["valid_until"],
+                    row["days_of_week_mask"],
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=ApiResponse(
+                            success=False,
+                            message="class is not available for the selected date",
+                            error_code="CLASS_NOT_AVAILABLE_FOR_DATE",
+                        ).model_dump(),
+                    )
+
+                scheduled_at = _scheduled_at_for_date_and_time(
+                    request.requested_date,
+                    row["start_time"],
+                )
+
+                session = await conn.fetchrow(
+                    """
+                    insert into class_sessions (template_id, scheduled_at, capacity, status)
+                    values ($1, $2, $3, 'scheduled')
+                    on conflict (template_id, scheduled_at) do update
+                    set capacity = class_sessions.capacity
+                    returning id, capacity
+                    """,
+                    request.template_id,
+                    scheduled_at,
+                    row["capacity"],
+                )
+
+                if session is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=ApiResponse(
+                            success=False,
+                            message="could not create class session",
+                            error_code="CLASS_SESSION_CREATE_FAILED",
+                        ).model_dump(),
                     )
 
                 booked_count = await conn.fetchval(
@@ -1002,13 +1238,41 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
                     from bookings
                     where session_id = $1 and status = 'confirmed'
                     """,
-                    request.session_id,
+                    session["id"],
                 )
 
-                if booked_count >= row["capacity"]:
+                if booked_count >= session["capacity"]:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
-                        detail=ApiResponse(success=False, message="class is full").model_dump(),
+                        detail=ApiResponse(
+                            success=False,
+                            message="class is full",
+                            error_code="CLASS_FULL",
+                        ).model_dump(),
+                    )
+
+                existing_confirmed_booking = await conn.fetchval(
+                    """
+                    select exists(
+                      select 1
+                      from bookings
+                      where user_id = $1
+                        and session_id = $2
+                        and status = 'confirmed'
+                    )
+                    """,
+                    user_id,
+                    session["id"],
+                )
+
+                if existing_confirmed_booking:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=ApiResponse(
+                            success=False,
+                            message="You already booked this class.",
+                            error_code="ALREADY_BOOKED",
+                        ).model_dump(),
                     )
 
                 await conn.execute(
@@ -1019,20 +1283,28 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
                     do update set location_id = $3, status = 'confirmed', cancelled_at = null
                     """,
                     user_id,
-                    request.session_id,
+                    session["id"],
                     request.location_id,
                 )
     except asyncpg.exceptions.ForeignKeyViolationError as exc:
         logger.warning("Booking failed due to foreign key constraint: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ApiResponse(success=False, message="class session or location not found").model_dump(),
+            detail=ApiResponse(
+                success=False,
+                message="class session or location not found",
+                error_code="BOOKING_REFERENCE_NOT_FOUND",
+            ).model_dump(),
         ) from exc
     except asyncpg.exceptions.InvalidTextRepresentationError as exc:
         logger.warning("Booking failed due to invalid identifier format: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ApiResponse(success=False, message="invalid class or location identifier").model_dump(),
+            detail=ApiResponse(
+                success=False,
+                message="invalid class or location identifier",
+                error_code="INVALID_IDENTIFIER",
+            ).model_dump(),
         ) from exc
     except (
         asyncpg.exceptions.UndefinedColumnError,
@@ -1041,14 +1313,18 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
         logger.error("Booking failed due to missing database objects (migration drift): %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=ApiResponse(success=False, message="booking is temporarily unavailable; database migration required").model_dump(),
+            detail=ApiResponse(
+                success=False,
+                message="booking is temporarily unavailable; database migration required",
+                error_code="BOOKING_TEMPORARILY_UNAVAILABLE",
+            ).model_dump(),
         ) from exc
 
     return ApiResponse(success=True, message="Booking confirmed")
 
 
 @app.post("/bookings/cancel", response_model=ApiResponse)
-async def cancel_booking(request: BookingRequest, user_id: str = Depends(get_user_id)) -> ApiResponse:
+async def cancel_booking(request: CancelBookingRequest, user_id: str = Depends(get_user_id)) -> ApiResponse:
     pool: asyncpg.Pool = app.state.db_pool
 
     async with pool.acquire() as conn:
@@ -1066,7 +1342,11 @@ async def cancel_booking(request: BookingRequest, user_id: str = Depends(get_use
         if scheduled_at is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=ApiResponse(success=False, message="active booking not found").model_dump(),
+                detail=ApiResponse(
+                    success=False,
+                    message="active booking not found",
+                    error_code="BOOKING_NOT_FOUND",
+                ).model_dump(),
             )
 
         if isinstance(scheduled_at, datetime):
@@ -1076,7 +1356,11 @@ async def cancel_booking(request: BookingRequest, user_id: str = Depends(get_use
             if (scheduled_at - now).total_seconds() <= 2 * 60 * 60:
                 raise HTTPException(
                     status_code=status.HTTP_423_LOCKED,
-                    detail=ApiResponse(success=False, message="cancellation window closed").model_dump(),
+                    detail=ApiResponse(
+                        success=False,
+                        message="cancellation window closed",
+                        error_code="CANCELLATION_WINDOW_CLOSED",
+                    ).model_dump(),
                 )
 
         await conn.execute(

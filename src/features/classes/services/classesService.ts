@@ -8,9 +8,11 @@ export type ClassTemplate = {
   title: string;
   description: string;
   trainer_name: string;
-  exercise_type: string;
+  class_type_id: string;
+  class_type_nombre?: string | null;
+  class_type_slug?: string | null;
   duration_minutes: number;
-  day_of_week: number;
+  days_of_week_mask: number;
   start_time: string;
   capacity: number;
   difficulty_level: DifficultyLevel;
@@ -28,9 +30,9 @@ export type ClassTemplateInput = {
   title: string;
   description: string;
   trainer_name: string;
-  exercise_type: string;
+  class_type_id: string;
   duration_minutes: number;
-  day_of_week: number;
+  days_of_week_mask: number;
   start_time: string;
   capacity: number;
   difficulty_level: DifficultyLevel;
@@ -65,43 +67,75 @@ export async function fetchClassTemplates(): Promise<ClassTemplate[]> {
 
 export async function createClassTemplate(
   input: ClassTemplateInput,
-  weeksAhead = 3,
 ): Promise<ClassTemplate> {
-  const data = await apiPost<ClassTemplate>("/admin/classes", {
-    ...input,
-    weeks_ahead: weeksAhead,
-  });
+  const data = await apiPost<ClassTemplate>("/admin/classes", input);
   return normalizeTemplate(data);
 }
 
 export async function updateClassTemplate(
   templateId: string,
   input: ClassTemplateInput,
-  weeksAhead = 3,
 ): Promise<ClassTemplate> {
-  const data = await apiPatch<ClassTemplate>(
-    `/admin/classes/${encodeURIComponent(templateId)}`,
-    {
-      ...input,
-      weeks_ahead: weeksAhead,
-    },
-  );
+  const data = await apiPatch<ClassTemplate>(`/admin/classes/${encodeURIComponent(templateId)}`, input);
   return normalizeTemplate(data);
 }
 
 export async function setClassTemplateActive(
   templateId: string,
   isActive: boolean,
-  weeksAhead = 3,
 ): Promise<void> {
   const payload = await apiPatch<CallableResponse>(
     `/admin/classes/${encodeURIComponent(templateId)}/active`,
     {
       is_active: isActive,
-      weeks_ahead: weeksAhead,
     },
   );
   if (!payload.success) {
     throw new Error(payload.message || "Class status update failed.");
   }
+}
+
+export type PublicClassTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  trainer_name: string;
+  class_type_id: string;
+  class_type_nombre: string;
+  class_type_slug: string;
+  duration_minutes: number;
+  days_of_week_mask: number;
+  start_time: string;
+  capacity: number;
+  difficulty_level: DifficultyLevel;
+  location_id: string;
+  location_name: string;
+  valid_from: string;
+  valid_until: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function normalizePublicTemplate(row: PublicClassTemplate): PublicClassTemplate {
+  return {
+    ...row,
+    start_time: row.start_time.slice(0, 5),
+  };
+}
+
+export async function fetchPublicClassTemplates(): Promise<PublicClassTemplate[]> {
+  const data = await apiGet<PublicClassTemplate[]>("/class-templates/public", {
+    auth: false,
+  });
+  return data.map(normalizePublicTemplate);
+}
+
+export async function fetchPublicClassTemplateById(
+  templateId: string,
+): Promise<PublicClassTemplate> {
+  const data = await apiGet<PublicClassTemplate>(
+    `/class-templates/public/${encodeURIComponent(templateId)}`,
+    { auth: false },
+  );
+  return normalizePublicTemplate(data);
 }

@@ -5,11 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
+import { ClassTypePickerModal } from "@/components/ui/ClassTypePickerModal";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
+import { TimePickerModal } from "@/components/ui/TimePickerModal";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
-import { fetchWeeksAheadToGenerate } from "@/features/admin/services/adminSettingsService";
+import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import {
   type ClassTemplate,
   createClassTemplate,
@@ -26,10 +28,12 @@ const schema = z.object({
   title: z.string().min(2),
   description: z.string().min(5),
   trainer_name: z.string().min(2),
-  exercise_type: z.string().min(2),
+  class_type_id: z.string().uuid("Selecciona un tipo de clase"),
   duration_minutes: z.coerce.number().int().min(10).max(240),
-  day_of_week: z.coerce.number().int().min(0).max(6),
-  start_time: z.string().regex(/^\d{2}:\d{2}$/, "Use HH:MM"),
+  days_of_week: z
+    .array(z.number().int().min(0).max(6))
+    .min(1, "Pick at least one day"),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, "Select a valid time"),
   capacity: z.coerce.number().int().min(1).max(500),
   difficulty_level: z.enum(["beginner", "intermediate", "advanced"]),
   location_id: z.string().uuid("Select a location"),
@@ -39,13 +43,40 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const dayOptions = [
+  { label: "Sun", value: 0 },
+  { label: "Mon", value: 1 },
+  { label: "Tue", value: 2 },
+  { label: "Wed", value: 3 },
+  { label: "Thu", value: 4 },
+  { label: "Fri", value: 5 },
+  { label: "Sat", value: 6 },
+] as const;
+
+function maskFromDays(days: number[]): number {
+  return days.reduce((mask, day) => mask | (1 << day), 0);
+}
+
+function daysFromMask(mask: number): number[] {
+  return dayOptions
+    .filter((option) => (mask & (1 << option.value)) !== 0)
+    .map((option) => option.value);
+}
+
+function formatMask(mask: number): string {
+  const labels = dayOptions
+    .filter((option) => (mask & (1 << option.value)) !== 0)
+    .map((option) => option.label);
+  return labels.length ? labels.join(" + ") : "No days";
+}
+
 const emptyValues: FormValues = {
   title: "",
   description: "",
   trainer_name: "",
-  exercise_type: "general fitness",
+  class_type_id: "",
   duration_minutes: 60,
-  day_of_week: 1,
+  days_of_week: [1],
   start_time: "18:00",
   capacity: 20,
   difficulty_level: "beginner",
@@ -54,16 +85,14 @@ const emptyValues: FormValues = {
   valid_until: "",
 };
 
-const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 function valuesFromTemplate(template: ClassTemplate): FormValues {
   return {
     title: template.title,
     description: template.description,
     trainer_name: template.trainer_name,
-    exercise_type: template.exercise_type,
+    class_type_id: template.class_type_id,
     duration_minutes: template.duration_minutes,
-    day_of_week: template.day_of_week,
+    days_of_week: daysFromMask(template.days_of_week_mask),
     start_time: template.start_time.slice(0, 5),
     capacity: template.capacity,
     difficulty_level: template.difficulty_level,
@@ -79,6 +108,8 @@ export function AdminClassesScreen() {
   const [selectedTemplate, setSelectedTemplate] =
     useState<ClassTemplate | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
+  const [isTypePickerVisible, setIsTypePickerVisible] = useState(false);
   const { control, handleSubmit, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
@@ -90,17 +121,13 @@ export function AdminClassesScreen() {
     enabled: role === "admin",
   });
 
-  const settingsQuery = useQuery({
-    queryKey: queryKeys.adminSettings,
-    queryFn: fetchWeeksAheadToGenerate,
-    enabled: role === "admin",
-  });
-
   const locationsQuery = useQuery({
     queryKey: queryKeys.locations,
     queryFn: fetchLocations,
     enabled: role === "admin",
   });
+
+  const classTypesQuery = useActiveClassTypes(role === "admin");
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -120,37 +147,48 @@ export function AdminClassesScreen() {
     });
   }, [isFormVisible, locationsQuery.data, selectedTemplate, setValue]);
 
+  useEffect(() => {
+    if (selectedTemplate || !isFormVisible || !classTypesQuery.data?.length) {
+      return;
+    }
+
+    setValue("class_type_id", classTypesQuery.data[0].id, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [classTypesQuery.data, isFormVisible, selectedTemplate, setValue]);
+
   const invalidateClassData = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.classTemplates }),
       queryClient.invalidateQueries({ queryKey: queryKeys.classes }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.publicClassTemplates,
+      }),
     ]);
   };
 
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const weeksAhead = settingsQuery.data ?? 3;
       const payload = {
         ...values,
+        days_of_week_mask: maskFromDays(values.days_of_week),
         valid_until: values.valid_until || null,
         is_active: selectedTemplate?.is_active ?? true,
       };
 
       if (selectedTemplate) {
-        return updateClassTemplate(selectedTemplate.id, payload, weeksAhead);
+        return updateClassTemplate(selectedTemplate.id, payload);
       }
-
-      return createClassTemplate(payload, weeksAhead);
+      return createClassTemplate(payload);
     },
     onSuccess: async () => {
       await invalidateClassData();
       setSelectedTemplate(null);
       setIsFormVisible(false);
       reset(emptyValues);
-      Alert.alert(
-        "Saved",
-        `Class saved and future sessions generated ${settingsQuery.data ?? 3} weeks ahead.`,
-      );
+      Alert.alert("Saved", "Recurring class template saved.");
     },
     onError: (error) => {
       Alert.alert("Save failed", (error as Error).message);
@@ -165,11 +203,7 @@ export function AdminClassesScreen() {
       template: ClassTemplate;
       isActive: boolean;
     }) => {
-      await setClassTemplateActive(
-        template.id,
-        isActive,
-        settingsQuery.data ?? 3,
-      );
+      await setClassTemplateActive(template.id, isActive);
     },
     onSuccess: async (_, variables) => {
       await invalidateClassData();
@@ -258,7 +292,8 @@ export function AdminClassesScreen() {
         <View className="flex-1">
           <Text className="text-2xl font-bold text-white">Manage Classes</Text>
           <Text className="mt-1 text-sm text-gray-400">
-            Create templates, edit class data, and soft-delete inactive classes.
+            Create recurring templates, edit class data, and soft-delete
+            inactive classes.
           </Text>
         </View>
         {!isFormVisible ? (
@@ -298,7 +333,7 @@ export function AdminClassesScreen() {
                         {template.title}
                       </Text>
                       <Text className="mt-1 text-xs text-gray-400">
-                        {dayLabels[template.day_of_week]} at{" "}
+                        {formatMask(template.days_of_week_mask)} at{" "}
                         {template.start_time.slice(0, 5)} ·{" "}
                         {template.trainer_name} ·{" "}
                         {template.location_name ?? "Unknown location"}
@@ -351,11 +386,66 @@ export function AdminClassesScreen() {
             label="Trainer"
             placeholder="Alex"
           />
-          <Input
+          <Controller
             control={control}
-            name="exercise_type"
-            label="Type"
-            placeholder="strength"
+            name="class_type_id"
+            render={({ field: { value, onChange }, fieldState: { error } }) => {
+              const selectedType = classTypesQuery.data?.find(
+                (item) => item.id === value,
+              );
+
+              return (
+                <View className="mb-3">
+                  <Text className="mb-1 text-sm font-medium text-white">Tipo</Text>
+                  {classTypesQuery.isLoading ? (
+                    <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
+                      <ActivityIndicator color="#22D3EE" size="small" />
+                      <Text className="ml-2 text-sm text-gray-400">
+                        Cargando tipos...
+                      </Text>
+                    </View>
+                  ) : classTypesQuery.isError ? (
+                    <Text className="rounded-xl border border-rose-500/40 bg-rose-950/20 px-3 py-3 text-sm text-rose-300">
+                      No se pudieron cargar los tipos de clase.
+                    </Text>
+                  ) : !classTypesQuery.data?.length ? (
+                    <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                      No hay tipos activos. Crea uno desde Admin / Tipos de Clase.
+                    </Text>
+                  ) : (
+                    <Pressable
+                      className="h-12 flex-row items-center justify-between rounded-xl border border-border bg-surface px-3"
+                      onPress={() => setIsTypePickerVisible(true)}
+                    >
+                      <Text className="text-base font-semibold text-white">
+                        {selectedType?.nombre ?? "Selecciona un tipo"}
+                      </Text>
+                      <Text className="text-xs text-cyan-300">Cambiar</Text>
+                    </Pressable>
+                  )}
+                  {!!selectedType?.descripcion && (
+                    <Text className="mt-1 text-xs text-gray-400">
+                      {selectedType.descripcion}
+                    </Text>
+                  )}
+                  {!!error?.message && (
+                    <Text className="mt-1 text-xs text-rose-400">
+                      {error.message}
+                    </Text>
+                  )}
+                  <ClassTypePickerModal
+                    visible={isTypePickerVisible}
+                    options={classTypesQuery.data ?? []}
+                    selectedId={value}
+                    onCancel={() => setIsTypePickerVisible(false)}
+                    onSelect={(option) => {
+                      onChange(option.id);
+                      setIsTypePickerVisible(false);
+                    }}
+                  />
+                </View>
+              );
+            }}
           />
           <Input
             control={control}
@@ -363,17 +453,81 @@ export function AdminClassesScreen() {
             label="Duration (minutes)"
             placeholder="60"
           />
-          <Input
+          <Controller
             control={control}
-            name="day_of_week"
-            label="Day (0=Sun ... 6=Sat)"
-            placeholder="1"
+            name="days_of_week"
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <View className="mb-3">
+                <Text className="mb-1 text-sm font-medium text-white">
+                  Days
+                </Text>
+                <View className="flex-row flex-nowrap items-center rounded-xl border border-border bg-surface p-1">
+                  {dayOptions.map((option) => {
+                    const selected = value.includes(option.value);
+                    return (
+                      <Pressable
+                        key={option.value}
+                        className={`mx-[2px] min-w-0 flex-1 rounded-full border py-1 ${selected ? "border-accent-cyan bg-cyan-950/35" : "border-border bg-surface"}`}
+                        onPress={() => {
+                          if (selected) {
+                            onChange(
+                              value.filter((item) => item !== option.value),
+                            );
+                          } else {
+                            onChange(
+                              [...value, option.value].sort((a, b) => a - b),
+                            );
+                          }
+                        }}
+                      >
+                        <Text
+                          className={`text-center text-xs font-medium ${selected ? "text-cyan-300" : "text-gray-300"}`}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {!!error?.message && (
+                  <Text className="mt-1 text-xs text-rose-400">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
-          <Input
+          <Controller
             control={control}
             name="start_time"
-            label="Start Time (HH:MM)"
-            placeholder="18:00"
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <View className="mb-3">
+                <Text className="mb-1 text-sm font-medium text-white">
+                  Start Time
+                </Text>
+                <Pressable
+                  className="h-12 flex-row items-center justify-between rounded-xl border border-border bg-surface px-3"
+                  onPress={() => setIsTimePickerVisible(true)}
+                >
+                  <Text className="text-base font-semibold text-white">{value}</Text>
+                  <Text className="text-xs text-cyan-300">Change</Text>
+                </Pressable>
+                <TimePickerModal
+                  visible={isTimePickerVisible}
+                  initialValue={value}
+                  onCancel={() => setIsTimePickerVisible(false)}
+                  onConfirm={(nextValue) => {
+                    onChange(nextValue);
+                    setIsTimePickerVisible(false);
+                  }}
+                />
+                {!!error?.message && (
+                  <Text className="mt-1 text-xs text-rose-400">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
           <Input
             control={control}
@@ -456,10 +610,6 @@ export function AdminClassesScreen() {
             label="Valid Until (optional YYYY-MM-DD)"
             placeholder="2026-08-31"
           />
-          <Text className="mt-1 text-xs text-gray-500">
-            Future sessions will be generated {settingsQuery.data ?? 3} weeks
-            ahead. Change this in Class Settings.
-          </Text>
           <Button
             label={selectedTemplate ? "Save Changes" : "Create Class"}
             onPress={handleSubmit((values) => saveMutation.mutate(values))}

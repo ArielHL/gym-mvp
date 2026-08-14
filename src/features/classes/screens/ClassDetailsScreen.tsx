@@ -4,19 +4,20 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  useBookedStatus,
-  useCancelBooking,
-} from "@/features/bookings/hooks/useBookings";
-import { useAuthState } from "@/features/auth/hooks/useAuthState";
-import { useClass } from "@/features/classes/hooks/useClasses";
-import { prettyDateTime } from "@/utils/date";
+import { usePublicClassTemplate } from "@/features/classes/hooks/useClasses";
+
+const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+function formatDays(mask: number): string {
+  return dayLabels
+    .filter((_, day) => (mask & (1 << day)) !== 0)
+    .join(" + ");
+}
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -30,14 +31,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export function ClassDetailsScreen() {
   const { classId } = useLocalSearchParams<{ classId?: string }>();
   const router = useRouter();
-  const { data: gymClass, isLoading, isError } = useClass(classId);
-  const { user } = useAuthState();
-  const cancelMutation = useCancelBooking();
-  const { data: isBooked, isLoading: checkingBooking } = useBookedStatus(
-    classId ?? "",
-    Boolean(user && classId),
-  );
-  const isFull = (gymClass?.available_spots ?? 0) <= 0;
+  const { data: template, isLoading, isError } = usePublicClassTemplate(classId);
 
   if (isLoading) {
     return (
@@ -50,11 +44,11 @@ export function ClassDetailsScreen() {
     );
   }
 
-  if (isError || !gymClass) {
+  if (isError || !template) {
     return (
       <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
         <View style={styles.center}>
-          <Text style={styles.errorText}>Could not load this class</Text>
+          <Text style={styles.errorText}>No se pudo cargar esta clase</Text>
         </View>
       </SafeAreaView>
     );
@@ -64,29 +58,10 @@ export function ClassDetailsScreen() {
     router.push({
       pathname: "/bookings/new",
       params: {
-        classId: gymClass.id,
-        className: gymClass.title,
-        classDate: gymClass.date,
+        templateId: template.id,
+        className: template.title,
       },
     });
-  };
-
-  const onCancel = async () => {
-    Alert.alert("Cancel booking", "Remove this class from your bookings?", [
-      { text: "Keep it", style: "cancel" },
-      {
-        text: "Cancel booking",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const result = await cancelMutation.mutateAsync(gymClass.id);
-            Alert.alert("Cancelled", result.message);
-          } catch (err) {
-            Alert.alert("Error", (err as Error).message);
-          }
-        },
-      },
-    ]);
   };
 
   return (
@@ -99,73 +74,38 @@ export function ClassDetailsScreen() {
             color="#22D3EE"
           />
         </Pressable>
-        <Text style={styles.headerTitle}>Class Details</Text>
+        <Text style={styles.headerTitle}>Detalles de la Clase</Text>
       </View>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{gymClass.title}</Text>
-        <Text style={styles.desc}>{gymClass.description}</Text>
+        <Text style={styles.title}>{template.title}</Text>
+        <Text style={styles.desc}>{template.description}</Text>
 
         <View style={styles.infoCard}>
-          <InfoRow label="Trainer" value={gymClass.trainer_name} />
-          <InfoRow label="Type" value={gymClass.exercise_type} />
+          <InfoRow label="Entrenador" value={template.trainer_name} />
+          <InfoRow label="Tipo de ejercicio" value={template.class_type_nombre} />
           <InfoRow
-            label="Duration"
-            value={`${gymClass.duration_minutes} min`}
+            label="Duración"
+            value={`${template.duration_minutes} min`}
           />
-          <InfoRow
-            label="When"
-            value={prettyDateTime(
-              gymClass.date,
-              gymClass.start_time,
-              gymClass.end_time,
-            )}
-          />
-          <InfoRow label="Difficulty" value={gymClass.difficulty_level} />
-          <InfoRow label="Location" value={gymClass.location} />
-          <InfoRow
-            label="Spots left"
-            value={String(gymClass.available_spots)}
-          />
+          <InfoRow label="Horario" value={formatDays(template.days_of_week_mask)} />
+          <InfoRow label="Hora de inicio" value={template.start_time} />
+          <InfoRow label="Dificultad" value={template.difficulty_level} />
+          <InfoRow label="Ubicación" value={template.location_name} />
+          <InfoRow label="Válido desde" value={template.valid_from} />
+          <InfoRow label="Válido hasta" value={template.valid_until ?? "Sin fecha de fin"} />
         </View>
 
-        {checkingBooking ? (
-          <ActivityIndicator style={styles.checkLoader} color="#22D3EE" />
-        ) : isBooked ? (
-          <View style={[styles.btnShell, styles.btnDangerShell]}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.btnPressable,
-                (pressed || cancelMutation.isPending) && styles.btnDisabled,
-              ]}
-              onPress={onCancel}
-              disabled={cancelMutation.isPending}
-            >
-              {cancelMutation.isPending ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.btnTextDanger}>Cancel Booking</Text>
-              )}
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.btnShell}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.btnPressable,
-                (isFull || pressed) && styles.btnDisabled,
-              ]}
-              onPress={onBook}
-              disabled={isFull}
-            >
-              <Text style={styles.btnText}>
-                {isFull ? "Class Full" : "Book Class"}
-              </Text>
-            </Pressable>
-          </View>
-        )}
+        <View style={styles.btnShell}>
+          <Pressable
+            style={({ pressed }) => [styles.btnPressable, pressed && styles.btnDisabled]}
+            onPress={onBook}
+          >
+            <Text style={styles.btnText}>Elegir Fecha y Reservar</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -228,7 +168,6 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginLeft: 12,
   },
-  checkLoader: { marginTop: 24 },
   btnShell: {
     marginTop: 48,
     height: 54,
@@ -239,16 +178,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   btnPressable: {
-    // flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  btnDangerShell: {
-    backgroundColor: "#1a1a1a",
-    borderWidth: 1,
-    borderColor: "#ef4444",
-  },
   btnDisabled: { opacity: 0.45 },
   btnText: { fontSize: 16, fontWeight: "700", color: "#000000" },
-  btnTextDanger: { fontSize: 16, fontWeight: "700", color: "#ef4444" },
 });

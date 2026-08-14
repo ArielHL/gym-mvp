@@ -15,7 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
-import { useClasses } from "@/features/classes/hooks/useClasses";
+import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
+import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
 import { toDateKey } from "@/utils/date";
 
 const { width: SW } = Dimensions.get("window");
@@ -55,19 +56,19 @@ const DRAWER_ITEMS = [
   {
     id: "book",
     icon: "📅",
-    label: "Book Classes",
+    label: "Reserva una Clase",
     tab: "/(tabs)/bookings" as const,
   },
   {
     id: "sub",
     icon: "💳",
-    label: "Pay a Subscription",
+    label: "Paga una Suscripción",
     tab: "/(tabs)/bookings" as const,
   },
   {
     id: "find",
     icon: "🔍",
-    label: "Find a Class for You",
+    label: "Encuentra una Clase para Ti",
     tab: "/(tabs)/classes" as const,
   },
 ];
@@ -83,14 +84,42 @@ type TabRoute = "/(tabs)/classes" | "/(tabs)/bookings" | "/(tabs)/profile";
 export function HomeScreen() {
   const [slide, setSlide] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedTypeId, setSelectedTypeId] = useState<string>("all");
   const drawerX = useRef(new Animated.Value(-DRAWER_W)).current;
   const overlayAlpha = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const { user, displayName } = useAuthState();
   const { data: bookings } = useMyBookings();
   const todayDate = useMemo(() => toDateKey(new Date()), []);
-  const { data: todayClasses, isLoading: isLoadingClasses } =
-    useClasses(todayDate);
+  const { data: templates, isLoading: isLoadingClasses } =
+    usePublicClassTemplates();
+  const { data: classTypes } = useActiveClassTypes();
+
+  const todayClasses = useMemo(() => {
+    const todayDay = new Date().getUTCDay();
+    return (templates ?? []).filter(
+      (item) => (item.days_of_week_mask & (1 << todayDay)) !== 0,
+    );
+  }, [templates]);
+
+  const typeChips = useMemo(
+    () => [
+      { id: "all", label: "Todas" },
+      ...(classTypes ?? []).map((item) => ({
+        id: item.id,
+        label: item.nombre,
+      })),
+    ],
+    [classTypes],
+  );
+
+  const filteredTodayClasses = useMemo(() => {
+    if (selectedTypeId === "all") {
+      return todayClasses;
+    }
+
+    return todayClasses.filter((item) => item.class_type_id === selectedTypeId);
+  }, [selectedTypeId, todayClasses]);
 
   const bookingStats = useMemo(() => {
     const bookedClasses = bookings ?? [];
@@ -125,9 +154,13 @@ export function HomeScreen() {
     }
 
     return [
-      { label: "Classes\nBooked", val: String(bookedClasses.length) },
       {
-        label: "This\nWeek",
+        label: "Classes\nReservadas",
+        val: String(bookedClasses.length),
+        filter: "all" as const,
+      },
+      {
+        label: "Esta\nSemana",
         val: String(
           bookedClasses.filter((item) => {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(item.gymClass.date)) return false;
@@ -136,8 +169,13 @@ export function HomeScreen() {
             return classDate >= weekStart && classDate <= weekEnd;
           }).length,
         ),
+        filter: "week" as const,
       },
-      { label: "Day\nStreak", val: dayStreak > 0 ? `${dayStreak}🔥` : "0" },
+      {
+        label: "Racha\nDiaria",
+        val: dayStreak > 0 ? `${dayStreak}🔥` : "0",
+        filter: "day" as const,
+      },
     ];
   }, [bookings]);
 
@@ -190,9 +228,9 @@ export function HomeScreen() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
-    return "Good evening";
+    if (h < 12) return "Buen Día";
+    if (h < 18) return "Buenas Tardes";
+    return "Buenas Noches";
   })();
 
   return (
@@ -212,7 +250,7 @@ export function HomeScreen() {
             <View style={[s.burgerLine, { width: 14 }]} />
           </Pressable>
           <Text style={s.logo}>
-            CALI<Text style={s.logoAccent}>FIT</Text>
+            Flowly<Text style={s.logoAccent}></Text>
           </Text>
           <Pressable
             style={s.notifBtn}
@@ -266,7 +304,7 @@ export function HomeScreen() {
                       onPress={() => router.push("/(tabs)/classes")}
                     >
                       <Text style={[s.heroBtnText, { color: item.tagColor }]}>
-                        Explore Class →
+                        Mira Nuestras Clases →
                       </Text>
                     </Pressable>
                   </View>
@@ -285,21 +323,32 @@ export function HomeScreen() {
           {/* Stats Row */}
           <View style={s.statsRow}>
             {bookingStats.map((st, i) => (
-              <View key={i} style={s.statCard}>
-                <Text style={s.statVal}>{st.val}</Text>
-                <Text style={s.statLabel}>{st.label}</Text>
-              </View>
+              <Pressable
+                key={i}
+                style={s.statPressable}
+                onPress={() =>
+                  router.push({
+                    pathname: "/bookings",
+                    params: { filter: st.filter },
+                  })
+                }
+              >
+                <View style={s.statCard}>
+                  <Text style={s.statVal}>{st.val}</Text>
+                  <Text style={s.statLabel}>{st.label}</Text>
+                </View>
+              </Pressable>
             ))}
           </View>
 
           {/* Section header */}
           <View style={s.sectionRow}>
-            <Text style={s.sectionTitle}>Today's Classes</Text>
+            <Text style={s.sectionTitle}>Las Clases de Hoy</Text>
             <Pressable
               onPress={() => goToTab("/(tabs)/classes")}
               accessibilityLabel="See all classes"
             >
-              <Text style={s.sectionLink}>See all →</Text>
+              <Text style={s.sectionLink}>Ver todas →</Text>
             </Pressable>
           </View>
 
@@ -310,27 +359,37 @@ export function HomeScreen() {
             contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
             style={{ marginBottom: 16 }}
           >
-            {["All", "Strength", "Mobility", "Cardio", "Yoga"].map((c, i) => (
-              <Pressable key={c} style={[s.chip, i === 0 && s.chipActive]}>
-                <Text style={[s.chipText, i === 0 && s.chipTextActive]}>
-                  {c}
-                </Text>
-              </Pressable>
-            ))}
+            {typeChips.map((chip) => {
+              const active = chip.id === selectedTypeId;
+
+              return (
+                <Pressable
+                  key={chip.id}
+                  style={[s.chip, active && s.chipActive]}
+                  onPress={() => setSelectedTypeId(chip.id)}
+                >
+                  <Text style={[s.chipText, active && s.chipTextActive]}>
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
 
           {/* Mini class cards */}
           <View style={{ paddingHorizontal: 20, gap: 12 }}>
             {isLoadingClasses ? (
               <View style={s.emptyClassCard}>
-                <Text style={s.emptyClassText}>Loading today's classes...</Text>
+                <Text style={s.emptyClassText}>
+                  Cargando las clases de hoy...
+                </Text>
               </View>
-            ) : !todayClasses?.length ? (
+            ) : !filteredTodayClasses?.length ? (
               <View style={s.emptyClassCard}>
-                <Text style={s.emptyClassText}>No classes today.</Text>
+                <Text style={s.emptyClassText}>No hay clases hoy.</Text>
               </View>
             ) : (
-              todayClasses.map((c) => {
+              filteredTodayClasses.map((c) => {
                 const color = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
                 const diff = c.difficulty_level.slice(0, 3).toUpperCase();
 
@@ -345,8 +404,9 @@ export function HomeScreen() {
                             pathname: "/bookings/new",
                             params: {
                               classId: c.id,
+                              templateId: c.id,
                               className: c.title,
-                              classDate: c.date,
+                              classDate: todayDate,
                             },
                           })
                         : router.push("/(tabs)/bookings")
@@ -379,7 +439,7 @@ export function HomeScreen() {
                         <Text style={[s.diffText, { color }]}>{diff}</Text>
                       </View>
                       <Text className="mt-1 text-[11px] text-[#555]">
-                        {c.available_spots} spots
+                        {c.duration_minutes} min
                       </Text>
                     </View>
                   </Pressable>
@@ -411,7 +471,7 @@ export function HomeScreen() {
         <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
           <View style={s.drawerHead}>
             <Text style={s.drawerLogo}>
-              CALI<Text style={s.drawerLogoAccent}>FIT</Text>
+              Flow<Text style={s.drawerLogoAccent}>ly</Text>
             </Text>
             <Pressable onPress={closeDrawer} style={s.drawerClose}>
               <Text style={s.drawerCloseText}>✕</Text>
@@ -422,12 +482,12 @@ export function HomeScreen() {
             style={{ paddingHorizontal: 24, marginTop: 16, marginBottom: 8 }}
           >
             <Text style={s.drawerGreet}>
-              {user ? `Hey, ${displayName || "Athlete"}` : "Welcome"}
+              {user ? `Hola, ${displayName || "Amigo"}` : "Bienvenido!"}
             </Text>
             <Text style={s.drawerGreetSub}>
               {user
-                ? "What do you want to do today?"
-                : "Sign in to unlock bookings and your profile."}
+                ? "Qué quieres hacer hoy?"
+                : "Inicia sesión para desbloquear reservas y tu perfil."}
             </Text>
           </View>
           <View style={{ paddingHorizontal: 16, marginTop: 8, gap: 4 }}>
@@ -440,9 +500,11 @@ export function HomeScreen() {
                 ]}
                 onPress={() => handleDrawerNav(item.tab)}
               >
-                <Text style={s.drawerItemIcon}>{item.icon}</Text>
-                <Text style={s.drawerItemLabel}>{item.label}</Text>
-                <Text style={s.drawerItemArrow}>›</Text>
+                <View style={s.drawerItemMain}>
+                  <Text style={s.drawerItemIcon}>{item.icon}</Text>
+                  <Text style={s.drawerItemLabel}>{item.label}</Text>
+                  <Text style={s.drawerItemArrow}>›</Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -468,7 +530,7 @@ export function HomeScreen() {
               <Text style={s.drawerProfileName}>
                 {user ? displayName || "My Account" : "Guest"}
               </Text>
-              <Text style={s.drawerProfileSub}>View profile →</Text>
+              <Text style={s.drawerProfileSub}>Ver Perfil →</Text>
             </View>
           </Pressable>
         </SafeAreaView>
@@ -560,12 +622,16 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     gap: 10,
     marginBottom: 24,
+    justifyContent: "space-between",
   },
+  statPressable: { width: 100 },
   statCard: {
-    flex: 1,
+    width: 100,
+    height: 94,
     backgroundColor: "#141414",
     borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: "#242424",
@@ -668,15 +734,27 @@ const s = StyleSheet.create({
   drawerItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 16,
     borderRadius: 12,
   },
   drawerItemPressed: { backgroundColor: "#1A1A1A" },
-  drawerItemIcon: { fontSize: 20, width: 28 },
-  drawerItemLabel: { flex: 1, color: "#DDD", fontSize: 15, fontWeight: "600" },
-  drawerItemArrow: { color: "#444", fontSize: 22 },
+  drawerItemMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  drawerItemIcon: { fontSize: 20, width: 28, marginRight: 14 },
+  drawerItemLabel: {
+    flexGrow: 1,
+    flexShrink: 1,
+    color: "#F3F4F6",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  drawerItemArrow: { color: "#666", fontSize: 22, marginLeft: 12 },
   drawerProfileBtn: {
     flexDirection: "row",
     alignItems: "center",

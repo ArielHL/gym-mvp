@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/constants/queryKeys';
-import { fetchClassById, fetchClasses } from '../services/classesService';
+import {
+  fetchClassById,
+  fetchClasses,
+  fetchPublicClassTemplateById,
+  fetchPublicClassTemplates,
+} from '../services/classesService';
 
 export function useClass(classId?: string) {
   return useQuery({
@@ -15,5 +20,21 @@ export function useClasses(date?: string, enabled = true) {
     queryKey: queryKeys.classesList(date),
     queryFn: () => fetchClasses(date),
     enabled,
+  });
+}
+
+export function usePublicClassTemplates(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.publicClassTemplates,
+    queryFn: fetchPublicClassTemplates,
+    enabled,
+  });
+}
+
+export function usePublicClassTemplate(templateId?: string) {
+  return useQuery({
+    queryKey: queryKeys.publicClassTemplateById(templateId ?? ''),
+    queryFn: () => fetchPublicClassTemplateById(templateId!),
+    enabled: Boolean(templateId),
   });
 }
