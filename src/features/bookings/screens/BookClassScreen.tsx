@@ -292,7 +292,7 @@ export function BookClassScreen() {
           />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={s.heading}>{className || "Book a Class"}</Text>
+          <Text style={s.heading}>{className || "Reserva una clase"}</Text>
           <Text style={s.subHeading}>Elije Una Clase · Elige la Fecha · Confirma</Text>
         </View>
       </View>
