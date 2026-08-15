@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { ClassTypePickerModal } from "@/components/ui/ClassTypePickerModal";
+import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { TimePickerModal } from "@/components/ui/TimePickerModal";
@@ -110,6 +111,9 @@ export function AdminClassesScreen() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
   const [isTypePickerVisible, setIsTypePickerVisible] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const { control, handleSubmit, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
@@ -128,6 +132,16 @@ export function AdminClassesScreen() {
   });
 
   const classTypesQuery = useActiveClassTypes(role === "admin");
+
+  const filteredTemplates = useMemo(() => {
+    const items = templatesQuery.data ?? [];
+    if (statusFilter === "all") {
+      return items;
+    }
+    return items.filter(
+      (template) => (statusFilter === "active") === template.is_active,
+    );
+  }, [templatesQuery.data, statusFilter]);
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -244,8 +258,8 @@ export function AdminClassesScreen() {
     }
 
     Alert.alert(
-      "Deactivate class",
-      "This hides the class from members but keeps history and bookings intact.",
+      "Desactivar clase",
+      "Esto oculta la clase de los miembros pero mantiene el historial y las reservas intactas.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -276,10 +290,10 @@ export function AdminClassesScreen() {
       <Screen scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-2xl font-bold text-white">
-            Admin access required
+            Requiere acceso de Administrador
           </Text>
           <Text className="mt-2 text-center text-sm text-gray-500">
-            Only admins can manage classes.
+            Solo Administradores pueden acceder a esta sección.
           </Text>
         </View>
       </Screen>
@@ -290,10 +304,10 @@ export function AdminClassesScreen() {
     <Screen>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-white">Manage Classes</Text>
+          <Text className="text-2xl font-bold text-white">Gestion de Clases</Text>
           <Text className="mt-1 text-sm text-gray-400">
-            Create recurring templates, edit class data, and soft-delete
-            inactive classes.
+            Crear plantillas recurrentes, editar datos de clases y desactivar
+            clases inactivas.
           </Text>
         </View>
         {!isFormVisible ? (
@@ -301,22 +315,33 @@ export function AdminClassesScreen() {
             className="rounded-xl border border-border bg-surface px-4 py-3"
             onPress={startNewTemplate}
           >
-            <Text className="font-semibold text-white">New</Text>
+            <Text className="font-semibold text-white">Nueva</Text>
           </Pressable>
         ) : null}
       </View>
 
       {!isFormVisible ? (
-        <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
-          <Text className="mb-3 text-base font-bold text-white">
-            Class Templates
-          </Text>
-          {templatesQuery.isError ? (
-            <Text className="text-sm text-rose-400">
-              Could not load class templates.
+        <>
+          <FilterChipRow
+            label="Estado"
+            options={[
+              { label: "Todos", value: "all" },
+              { label: "Activo", value: "active" },
+              { label: "Inactivo", value: "inactive" },
+            ]}
+            selected={statusFilter}
+            onSelect={setStatusFilter}
+          />
+          <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
+            <Text className="mb-3 text-base font-bold text-white">
+              Plantillas ({filteredTemplates.length})
             </Text>
-          ) : templatesQuery.data?.length ? (
-            templatesQuery.data.map((template) => {
+            {templatesQuery.isError ? (
+              <Text className="text-sm text-rose-400">
+                No se pudieron cargar las plantillas de clases.
+              </Text>
+            ) : filteredTemplates.length ? (
+              filteredTemplates.map((template) => {
               const selected = selectedTemplate?.id === template.id;
               return (
                 <Pressable
@@ -359,32 +384,35 @@ export function AdminClassesScreen() {
             })
           ) : (
             <Text className="text-sm text-gray-400">
-              No class templates yet.
+              {statusFilter !== "all"
+                ? "No hay plantillas de clase que coincidan con el filtro seleccionado."
+                : "Aún no hay plantillas de clase."}
             </Text>
           )}
-        </View>
+          </View>
+        </>
       ) : (
         <>
           <Text className="mb-3 text-lg font-bold text-white">
-            {selectedTemplate ? "Edit Class" : "Create Class"}
+            {selectedTemplate ? "Editar Clase" : "Crear Clase"}
           </Text>
           <Input
             control={control}
             name="title"
-            label="Title"
-            placeholder="Morning Strength"
+            label="Título"
+            placeholder="Fuerza Matutina"
           />
           <Input
             control={control}
             name="description"
-            label="Description"
-            placeholder="Full body circuit"
+            label="Descripción"
+            placeholder="Circuito de cuerpo completo"
           />
           <Input
             control={control}
             name="trainer_name"
-            label="Trainer"
-            placeholder="Alex"
+            label="Entrenador"
+            placeholder="Alejandro"
           />
           <Controller
             control={control}
@@ -450,7 +478,7 @@ export function AdminClassesScreen() {
           <Input
             control={control}
             name="duration_minutes"
-            label="Duration (minutes)"
+            label="Duración (minutos)"
             placeholder="60"
           />
           <Controller
@@ -459,7 +487,7 @@ export function AdminClassesScreen() {
             render={({ field: { value, onChange }, fieldState: { error } }) => (
               <View className="mb-3">
                 <Text className="mb-1 text-sm font-medium text-white">
-                  Days
+                  Días
                 </Text>
                 <View className="flex-row flex-nowrap items-center rounded-xl border border-border bg-surface p-1">
                   {dayOptions.map((option) => {
@@ -503,14 +531,14 @@ export function AdminClassesScreen() {
             render={({ field: { value, onChange }, fieldState: { error } }) => (
               <View className="mb-3">
                 <Text className="mb-1 text-sm font-medium text-white">
-                  Start Time
+                  Hora de inicio
                 </Text>
                 <Pressable
                   className="h-12 flex-row items-center justify-between rounded-xl border border-border bg-surface px-3"
                   onPress={() => setIsTimePickerVisible(true)}
                 >
                   <Text className="text-base font-semibold text-white">{value}</Text>
-                  <Text className="text-xs text-cyan-300">Change</Text>
+                  <Text className="text-xs text-cyan-300">Cambiar</Text>
                 </Pressable>
                 <TimePickerModal
                   visible={isTimePickerVisible}
@@ -532,14 +560,14 @@ export function AdminClassesScreen() {
           <Input
             control={control}
             name="capacity"
-            label="Capacity"
+            label="Capacidad"
             placeholder="20"
           />
           <Input
             control={control}
             name="difficulty_level"
-            label="Difficulty (beginner/intermediate/advanced)"
-            placeholder="beginner"
+            label="Dificultad (principiante/intermedio/avanzado)"
+            placeholder="principiante"
           />
           <Controller
             control={control}
@@ -547,7 +575,7 @@ export function AdminClassesScreen() {
             render={({ field: { value, onChange }, fieldState: { error } }) => (
               <View className="mb-3">
                 <Text className="mb-1 text-sm font-medium text-white">
-                  Location
+                  Ubicación
                 </Text>
                 {locationsQuery.isLoading ? (
                   <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
@@ -601,21 +629,21 @@ export function AdminClassesScreen() {
           <Input
             control={control}
             name="valid_from"
-            label="Valid From (YYYY-MM-DD)"
+            label="Válido desde (YYYY-MM-DD)"
             placeholder="2026-08-01"
           />
           <Input
             control={control}
             name="valid_until"
-            label="Valid Until (optional YYYY-MM-DD)"
+            label="Válido hasta (opcional YYYY-MM-DD)"
             placeholder="2026-08-31"
           />
           <Button
-            label={selectedTemplate ? "Save Changes" : "Create Class"}
+            label={selectedTemplate ? "Guardar Cambios" : "Crear Clase"}
             onPress={handleSubmit((values) => saveMutation.mutate(values))}
             loading={saveMutation.isPending}
           />
-          <Button label="Cancel" variant="secondary" onPress={cancelForm} />
+          <Button label="Cancelar" variant="secondary" onPress={cancelForm} />
         </>
       )}
     </Screen>

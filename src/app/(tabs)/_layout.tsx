@@ -11,6 +11,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#22D3EE",
@@ -71,17 +72,20 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Perfil",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }) =>
             user && avatarUrl ? (
-              <Avatar name={displayName ?? ""} avatarUrl={avatarUrl} size={size} />
+              <Avatar
+                name={displayName ?? ""}
+                avatarUrl={avatarUrl}
+                size={size}
+              />
             ) : (
               <MaterialCommunityIcons
                 name="account-circle"
                 size={size}
                 color={String(color)}
               />
-            )
-          ),
+            ),
         }}
       />
     </Tabs>

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -14,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import { Button } from "@/components/ui/Button";
+import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
@@ -133,48 +133,6 @@ const calendarTheme = {
   dotColor: "#22D3EE",
   selectedDotColor: "#000",
 };
-
-function FilterChipRow({
-  label,
-  options,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  options: { label: string; value: string }[];
-  selected: string;
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <View className="mb-3">
-      <Text className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">
-        {label}
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 pr-2"
-      >
-        {options.map((option) => {
-          const active = option.value === selected;
-          return (
-            <Pressable
-              key={option.value}
-              className={`rounded-full border px-4 py-2 ${active ? "border-cyan-400/60 bg-cyan-950/40" : "border-border bg-background"}`}
-              onPress={() => onSelect(option.value)}
-            >
-              <Text
-                className={`text-xs font-bold ${active ? "text-cyan-300" : "text-gray-400"}`}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
 
 export function AdminSubscriptionsScreen() {
   const { role, initializing } = useAuthState();

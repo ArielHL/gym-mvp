@@ -229,9 +229,9 @@ export function ProfileScreen() {
                     <Text style={s.menuIcon}>🏗️</Text>
                   </View>
                   <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Manage Classes</Text>
+                    <Text style={s.menuLabel}>Gestionar Clases</Text>
                     <Text style={s.menuSub}>
-                      Create, edit, deactivate, and reactivate classes
+                      Crear, editar, desactivar y reactivar clases
                     </Text>
                   </View>
                 </View>
@@ -251,9 +251,9 @@ export function ProfileScreen() {
                     <Text style={s.menuIcon}>📍</Text>
                   </View>
                   <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Manage Locations</Text>
+                    <Text style={s.menuLabel}>Gestionar Ubicaciones</Text>
                     <Text style={s.menuSub}>
-                      Add, edit, deactivate, and reactivate gym locations
+                      Agregar, editar, desactivar y reactivar ubicaciones del gimnasio
                     </Text>
                   </View>
                 </View>

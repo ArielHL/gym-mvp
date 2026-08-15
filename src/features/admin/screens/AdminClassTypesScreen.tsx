@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
+import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
@@ -51,12 +52,25 @@ export function AdminClassTypesScreen() {
   const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState<ClassType | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const { control, handleSubmit, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
   const classTypesQuery = useClassTypes(role === "admin");
+
+  const filteredTypes = useMemo(() => {
+    const items = classTypesQuery.data ?? [];
+    if (statusFilter === "all") {
+      return items;
+    }
+    return items.filter(
+      (tipo) => (statusFilter === "active") === tipo.is_active,
+    );
+  }, [classTypesQuery.data, statusFilter]);
 
   useEffect(() => {
     if (selectedType) {
@@ -211,14 +225,27 @@ export function AdminClassTypesScreen() {
       </View>
 
       {!isFormVisible ? (
-        <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
-          <Text className="mb-3 text-base font-bold text-white">Catalogo</Text>
-          {classTypesQuery.isError ? (
-            <Text className="text-sm text-rose-400">
-              No se pudieron cargar los tipos de clase.
+        <>
+          <FilterChipRow
+            label="Estado"
+            options={[
+              { label: "Todos", value: "all" },
+              { label: "Activo", value: "active" },
+              { label: "Inactivo", value: "inactive" },
+            ]}
+            selected={statusFilter}
+            onSelect={setStatusFilter}
+          />
+          <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
+            <Text className="mb-3 text-base font-bold text-white">
+              Catalogo ({filteredTypes.length})
             </Text>
-          ) : classTypesQuery.data?.length ? (
-            classTypesQuery.data.map((tipo) => {
+            {classTypesQuery.isError ? (
+              <Text className="text-sm text-rose-400">
+                No se pudieron cargar los tipos de clase.
+              </Text>
+            ) : filteredTypes.length ? (
+              filteredTypes.map((tipo) => {
               const selected = selectedType?.id === tipo.id;
               return (
                 <Pressable
@@ -259,9 +286,14 @@ export function AdminClassTypesScreen() {
               );
             })
           ) : (
-            <Text className="text-sm text-gray-400">Aun no hay tipos de clase.</Text>
+            <Text className="text-sm text-gray-400">
+              {statusFilter !== "all"
+                ? "No hay tipos de clase que coincidan con el filtro."
+                : "Aun no hay tipos de clase."}
+            </Text>
           )}
-        </View>
+          </View>
+        </>
       ) : (
         <>
           <Text className="mb-3 text-lg font-bold text-white">
