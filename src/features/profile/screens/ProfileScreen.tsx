@@ -1,5 +1,6 @@
 ﻿import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,12 +22,12 @@ const MENU_ITEMS = [
     label: "Editar Perfil",
     sub: "Actualiza tu nombre y foto",
   },
-  {
-    id: "notif",
-    icon: "🔔",
-    label: "Notificaciones",
-    sub: "Gestiona las preferencias de notificación",
-  },
+  // {
+  //   id: "notif",
+  //   icon: "🔔",
+  //   label: "Notificaciones",
+  //   sub: "Gestiona las preferencias de notificación",
+  // },
   {
     id: "plan",
     icon: "💳",
@@ -38,16 +39,23 @@ const MENU_ITEMS = [
     icon: "📅",
     label: "Historial de Reservas",
     sub: "Clases pasadas y próximas",
-  },
-  {
-    id: "help",
-    icon: "🤝",
-    label: "Ayuda y Soporte",
-    sub: "Preguntas frecuentes y contáctanos",
-  },
+  }
+  // {
+  //   id: "help",
+  //   icon: "🤝",
+  //   label: "Ayuda y Soporte",
+  //   sub: "Preguntas frecuentes y contáctanos",
+  // },
 ];
 
-function Avatar({ name }: { name: string }) {
+export function Avatar({ name, avatarUrl, size }: { name: string; avatarUrl?: string | null; size?: number }) {
+  if (avatarUrl) {
+    return (
+      <View style={[s.avatar, { width: size ?? 64, height: size ?? 64, borderRadius: (size ?? 64) / 2 }]}>
+        <Image source={{ uri: avatarUrl }} style={[s.avatarImage, { width: size ?? 64, height: size ?? 64, borderRadius: (size ?? 64) / 2 }]} resizeMode="cover" />
+      </View>
+    );
+  }
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -55,14 +63,14 @@ function Avatar({ name }: { name: string }) {
     .toUpperCase()
     .slice(0, 2);
   return (
-    <View style={s.avatar}>
-      <Text style={s.avatarText}>{initials || "?"}</Text>
+    <View style={[s.avatar, { width: size ?? 64, height: size ?? 64, borderRadius: (size ?? 64) / 2 }]}>
+      <Text style={[s.avatarText, { fontSize: (size ?? 64) / 2 }]}>{initials || "?"}</Text>
     </View>
   );
 }
 
 export function ProfileScreen() {
-  const { user, role, displayName } = useAuthState();
+  const { user, role, displayName, avatarUrl } = useAuthState();
   const { data: bookings } = useMyBookings();
   const router = useRouter();
 
@@ -90,12 +98,12 @@ export function ProfileScreen() {
 
     return [
       {
-        label: "Classes\nBooked",
+        label: "Clases\nReservadas",
         val: String(bookedClasses.length),
         color: "#22D3EE",
       },
       {
-        label: "This\nMonth",
+        label: "Este\nMes",
         val: String(
           bookedClasses.filter((item) =>
             item.gymClass.date.startsWith(currentMonth),
@@ -104,7 +112,7 @@ export function ProfileScreen() {
         color: "#A855F7",
       },
       {
-        label: "Day\nStreak",
+        label: "Racha\nDiaria",
         val: dayStreak > 0 ? `${dayStreak}🔥` : "0",
         color: "#F59E0B",
       },
@@ -114,14 +122,18 @@ export function ProfileScreen() {
   const onMenuItemPress = (itemId: string) => {
     if (itemId === "history") {
       router.push("/bookings" as never);
+    } else if (itemId === "edit") {
+      router.push("/profile/edit" as never);
+    } else if (itemId === "plan") {
+      router.push("/profile/subscription" as never);
     }
   };
 
   const onLogout = () => {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Cerrar sesión", "¿Estás seguro de que deseas cerrar sesión?", [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: "Sign Out",
+        text: "Cerrar sesión",
         style: "destructive",
         onPress: async () => {
           try {
@@ -140,18 +152,18 @@ export function ProfileScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         <View style={s.center}>
           <Text style={{ fontSize: 56 }}>🔒</Text>
-          <Text style={s.signInTitle}>Sign in to access{"\n"}your account</Text>
+          <Text style={s.signInTitle}>Inicia sesión para acceder{"\n"}a tu cuenta</Text>
           <Text style={s.signInSub}>
-            Track bookings, manage your plan, and more
+            Rastrea tus reservas, administra tu plan y más
           </Text>
           <Pressable style={s.signInBtn} onPress={() => router.push("/auth")}>
-            <Text style={s.signInBtnText}>Sign In</Text>
+            <Text style={s.signInBtnText}>Iniciar sesión</Text>
           </Pressable>
           <Pressable
             style={s.registerBtn}
             onPress={() => router.push("/register")}
           >
-            <Text style={s.registerBtnText}>Create Account</Text>
+            <Text style={s.registerBtnText}>Crear cuenta</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -169,7 +181,7 @@ export function ProfileScreen() {
         <View style={s.banner}>
           <View style={s.bannerPattern} />
           <View style={s.bannerContent}>
-            <Avatar name={displayName} />
+            <Avatar name={displayName} avatarUrl={avatarUrl} />
             <Text style={s.displayName}>{displayName || "Athlete"}</Text>
             <Text style={s.email}>{user.email}</Text>
             <View style={[s.roleBadge, role === "admin" && s.roleBadgeAdmin]}>
@@ -193,11 +205,11 @@ export function ProfileScreen() {
         {/* Membership card */}
         <View style={s.memberCard}>
           <View>
-            <Text style={s.memberLabel}>Current Plan</Text>
-            <Text style={s.memberPlan}>Premium Membership</Text>
+            <Text style={s.memberLabel}>Plan Actual</Text>
+            <Text style={s.memberPlan}>Membresía Premium</Text>
           </View>
           <Pressable style={s.upgradeBtn}>
-            <Text style={s.upgradeBtnText}>Upgrade</Text>
+            <Text style={s.upgradeBtnText}>Actualizar</Text>
           </Pressable>
         </View>
 
@@ -253,6 +265,28 @@ export function ProfileScreen() {
                 s.menuItem,
                 pressed && { backgroundColor: "#1A1A1A" },
               ]}
+              onPress={() => router.push("/admin/subscriptions" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>💳</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Gestionar Suscripciones</Text>
+                    <Text style={s.menuSub}>
+                      Asigna o actualiza planes y suscripciones de usuarios
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
               onPress={() => router.push("/admin/class-types" as never)}
             >
               <View style={s.menuItemContent}>
@@ -283,9 +317,9 @@ export function ProfileScreen() {
                     <Text style={s.menuIcon}>⚙️</Text>
                   </View>
                   <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Class Settings</Text>
+                    <Text style={s.menuLabel}>Configuración de Clases</Text>
                     <Text style={s.menuSub}>
-                      Configure upcoming admin controls and preferences
+                      Configura los próximos controles y preferencias de administrador
                     </Text>
                   </View>
                 </View>
@@ -297,7 +331,7 @@ export function ProfileScreen() {
 
         {/* Menu items */}
         <View style={s.menuSection}>
-          <Text style={s.menuSectionTitle}>Account</Text>
+          <Text style={s.menuSectionTitle}>Tu Cuenta</Text>
           {MENU_ITEMS.map((item, i) => (
             <Pressable
               key={item.id}
@@ -339,7 +373,7 @@ export function ProfileScreen() {
             style={({ pressed }) => [s.logoutBtn, pressed && { opacity: 0.75 }]}
             onPress={onLogout}
           >
-            <Text style={s.logoutText}>Sign Out</Text>
+            <Text style={s.logoutText}>Cerrar sesión</Text>
           </Pressable>
         </View>
 
@@ -424,6 +458,11 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   avatarText: { color: "#22D3EE", fontSize: 28, fontWeight: "800" },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
   displayName: { color: "#FFF", fontSize: 22, fontWeight: "800" },
   email: { color: "#666", fontSize: 13 },
   roleBadge: {

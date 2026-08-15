@@ -57,6 +57,7 @@ function RootLayoutNav() {
       <Stack.Screen name="auth/callback" />
       <Stack.Screen name="bookings/index" />
       <Stack.Screen name="bookings/new" />
+      <Stack.Screen name="profile/edit" />
       <Stack.Screen name="admin/classes" />
       <Stack.Screen name="admin/settings" />
       <Stack.Screen name="+not-found" />

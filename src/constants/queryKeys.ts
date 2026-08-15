@@ -12,5 +12,7 @@ export const queryKeys = {
   activeLocations: ["locations", "active"] as const,
   bookings: ["bookings"] as const,
   allBookings: ["bookings", "all"] as const,
+  subscriptions: ["subscriptions"] as const,
+  adminUsers: ["admin", "users"] as const,
   me: ["me"] as const,
 };

@@ -1,12 +1,21 @@
 import type { User } from "@supabase/supabase-js";
-import { apiGet, apiPost } from "@/services/api/client";
+import { apiGet, apiPatch, apiPost } from "@/services/api/client";
 
-type ProfileRecord = {
+export type ProfileRecord = {
   id: string;
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
   role: "admin" | "member";
+  address: string | null;
+  doc_number: string | null;
+};
+
+export type UpdateProfileInput = {
+  full_name?: string | null;
+  avatar_url?: string | null;
+  address?: string | null;
+  doc_number?: string | null;
 };
 
 export async function createUserProfileIfMissing(_user: User): Promise<void> {
@@ -23,4 +32,10 @@ export async function fetchUserProfile(
 ): Promise<ProfileRecord | null> {
   const profile = await apiGet<ProfileRecord | null>("/me");
   return profile?.id === userId ? profile : null;
+}
+
+export async function updateMyProfile(
+  input: UpdateProfileInput,
+): Promise<ProfileRecord> {
+  return apiPatch<ProfileRecord>("/me", input);
 }

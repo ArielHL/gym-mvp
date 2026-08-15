@@ -76,6 +76,20 @@ class NotificationTokenRequest(BaseModel):
     platform: str
 
 
+class UpdateMyProfileRequest(BaseModel):
+    full_name: str | None = None
+    avatar_url: str | None = None
+    address: str | None = None
+    doc_number: str | None = None
+
+
+class AdminSubscriptionRequest(BaseModel):
+    plan: str
+    status: str
+    stripe_subscription_id: str
+    current_period_end: datetime | None = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -541,7 +555,7 @@ async def get_me(user_id: str = Depends(get_user_id)) -> dict[str, Any] | None:
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            select id, full_name, email, avatar_url, role
+            select id, full_name, email, avatar_url, role, address, doc_number
             from profiles
             where id = $1
             """,
@@ -549,6 +563,229 @@ async def get_me(user_id: str = Depends(get_user_id)) -> dict[str, Any] | None:
         )
 
     return _record_to_dict(row) if row is not None else None
+
+
+@app.patch("/me", response_model=dict[str, Any])
+async def update_me(
+    request: UpdateMyProfileRequest,
+    user_id: str = Depends(get_user_id),
+) -> dict[str, Any]:
+    updates: list[str] = []
+    values: list[Any] = []
+    index = 1
+
+    def add_update(column: str, value: Any) -> None:
+        nonlocal index
+        updates.append(f"{column} = ${index}")
+        values.append(value)
+        index += 1
+
+    if request.full_name is not None:
+        add_update("full_name", request.full_name.strip() or None)
+    if request.avatar_url is not None:
+        add_update("avatar_url", request.avatar_url.strip() or None)
+    if request.address is not None:
+        add_update("address", request.address.strip() or None)
+    if request.doc_number is not None:
+        add_update("doc_number", request.doc_number.strip() or None)
+
+    if not updates:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(
+                success=False,
+                message="at least one profile field is required",
+            ).model_dump(),
+        )
+
+    updates.append("updated_at = now()")
+    values.append(user_id)
+
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            f"""
+            update profiles
+            set {', '.join(updates)}
+            where id = ${index}
+            returning id, full_name, email, avatar_url, role, address, doc_number
+            """,
+            *values,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="profile not found").model_dump(),
+        )
+
+    return _record_to_dict(row)
+
+
+@app.get("/subscriptions/me")
+async def list_my_subscriptions(user_id: str = Depends(get_user_id)) -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select *
+            from subscriptions
+            where user_id = $1
+            order by created_at desc
+            """,
+            user_id,
+        )
+
+    return _records_to_dicts(rows)
+
+
+def _validate_subscription_request(
+    request: AdminSubscriptionRequest,
+) -> tuple[str, str, str]:
+    plan = request.plan.strip()
+    status_value = request.status.strip()
+    stripe_id = request.stripe_subscription_id.strip()
+
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="plan cannot be empty").model_dump(),
+        )
+    if not status_value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="status cannot be empty").model_dump(),
+        )
+    if not stripe_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="stripe_subscription_id cannot be empty").model_dump(),
+        )
+
+    return plan, status_value, stripe_id
+
+
+@app.get("/admin/users")
+async def list_admin_users(_: str = Depends(require_admin_user)) -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select distinct on (p.id)
+              p.id,
+              p.full_name,
+              p.email,
+              p.role,
+              p.created_at,
+              s.id as subscription_id,
+              s.stripe_subscription_id,
+              s.plan,
+              s.status,
+              s.current_period_end
+            from profiles p
+            left join subscriptions s on s.user_id = p.id
+            order by p.id, s.created_at desc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.post("/admin/users/{user_id}/subscription", response_model=dict[str, Any])
+async def create_user_subscription(
+    user_id: str,
+    request: AdminSubscriptionRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    plan, status_value, stripe_id = _validate_subscription_request(request)
+
+    pool: asyncpg.Pool = app.state.db_pool
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                insert into subscriptions (
+                  user_id, stripe_subscription_id, plan, status, current_period_end
+                )
+                values ($1, $2, $3, $4, $5)
+                returning *
+                """,
+                user_id,
+                stripe_id,
+                plan,
+                status_value,
+                request.current_period_end,
+            )
+    except asyncpg.exceptions.ForeignKeyViolationError as exc:
+        logger.warning("Create subscription failed due to foreign key violation: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="user not found").model_dump(),
+        ) from exc
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        logger.warning("Create subscription failed due to unique violation: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=ApiResponse(
+                success=False,
+                message="stripe subscription id is already in use",
+            ).model_dump(),
+        ) from exc
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/users/{user_id}/subscription", response_model=dict[str, Any])
+async def update_user_subscription(
+    user_id: str,
+    request: AdminSubscriptionRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    plan, status_value, stripe_id = _validate_subscription_request(request)
+
+    pool: asyncpg.Pool = app.state.db_pool
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                update subscriptions s
+                set stripe_subscription_id = $2,
+                    plan = $3,
+                    status = $4,
+                    current_period_end = $5,
+                    updated_at = now()
+                where s.id = (
+                  select s2.id
+                  from subscriptions s2
+                  where s2.user_id = $1
+                  order by s2.created_at desc
+                  limit 1
+                )
+                returning *
+                """,
+                user_id,
+                stripe_id,
+                plan,
+                status_value,
+                request.current_period_end,
+            )
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        logger.warning("Update subscription failed due to unique violation: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=ApiResponse(
+                success=False,
+                message="stripe subscription id is already in use",
+            ).model_dump(),
+        ) from exc
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="user has no subscription").model_dump(),
+        )
+
+    return _record_to_dict(row)
 
 
 @app.post("/profiles/me/ensure")
@@ -577,7 +814,7 @@ async def ensure_my_profile(auth_user: dict[str, Any] = Depends(get_auth_user)) 
         )
         row = await conn.fetchrow(
             """
-            select id, full_name, email, avatar_url, role
+            select id, full_name, email, avatar_url, role, address, doc_number
             from profiles
             where id = $1
             """,
