@@ -18,6 +18,7 @@ import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
 import { toDateKey } from "@/utils/date";
+import { Avatar } from "@/features/profile/screens/ProfileScreen";
 
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.78;
@@ -88,7 +89,7 @@ export function HomeScreen() {
   const drawerX = useRef(new Animated.Value(-DRAWER_W)).current;
   const overlayAlpha = useRef(new Animated.Value(0)).current;
   const router = useRouter();
-  const { user, displayName } = useAuthState();
+  const { user, displayName, avatarUrl } = useAuthState();
   const { data: bookings } = useMyBookings();
   const todayDate = useMemo(() => toDateKey(new Date()), []);
   const { data: templates, isLoading: isLoadingClasses } =
@@ -479,18 +480,57 @@ export function HomeScreen() {
           </View>
           <View style={s.drawerDivider} />
           <View
-            style={{ paddingHorizontal: 24, marginTop: 16, marginBottom: 8 }}
+            style={{
+              paddingHorizontal: 18,
+              marginTop: 16,
+              marginBottom: 8,
+              justifyContent: "space-between",
+              flexDirection: "row",
+              alignItems: "center",
+            }}
           >
-            <Text style={s.drawerGreet}>
-              {user ? `Hola, ${displayName || "Amigo"}` : "Bienvenido!"}
-            </Text>
-            <Text style={s.drawerGreetSub}>
-              {user
-                ? "Qué quieres hacer hoy?"
-                : "Inicia sesión para desbloquear reservas y tu perfil."}
-            </Text>
+            <View>
+              <Text style={s.drawerGreet}>
+                {user ? `Hola, ${displayName || "Amigo"}` : "Bienvenido!"}
+              </Text>
+              <Text style={s.drawerGreetSub}>
+                {user
+                  ? "Qué quieres hacer hoy?"
+                  : "Inicia sesión para desbloquear reservas y tu perfil."}
+              </Text>
+            </View>
+            <View>
+              <Pressable
+                style={({ pressed }) => [
+                  s.drawerProfileBtn,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => {
+                  closeDrawer();
+                  setTimeout(() => router.push("/(tabs)/profile"), 200);
+                }}
+              >
+                <View style={s.drawerAvatar}>
+                  {user && avatarUrl ? (
+                    <Avatar
+                      name={displayName ?? ""}
+                      avatarUrl={avatarUrl}
+                      size={50}
+                    />
+                  ) : (
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={s.drawerProfileName}>
+                        {user ? displayName || "My Account" : "Guest"}
+                      </Text>
+                      <Text style={s.drawerProfileSub}>Ver Perfil →</Text>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            </View>
           </View>
-          <View style={{ paddingHorizontal: 16, marginTop: 8, gap: 4 }}>
+
+          <View style={{ paddingHorizontal: 18, marginTop: 10, gap: 4 }}>
             {DRAWER_ITEMS.map((item) => (
               <Pressable
                 key={item.id}
@@ -509,30 +549,6 @@ export function HomeScreen() {
             ))}
           </View>
           <View style={[s.drawerDivider, { marginTop: 24 }]} />
-          <Pressable
-            style={({ pressed }) => [
-              s.drawerProfileBtn,
-              pressed && { opacity: 0.7 },
-            ]}
-            onPress={() => {
-              closeDrawer();
-              setTimeout(() => router.push("/(tabs)/profile"), 200);
-            }}
-          >
-            <View style={s.drawerAvatar}>
-              <Text
-                style={{ color: "#22D3EE", fontWeight: "700", fontSize: 18 }}
-              >
-                {(displayName || "?")[0].toUpperCase()}
-              </Text>
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={s.drawerProfileName}>
-                {user ? displayName || "My Account" : "Guest"}
-              </Text>
-              <Text style={s.drawerProfileSub}>Ver Perfil →</Text>
-            </View>
-          </Pressable>
         </SafeAreaView>
       </Animated.View>
     </View>
@@ -704,7 +720,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 16,
   },
