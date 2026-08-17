@@ -510,22 +510,15 @@ export function HomeScreen() {
                   setTimeout(() => router.push("/(tabs)/profile"), 200);
                 }}
               >
-                <View style={s.drawerAvatar}>
-                  {user && avatarUrl ? (
+                {user ? (
+                  <View style={s.drawerAvatar}>
                     <Avatar
                       name={displayName ?? ""}
                       avatarUrl={avatarUrl}
                       size={50}
                     />
-                  ) : (
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={s.drawerProfileName}>
-                        {user ? displayName || "My Account" : "Guest"}
-                      </Text>
-                      <Text style={s.drawerProfileSub}>Ver Perfil →</Text>
-                    </View>
-                  )}
-                </View>
+                  </View>
+                ) : null}
               </Pressable>
             </View>
           </View>
