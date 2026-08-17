@@ -393,6 +393,12 @@ export function AdminSubscriptionsScreen() {
                         <Text className="mt-2 text-sm text-gray-500">
                           {sub ? `${sub.plan} · ${sub.status}` : "Sin suscripción"}
                         </Text>
+                        <Text className="mt-1 text-xs text-cyan-300">
+                          {user.attended_classes}{" "}
+                          {user.attended_classes === 1
+                            ? "clase asistida"
+                            : "clases asistidas"}
+                        </Text>
                       </View>
                       <View className="items-end gap-1">
                         <Text className="text-[11px] text-gray-500">Hasta</Text>

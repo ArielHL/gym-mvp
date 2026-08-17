@@ -22,15 +22,23 @@ type BookingsFilter = "all" | "week" | "day";
 
 export function MyBookingsScreen() {
   const router = useRouter();
-  const { filter } = useLocalSearchParams<{ filter?: string }>();
+  const { filter, date } = useLocalSearchParams<{
+    filter?: string;
+    date?: string;
+  }>();
   const { data, isLoading, isError } = useMyBookings();
   const cancelMutation = useCancelBooking();
 
   const activeFilter: BookingsFilter =
     filter === "week" || filter === "day" ? filter : "all";
+  const targetDate =
+    date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
 
   const filteredBookings = useMemo(() => {
     const bookings = data ?? [];
+    if (targetDate) {
+      return bookings.filter((item) => item.gymClass.date === targetDate);
+    }
     if (activeFilter === "all") {
       return bookings;
     }
@@ -59,10 +67,13 @@ export function MyBookingsScreen() {
       const classDate = new Date(`${item.gymClass.date}T00:00:00Z`);
       return classDate >= weekStart && classDate <= weekEnd;
     });
-  }, [activeFilter, data]);
+  }, [activeFilter, targetDate, data]);
 
-  const subheading =
-    activeFilter === "week"
+  const subheading = targetDate
+    ? `Tus clases reservadas para el ${new Date(
+        `${targetDate}T00:00:00`,
+      ).toDateString()}`
+    : activeFilter === "week"
       ? "Tus clases reservadas de esta semana"
       : activeFilter === "day"
         ? "Tus clases reservadas para hoy"
@@ -84,6 +95,11 @@ export function MyBookingsScreen() {
         },
       },
     ]);
+  };
+
+  const cancellationWindowLabel = (hours: number) => {
+    const trimmed = Number(hours.toFixed(1));
+    return trimmed === 1 ? "1 hora" : `${trimmed} horas`;
   };
 
   return (
@@ -169,13 +185,30 @@ export function MyBookingsScreen() {
                   style={({ pressed }) => [
                     styles.cancelBtn,
                     (pressed || cancelMutation.isPending) && { opacity: 0.65 },
+                    !item.cancellable && styles.cancelBtnDisabled,
                   ]}
                   onPress={() => onCancelBooking(item.gymClass.id)}
-                  disabled={cancelMutation.isPending}
+                  disabled={cancelMutation.isPending || !item.cancellable}
                 >
-                  <Text style={styles.cancelBtnText}>Cancelar</Text>
+                  <Text
+                    style={[
+                      styles.cancelBtnText,
+                      !item.cancellable && styles.cancelBtnTextDisabled,
+                    ]}
+                  >
+                    Cancelar
+                  </Text>
                 </Pressable>
               </View>
+              {!item.cancellable && (
+                <View style={styles.notCancellableWrap}>
+                  <Text style={styles.notCancellableText}>
+                    Clase no cancelable, estás dentro de las{" "}
+                    {cancellationWindowLabel(item.cancellationWindowHours)} de
+                    iniciar
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         />
@@ -258,7 +291,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
+  cancelBtnDisabled: {
+    borderColor: "#3f3f3f",
+    backgroundColor: "#181818",
+  },
   cancelBtnText: { color: "#f87171", fontSize: 12, fontWeight: "800" },
+  cancelBtnTextDisabled: { color: "#555555" },
+  notCancellableWrap: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F59E0B33",
+    backgroundColor: "#F59E0B11",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  notCancellableText: {
+    color: "#FBBF24",
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 17,
+  },
   center: {
     flex: 1,
     alignItems: "center",
