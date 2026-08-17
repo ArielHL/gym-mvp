@@ -32,6 +32,14 @@ class CancelBookingRequest(BaseModel):
     session_id: UUID
 
 
+class SettingsUpdateRequest(BaseModel):
+    cancellation_window_hours: float
+
+
+class BookingAttendanceRequest(BaseModel):
+    attended: bool
+
+
 class ClassTemplateRequest(BaseModel):
     title: str
     description: str
@@ -164,6 +172,21 @@ def _record_to_dict(record: asyncpg.Record) -> dict[str, Any]:
 
 def _records_to_dicts(records: list[asyncpg.Record]) -> list[dict[str, Any]]:
     return [_record_to_dict(record) for record in records]
+
+
+async def _get_cancellation_window_hours(
+    conn: asyncpg.Connection, default: float = 2.0
+) -> float:
+    value = await conn.fetchval(
+        "select value from admin_settings where key = 'cancellation_window_hours'"
+    )
+    if value is None:
+        return default
+    try:
+        hours = float(value)
+    except (TypeError, ValueError):
+        return default
+    return hours if hours >= 0.5 else default
 
 
 def _parse_start_time(value: str | time) -> tuple[int, int]:
@@ -536,17 +559,36 @@ async def list_active_tipos_clase() -> list[dict[str, Any]]:
 async def list_my_bookings(user_id: str = Depends(get_user_id)) -> list[dict[str, Any]]:
     pool: asyncpg.Pool = app.state.db_pool
     async with pool.acquire() as conn:
+        window_hours = await _get_cancellation_window_hours(conn)
         rows = await conn.fetch(
             """
-            select *
-            from bookings_feed
-            where user_id = $1 and status = 'confirmed'
-            order by date asc, start_time asc
+            select bf.*, cs.scheduled_at
+            from bookings_feed bf
+            join class_sessions cs on cs.id = bf.class_id
+            where bf.user_id = $1
+              and bf.status = 'confirmed'
+              and cs.scheduled_at > now()
+            order by bf.date asc, bf.start_time asc
             """,
             user_id,
         )
 
-    return _records_to_dicts(rows)
+        now = datetime.now(timezone.utc)
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            item = _record_to_dict(row)
+            item["cancellable"] = True
+            item["cancellation_window_hours"] = window_hours
+            scheduled_at = row["scheduled_at"]
+            if isinstance(scheduled_at, datetime):
+                if scheduled_at.tzinfo is None:
+                    scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
+                item["cancellable"] = (
+                    scheduled_at - now
+                ).total_seconds() > window_hours * 60 * 60
+            results.append(item)
+
+    return results
 
 
 @app.get("/me")
@@ -677,6 +719,11 @@ async def list_admin_users(_: str = Depends(require_admin_user)) -> list[dict[st
               p.email,
               p.role,
               p.created_at,
+              coalesce((
+                select count(*)::int
+                from bookings b
+                where b.user_id = p.id and b.attended = true
+              ), 0) as attended_classes,
               s.id as subscription_id,
               s.stripe_subscription_id,
               s.plan,
@@ -1106,6 +1153,46 @@ async def set_class_template_active(
     return ApiResponse(success=True, message="Class status updated")
 
 
+@app.get("/admin/settings")
+async def get_admin_settings(_: str = Depends(require_admin_user)) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        hours = await _get_cancellation_window_hours(conn)
+
+    return {"cancellation_window_hours": hours}
+
+
+@app.patch("/admin/settings", response_model=dict[str, Any])
+async def update_admin_settings(
+    request: SettingsUpdateRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    if request.cancellation_window_hours < 0.5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(
+                success=False,
+                message="cancellation window must be at least 0.5 hours",
+                error_code="INVALID_CANCELLATION_WINDOW",
+            ).model_dump(),
+        )
+
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            insert into admin_settings (key, value, updated_at)
+            values ('cancellation_window_hours', $1::jsonb, now())
+            on conflict (key)
+            do update set value = excluded.value, updated_at = now()
+            """,
+            str(request.cancellation_window_hours),
+        )
+        hours = await _get_cancellation_window_hours(conn)
+
+    return {"cancellation_window_hours": hours}
+
+
 @app.get("/admin/locations")
 async def list_locations(_: str = Depends(require_admin_user)) -> list[dict[str, Any]]:
     pool: asyncpg.Pool = app.state.db_pool
@@ -1353,14 +1440,46 @@ async def list_all_bookings(_: str = Depends(require_admin_user)) -> list[dict[s
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select *
-            from bookings_feed
-            where status = 'confirmed'
-            order by date asc, start_time asc
+            select bf.*, p.full_name, p.email
+            from bookings_feed bf
+            join profiles p on p.id = bf.user_id
+            where bf.status = 'confirmed'
+            order by bf.date desc, bf.start_time desc
             """
         )
 
     return _records_to_dicts(rows)
+
+
+@app.patch("/admin/bookings/{booking_id}/attendance", response_model=ApiResponse)
+async def set_booking_attendance(
+    booking_id: str,
+    request: BookingAttendanceRequest,
+    _: str = Depends(require_admin_user),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            update bookings
+            set attended = $2, updated_at = now()
+            where id = $1
+            """,
+            booking_id,
+            request.attended,
+        )
+
+    if result == "UPDATE 0":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(
+                success=False,
+                message="booking not found",
+                error_code="BOOKING_NOT_FOUND",
+            ).model_dump(),
+        )
+
+    return ApiResponse(success=True, message="Attendance updated")
 
 
 @app.post("/bookings", response_model=ApiResponse)
@@ -1590,7 +1709,8 @@ async def cancel_booking(request: CancelBookingRequest, user_id: str = Depends(g
             now = datetime.now(timezone.utc)
             if scheduled_at.tzinfo is None:
                 scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
-            if (scheduled_at - now).total_seconds() <= 2 * 60 * 60:
+            window_hours = await _get_cancellation_window_hours(conn)
+            if (scheduled_at - now).total_seconds() <= window_hours * 60 * 60:
                 raise HTTPException(
                     status_code=status.HTTP_423_LOCKED,
                     detail=ApiResponse(

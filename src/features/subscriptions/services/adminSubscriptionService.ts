@@ -14,6 +14,7 @@ export type AdminUser = {
   email: string | null;
   role: string;
   created_at: string;
+  attended_classes: number;
   subscription_id: string | null;
   stripe_subscription_id: string | null;
   plan: string | null;

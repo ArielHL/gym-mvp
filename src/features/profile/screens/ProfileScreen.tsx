@@ -74,50 +74,7 @@ export function ProfileScreen() {
   const { data: bookings } = useMyBookings();
   const router = useRouter();
 
-  const bookingStats = useMemo(() => {
-    const bookedClasses = bookings ?? [];
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const bookedDateKeys = Array.from(
-      new Set(
-        bookedClasses
-          .map((item) => item.gymClass.date)
-          .filter((date): date is string => /^\d{4}-\d{2}-\d{2}$/.test(date)),
-      ),
-    ).sort((a, b) => b.localeCompare(a));
-
-    let dayStreak = 0;
-    if (bookedDateKeys.length > 0) {
-      const bookedDateSet = new Set(bookedDateKeys);
-      const cursor = new Date(`${bookedDateKeys[0]}T00:00:00Z`);
-
-      while (bookedDateSet.has(cursor.toISOString().slice(0, 10))) {
-        dayStreak += 1;
-        cursor.setUTCDate(cursor.getUTCDate() - 1);
-      }
-    }
-
-    return [
-      {
-        label: "Clases\nReservadas",
-        val: String(bookedClasses.length),
-        color: "#22D3EE",
-      },
-      {
-        label: "Este\nMes",
-        val: String(
-          bookedClasses.filter((item) =>
-            item.gymClass.date.startsWith(currentMonth),
-          ).length,
-        ),
-        color: "#A855F7",
-      },
-      {
-        label: "Racha\nDiaria",
-        val: dayStreak > 0 ? `${dayStreak}🔥` : "0",
-        color: "#F59E0B",
-      },
-    ];
-  }, [bookings]);
+  
 
   const onMenuItemPress = (itemId: string) => {
     if (itemId === "history") {
@@ -192,15 +149,7 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* Stats row */}
-        <View style={s.statsRow}>
-          {bookingStats.map((st, i) => (
-            <View key={i} style={s.statCard}>
-              <Text style={[s.statVal, { color: st.color }]}>{st.val}</Text>
-              <Text style={s.statLabel}>{st.label}</Text>
-            </View>
-          ))}
-        </View>
+
 
         {/* Membership card */}
         <View style={s.memberCard}>
@@ -298,6 +247,28 @@ export function ProfileScreen() {
                     <Text style={s.menuLabel}>Gestionar Tipos de Clase</Text>
                     <Text style={s.menuSub}>
                       Crear, editar, desactivar y eliminar categorias
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
+              onPress={() => router.push("/admin/attendance" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>✅</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Asistencia</Text>
+                    <Text style={s.menuSub}>
+                      Marca si los miembros asistieron a sus clases reservadas
                     </Text>
                   </View>
                 </View>
@@ -429,12 +400,15 @@ const s = StyleSheet.create({
   registerBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   banner: {
     backgroundColor: "#141414",
+    borderRadius: 14,
     paddingTop: 24,
+    marginHorizontal:5,
     paddingBottom: 28,
     borderBottomWidth: 1,
     borderBottomColor: "#1E1E1E",
     overflow: "hidden",
     position: "relative",
+    
   },
   bannerPattern: {
     position: "absolute",
@@ -504,7 +478,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: 20,
+    marginHorizontal:5,
     marginTop: 16,
     backgroundColor: "#141414",
     borderRadius: 14,

@@ -33,12 +33,19 @@ type BookingFeedRow = {
   valid_until: string | null;
   created_at: string;
   updated_at: string;
+  scheduled_at?: string;
+  cancellable?: boolean;
+  cancellation_window_hours?: number;
 };
 
-function mapBookingFeedRow(row: BookingFeedRow): {
+export type BookingWithClass = {
   booking: Booking;
   gymClass: GymClass;
-} {
+  cancellable: boolean;
+  cancellationWindowHours: number;
+};
+
+function mapBookingFeedRow(row: BookingFeedRow): BookingWithClass {
   return {
     booking: {
       id: row.booking_id,
@@ -71,6 +78,8 @@ function mapBookingFeedRow(row: BookingFeedRow): {
       created_at: row.created_at,
       updated_at: row.updated_at,
     },
+    cancellable: row.cancellable ?? true,
+    cancellationWindowHours: row.cancellation_window_hours ?? 2,
   };
 }
 
@@ -102,9 +111,7 @@ export async function cancelBooking(classId: string) {
   return payload;
 }
 
-export async function fetchMyBookingsWithClasses(): Promise<
-  Array<{ booking: Booking; gymClass: GymClass }>
-> {
+export async function fetchMyBookingsWithClasses(): Promise<BookingWithClass[]> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
     return [];
@@ -115,7 +122,7 @@ export async function fetchMyBookingsWithClasses(): Promise<
 }
 
 export async function fetchAllBookingsWithClasses(): Promise<
-  Array<{ booking: Booking; gymClass: GymClass }>
+  BookingWithClass[]
 > {
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {

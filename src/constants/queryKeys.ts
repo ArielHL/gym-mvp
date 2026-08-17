@@ -14,5 +14,7 @@ export const queryKeys = {
   allBookings: ["bookings", "all"] as const,
   subscriptions: ["subscriptions"] as const,
   adminUsers: ["admin", "users"] as const,
+  adminSettings: ["admin", "settings"] as const,
+  adminAttendance: ["admin", "attendance"] as const,
   me: ["me"] as const,
 };

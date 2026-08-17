@@ -135,22 +135,22 @@ export function HomeScreen() {
     const weekEnd = new Date(weekStart);
     weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
 
-    const bookedDateKeys = Array.from(
-      new Set(
-        bookedClasses
-          .map((item) => item.gymClass.date)
-          .filter((date): date is string => /^\d{4}-\d{2}-\d{2}$/.test(date)),
-      ),
-    ).sort((a, b) => b.localeCompare(a));
+    const dayCounts = new Map<string, number>();
+    for (const item of bookedClasses) {
+      const date = item.gymClass.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      dayCounts.set(date, (dayCounts.get(date) ?? 0) + 1);
+    }
 
-    let dayStreak = 0;
-    if (bookedDateKeys.length > 0) {
-      const bookedDateSet = new Set(bookedDateKeys);
-      const cursor = new Date(`${bookedDateKeys[0]}T00:00:00Z`);
-
-      while (bookedDateSet.has(cursor.toISOString().slice(0, 10))) {
-        dayStreak += 1;
-        cursor.setUTCDate(cursor.getUTCDate() - 1);
+    let peakDate: string | undefined;
+    let peakCount = 0;
+    for (const [date, count] of dayCounts) {
+      if (
+        count > peakCount ||
+        (count === peakCount && date > (peakDate ?? ""))
+      ) {
+        peakCount = count;
+        peakDate = date;
       }
     }
 
@@ -158,7 +158,7 @@ export function HomeScreen() {
       {
         label: "Classes\nReservadas",
         val: String(bookedClasses.length),
-        filter: "all" as const,
+        params: { filter: "all" as const },
       },
       {
         label: "Esta\nSemana",
@@ -170,12 +170,14 @@ export function HomeScreen() {
             return classDate >= weekStart && classDate <= weekEnd;
           }).length,
         ),
-        filter: "week" as const,
+        params: { filter: "week" as const },
       },
       {
         label: "Racha\nDiaria",
-        val: dayStreak > 0 ? `${dayStreak}🔥` : "0",
-        filter: "day" as const,
+        val: peakCount > 0 ? String(peakCount) : "0",
+        params: peakDate
+          ? { filter: "day" as const, date: peakDate }
+          : { filter: "all" as const },
       },
     ];
   }, [bookings]);
@@ -330,7 +332,7 @@ export function HomeScreen() {
                 onPress={() =>
                   router.push({
                     pathname: "/bookings",
-                    params: { filter: st.filter },
+                    params: st.params,
                   })
                 }
               >
