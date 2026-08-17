@@ -400,12 +400,15 @@ const s = StyleSheet.create({
   registerBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   banner: {
     backgroundColor: "#141414",
+    borderRadius: 14,
     paddingTop: 24,
+    marginHorizontal:5,
     paddingBottom: 28,
     borderBottomWidth: 1,
     borderBottomColor: "#1E1E1E",
     overflow: "hidden",
     position: "relative",
+    
   },
   bannerPattern: {
     position: "absolute",
@@ -475,7 +478,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: 20,
+    marginHorizontal:5,
     marginTop: 16,
     backgroundColor: "#141414",
     borderRadius: 14,
