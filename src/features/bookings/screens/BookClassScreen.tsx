@@ -19,7 +19,10 @@ import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
 import { useBookClass } from "@/features/bookings/hooks/useBookings";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { fetchActiveLocations } from "@/features/locations/services/locationsService";
-import { usePublicClassTemplate, usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
+import {
+  usePublicClassTemplate,
+  usePublicClassTemplates,
+} from "@/features/classes/hooks/useClasses";
 import { BOOKING_ERROR_CODES } from "@/features/bookings/constants/bookingErrorCodes";
 import { isApiErrorWithCode } from "@/services/api/client";
 import { toDateKey } from "@/utils/date";
@@ -80,8 +83,25 @@ function parseDateKey(value: string): Date | null {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
+const WEEKDAY_SHORT = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+
 function dayInMask(mask: number, jsDay: number): boolean {
   return (mask & (1 << jsDay)) !== 0;
+}
+
+function formatWeekdays(mask: number): string {
+  const days = Array.from({ length: 7 }, (_, d) => d).filter((d) =>
+    dayInMask(mask, d),
+  );
+  if (days.length === 0) return "";
+
+  const consecutive = days.every(
+    (d, i) => i === 0 || d === days[i - 1] + 1,
+  );
+  if (consecutive && days.length > 1) {
+    return `${WEEKDAY_SHORT[days[0]]} - ${WEEKDAY_SHORT[days[days.length - 1]]}`;
+  }
+  return days.map((d) => WEEKDAY_SHORT[d]).join(" + ");
 }
 
 function getDateAvailabilityReason(
@@ -95,20 +115,20 @@ function getDateAvailabilityReason(
   const until = validUntil ? parseDateKey(validUntil) : null;
 
   if (!date || !from) {
-    return "Invalid date selected.";
+    return "Selección de dia invalido.";
   }
 
   if (date < from) {
-    return `This class starts on ${validFrom}.`;
+    return `Esta clase comienza a ${validFrom}.`;
   }
 
   if (until && date > until) {
-    return `This class is available only until ${validUntil}.`;
+    return `Esta clase esta disponible solo hasta el ${validUntil}.`;
   }
 
   const jsDay = date.getUTCDay();
   if (!dayInMask(daysOfWeekMask, jsDay)) {
-    return "This class does not run on the selected weekday.";
+    return "Esta clase no esta disponible para el día seleccionado.";
   }
 
   return null;
@@ -135,9 +155,15 @@ export function BookClassScreen() {
     null,
   );
 
-  const { data: templates, isLoading: isLoadingTemplates } = usePublicClassTemplates(Boolean(user));
-  const selectedTemplateQuery = usePublicClassTemplate(selectedTemplateId ?? undefined);
-  const selectedTemplate = selectedTemplateQuery.data ?? templates?.find((c) => c.id === selectedTemplateId) ?? null;
+  const { data: templates, isLoading: isLoadingTemplates } =
+    usePublicClassTemplates(Boolean(user));
+  const selectedTemplateQuery = usePublicClassTemplate(
+    selectedTemplateId ?? undefined,
+  );
+  const selectedTemplate =
+    selectedTemplateQuery.data ??
+    templates?.find((c) => c.id === selectedTemplateId) ??
+    null;
 
   const locationsQuery = useQuery({
     queryKey: queryKeys.activeLocations,
@@ -158,6 +184,12 @@ export function BookClassScreen() {
       )
     : "Select a class first.";
 
+  const disabledWeekDays = selectedTemplate
+    ? Array.from({ length: 7 }, (_, d) => d).filter(
+        (d) => !dayInMask(selectedTemplate.days_of_week_mask, d),
+      )
+    : [];
+
   const isDateValid = dateReason === null;
   const isReadyToBook = Boolean(selectedTemplateId && isDateValid);
   const isBookDisabled =
@@ -170,9 +202,9 @@ export function BookClassScreen() {
     ? "Cargando ubicaciones..."
     : !selectedTemplateId
       ? "Selecciona una clase primero"
-        : !isDateValid
-          ? "Elije una fecha válida"
-          : "Confirma Reserva";
+      : !isDateValid
+        ? "Elije una fecha válida"
+        : "Confirma Reserva";
 
   useEffect(() => {
     if (!locationsQuery.data?.length) {
@@ -184,9 +216,9 @@ export function BookClassScreen() {
       (location) => location.id === selectedLocationId,
     );
 
-     if (!selectedStillAvailable) {
-       setSelectedLocationId(locationsQuery.data[0].id);
-     }
+    if (!selectedStillAvailable) {
+      setSelectedLocationId(locationsQuery.data[0].id);
+    }
   }, [locationsQuery.data, selectedLocationId]);
 
   if (!user) {
@@ -203,15 +235,21 @@ export function BookClassScreen() {
 
   const handleBook = async () => {
     if (!selectedTemplateId) {
-      Alert.alert("Select a class", "Please select a class to book");
+      Alert.alert("Seleccionar una Clase", "Por favor Elige una Clase");
       return;
     }
     if (!selectedLocationId) {
-      Alert.alert("Select a location", "Please select a location to book");
+      Alert.alert(
+        "Selecciona una Ubicación",
+        "Por Favor selecciona una Ubicación",
+      );
       return;
     }
     if (!isDateValid) {
-      Alert.alert("Invalid date", dateReason ?? "Pick a valid date for this class.");
+      Alert.alert(
+        "Invalid date",
+        dateReason ?? "Pick a valid date for this class.",
+      );
       return;
     }
 
@@ -222,30 +260,44 @@ export function BookClassScreen() {
         locationId: selectedLocationId,
       });
       Alert.alert("Booked!", result.message, [
-        { text: "Done", onPress: () => router.push("/")},
+        { text: "Done", onPress: () => router.push("/") },
       ]);
     } catch (err) {
       const message = (err as Error).message;
       const hasCode = (code: string) => isApiErrorWithCode(err, code);
-      const alreadyBooked = hasCode(BOOKING_ERROR_CODES.ALREADY_BOOKED) || /already booked/i.test(message);
+      const alreadyBooked =
+        hasCode(BOOKING_ERROR_CODES.ALREADY_BOOKED) ||
+        /already booked/i.test(message);
 
       if (alreadyBooked) {
-        Alert.alert("Ya Reservado", "Ya reservaste esta clase.", [{ text: "Aceptar" }]);
+        Alert.alert("Ya Reservado", "Ya reservaste esta clase.", [
+          { text: "Aceptar" },
+        ]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_FULL)) {
-        Alert.alert("Clase llena", "Esta clase está llena. Por favor elige otra fecha o clase.", [{ text: "Aceptar" }]);
+        Alert.alert(
+          "Clase llena",
+          "Esta clase está llena. Por favor elige otra fecha o clase.",
+          [{ text: "Aceptar" }],
+        );
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_INACTIVE)) {
-        Alert.alert("Clase no disponible", "Esta clase ya no está activa.", [{ text: "Aceptar" }]);
+        Alert.alert("Clase no disponible", "Esta clase ya no está activa.", [
+          { text: "Aceptar" },
+        ]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_NOT_AVAILABLE_FOR_DATE)) {
-        Alert.alert("Fecha no disponible", "Esta clase no está disponible en la fecha seleccionada.", [{ text: "Aceptar" }]);
+        Alert.alert(
+          "Fecha no disponible",
+          "Esta clase no está disponible en la fecha seleccionada.",
+          [{ text: "Aceptar" }],
+        );
         return;
       }
 
@@ -253,17 +305,29 @@ export function BookClassScreen() {
         hasCode(BOOKING_ERROR_CODES.LOCATION_NOT_FOUND) ||
         hasCode(BOOKING_ERROR_CODES.LOCATION_ID_REQUIRED)
       ) {
-        Alert.alert("Ubicación no disponible", "Por favor selecciona una ubicación activa e inténtalo de nuevo.", [{ text: "Aceptar" }]);
+        Alert.alert(
+          "Ubicación no disponible",
+          "Por favor selecciona una ubicación activa e inténtalo de nuevo.",
+          [{ text: "Aceptar" }],
+        );
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_TEMPLATE_NOT_FOUND)) {
-        Alert.alert("Clase no disponible", "No se pudo encontrar esta clase. Por favor actualiza e inténtalo de nuevo.", [{ text: "Aceptar" }]);
+        Alert.alert(
+          "Clase no disponible",
+          "No se pudo encontrar esta clase. Por favor actualiza e inténtalo de nuevo.",
+          [{ text: "Aceptar" }],
+        );
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.BOOKING_TEMPORARILY_UNAVAILABLE)) {
-        Alert.alert("Reserva no disponible", "La reserva no está disponible temporalmente. Por favor inténtalo de nuevo en un momento.", [{ text: "Aceptar" }]);
+        Alert.alert(
+          "Reserva no disponible",
+          "La reserva no está disponible temporalmente. Por favor inténtalo de nuevo en un momento.",
+          [{ text: "Aceptar" }],
+        );
         return;
       }
 
@@ -293,7 +357,9 @@ export function BookClassScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={s.heading}>{className || "Reserva una clase"}</Text>
-          <Text style={s.subHeading}>Elije Una Clase · Elige la Fecha · Confirma</Text>
+          <Text style={s.subHeading}>
+            Elije Una Clase · Elige la Fecha · Confirma
+          </Text>
         </View>
       </View>
 
@@ -323,9 +389,7 @@ export function BookClassScreen() {
               {templates.map((c) => {
                 const active = c.id === selectedTemplateId;
                 const diffColor = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
-                const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                  .filter((_, day) => (c.days_of_week_mask & (1 << day)) !== 0)
-                  .join(" + ");
+                const weekdays = formatWeekdays(c.days_of_week_mask);
                 return (
                   <Pressable
                     key={c.id}
@@ -339,10 +403,24 @@ export function BookClassScreen() {
                       ]}
                     />
                     <View style={{ flex: 1, paddingLeft: 14 }}>
-                      <Text style={s.classTitle}>{c.title}</Text>
-                      <Text style={s.classMeta}>
-                        {c.trainer_name} · {c.start_time} · {weekdays}
-                      </Text>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text style={s.classTitle}>{c.title}</Text>
+                        <Text style={s.classMeta}>{c.trainer_name} </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text style={s.classMeta}>{c.start_time}</Text>
+                        <Text style={s.classMeta}>{weekdays}</Text>
+                      </View>
                     </View>
                     {active && <Text style={s.checkIcon}>✓</Text>}
                   </Pressable>
@@ -367,10 +445,11 @@ export function BookClassScreen() {
             }}
             markedDates={markedDates}
             minDate={today}
+            disabledByWeekDays={disabledWeekDays}
             theme={{
               calendarBackground: "#141414",
               backgroundColor: "#141414",
-              dayTextColor: "#DDD",
+              dayTextColor: "#FFF",
               textDisabledColor: "#333",
               selectedDayBackgroundColor: "#22D3EE",
               selectedDayTextColor: "#000",
@@ -390,8 +469,6 @@ export function BookClassScreen() {
           ) : null}
         </View>
 
-
-
         {selectedTemplate && (
           <View style={s.summaryCard}>
             <Text style={s.summaryTitle}>Resumen de Reserva</Text>
@@ -401,7 +478,9 @@ export function BookClassScreen() {
             </View>
             <View style={s.summaryRow}>
               <Text style={s.summaryLabel}>Entrenador</Text>
-              <Text style={s.summaryValue}>{selectedTemplate.trainer_name}</Text>
+              <Text style={s.summaryValue}>
+                {selectedTemplate.trainer_name}
+              </Text>
             </View>
             <View style={s.summaryRow}>
               <Text style={s.summaryLabel}>Fecha</Text>
@@ -413,7 +492,9 @@ export function BookClassScreen() {
             </View>
             <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
               <Text style={s.summaryLabel}>Ubicación</Text>
-              <Text style={s.summaryValue}>{selectedLocation?.name ?? "-"}</Text>
+              <Text style={s.summaryValue}>
+                {selectedLocation?.name ?? "-"}
+              </Text>
             </View>
           </View>
         )}
