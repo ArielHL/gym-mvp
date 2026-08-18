@@ -12,6 +12,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const KeyboardWrapper = Platform.OS === 'ios'
   ? ({ children, style }: { children: React.ReactNode; style: object }) =>
@@ -28,6 +29,8 @@ export function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onRegister = async () => {
@@ -106,31 +109,59 @@ export function RegisterScreen() {
             />
 
           <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="********"
-            placeholderTextColor="#555555"
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-            returnKeyType="next"
-          />
+          <View style={styles.inputWrap}>
+            <TextInput
+              style={styles.inputInner}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="********"
+              placeholderTextColor="#555555"
+              secureTextEntry={!showPassword}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="next"
+            />
+            <Pressable
+              style={styles.eyeBtn}
+              onPress={() => setShowPassword((prev) => !prev)}
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              hitSlop={8}
+            >
+              <MaterialCommunityIcons
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={20}
+                color="#555555"
+              />
+            </Pressable>
+          </View>
 
           <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            style={styles.input}
-            value={confirm}
-            onChangeText={setConfirm}
-            placeholder="********"
-            placeholderTextColor="#555555"
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-            returnKeyType="done"
-            onSubmitEditing={onRegister}
-          />
+          <View style={styles.inputWrap}>
+            <TextInput
+              style={styles.inputInner}
+              value={confirm}
+              onChangeText={setConfirm}
+              placeholder="********"
+              placeholderTextColor="#555555"
+              secureTextEntry={!showConfirm}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="done"
+              onSubmitEditing={onRegister}
+            />
+            <Pressable
+              style={styles.eyeBtn}
+              onPress={() => setShowConfirm((prev) => !prev)}
+              accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
+              hitSlop={8}
+            >
+              <MaterialCommunityIcons
+                name={showConfirm ? 'eye-off' : 'eye'}
+                size={20}
+                color="#555555"
+              />
+            </Pressable>
+          </View>
         </ScrollView>
 
         <SafeAreaView style={styles.footer} edges={['bottom']}>
@@ -173,6 +204,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     fontSize: 15,
   },
+  inputWrap: {
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 10,
+    backgroundColor: '#111111',
+  },
+  inputInner: {
+    flex: 1,
+    height: 50,
+    paddingHorizontal: 14,
+    color: '#ffffff',
+    fontSize: 15,
+  },
+  eyeBtn: { paddingHorizontal: 12, paddingVertical: 14 },
   btn: {
     height: 54,
     backgroundColor: '#22D3EE',

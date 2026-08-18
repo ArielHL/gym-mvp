@@ -1,10 +1,12 @@
+import { useState } from "react";
 import {
   Controller,
   type Control,
   type FieldValues,
   type Path,
 } from "react-hook-form";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface InputProps<T extends FieldValues> {
   name: Path<T>;
@@ -23,6 +25,9 @@ export function Input<T extends FieldValues>({
   secureTextEntry,
   autoCapitalize = "none",
 }: InputProps<T>) {
+  const [showPassword, setShowPassword] = useState(false);
+  const hidden = Boolean(secureTextEntry);
+
   return (
     <Controller
       control={control}
@@ -33,16 +38,34 @@ export function Input<T extends FieldValues>({
       }) => (
         <View className="mb-3">
           <Text className="mb-1 text-sm font-medium text-white">{label}</Text>
-          <TextInput
-            value={value == null ? "" : String(value)}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={placeholder}
-            placeholderTextColor="#666666"
-            secureTextEntry={secureTextEntry}
-            autoCapitalize={autoCapitalize}
-            className="h-12 rounded-xl border border-border bg-surface px-3 text-white"
-          />
+          <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface">
+            <TextInput
+              value={value == null ? "" : String(value)}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={placeholder}
+              placeholderTextColor="#666666"
+              secureTextEntry={hidden && !showPassword}
+              autoCapitalize={autoCapitalize}
+              className="flex-1 px-3 text-white"
+            />
+            {hidden && (
+              <Pressable
+                onPress={() => setShowPassword((prev) => !prev)}
+                className="px-3 py-3"
+                accessibilityLabel={
+                  showPassword ? "Hide password" : "Show password"
+                }
+                hitSlop={8}
+              >
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={20}
+                  color="#666666"
+                />
+              </Pressable>
+            )}
+          </View>
           {!!error?.message && (
             <Text className="mt-1 text-xs text-rose-400">{error.message}</Text>
           )}

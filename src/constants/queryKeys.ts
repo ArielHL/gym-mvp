@@ -10,8 +10,9 @@ export const queryKeys = {
   activeClassTypes: ["class-types", "active"] as const,
   locations: ["admin", "locations"] as const,
   activeLocations: ["locations", "active"] as const,
-  bookings: ["bookings"] as const,
-  allBookings: ["bookings", "all"] as const,
+  bookings: (userId?: string) => ["bookings", userId ?? "anonymous"] as const,
+  allBookings: (userId?: string) =>
+    ["bookings", "all", userId ?? "anonymous"] as const,
   subscriptions: ["subscriptions"] as const,
   adminUsers: ["admin", "users"] as const,
   adminSettings: ["admin", "settings"] as const,

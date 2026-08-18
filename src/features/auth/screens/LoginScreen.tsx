@@ -12,6 +12,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // On Android, windowSoftInputMode=adjustResize already resizes the window for the
 // keyboard — wrapping in KeyboardAvoidingView(height) causes a double-resize that
@@ -29,6 +30,7 @@ export function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onLogin = async () => {
@@ -75,18 +77,32 @@ export function LoginScreen() {
           />
 
           <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="********"
-            placeholderTextColor="#555555"
-            secureTextEntry
-            autoComplete="password"
-            textContentType="password"
-            returnKeyType="done"
-            onSubmitEditing={onLogin}
-          />
+          <View style={styles.inputWrap}>
+            <TextInput
+              style={styles.inputInner}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="********"
+              placeholderTextColor="#555555"
+              secureTextEntry={!showPassword}
+              autoComplete="password"
+              textContentType="password"
+              returnKeyType="done"
+              onSubmitEditing={onLogin}
+            />
+            <Pressable
+              style={styles.eyeBtn}
+              onPress={() => setShowPassword((prev) => !prev)}
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              hitSlop={8}
+            >
+              <MaterialCommunityIcons
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={20}
+                color="#555555"
+              />
+            </Pressable>
+          </View>
         </ScrollView>
 
         <SafeAreaView style={styles.footer} edges={['bottom']}>
@@ -129,6 +145,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     fontSize: 15,
   },
+  inputWrap: {
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 10,
+    backgroundColor: '#111111',
+  },
+  inputInner: {
+    flex: 1,
+    height: 50,
+    paddingHorizontal: 14,
+    color: '#ffffff',
+    fontSize: 15,
+  },
+  eyeBtn: { paddingHorizontal: 12, paddingVertical: 14 },
   footer: {
     borderTopWidth: 1,
     borderTopColor: '#1A1A1A',
