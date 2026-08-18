@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButtons';
 import { authService } from '@/features/auth/services/authService';
 
@@ -26,6 +27,7 @@ export function SignInScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
@@ -79,18 +81,32 @@ export function SignInScreen() {
 
             <View>
               <Text className="mb-2 text-sm font-semibold text-neutral-300">Password</Text>
-              <TextInput
-                className="h-14 rounded-2xl border border-border bg-black px-4 text-base text-white"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="********"
-                placeholderTextColor="#666666"
-                secureTextEntry
-                autoComplete="password"
-                textContentType="password"
-                returnKeyType="done"
-                onSubmitEditing={onSubmit}
-              />
+              <View className="h-14 flex-row items-center rounded-2xl border border-border bg-black">
+                <TextInput
+                  className="flex-1 px-4 text-base text-white"
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="********"
+                  placeholderTextColor="#666666"
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  textContentType="password"
+                  returnKeyType="done"
+                  onSubmitEditing={onSubmit}
+                />
+                <Pressable
+                  className="px-4 py-4"
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  hitSlop={8}
+                >
+                  <MaterialCommunityIcons
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={22}
+                    color="#666666"
+                  />
+                </Pressable>
+              </View>
             </View>
 
             <Pressable
