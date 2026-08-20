@@ -297,6 +297,28 @@ export function ProfileScreen() {
                 <Text style={s.menuArrow}>›</Text>
               </View>
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.menuItem,
+                pressed && { backgroundColor: "#1A1A1A" },
+              ]}
+              onPress={() => router.push("/admin/content" as never)}
+            >
+              <View style={s.menuItemContent}>
+                <View style={s.menuItemLeft}>
+                  <View style={s.menuIconWrap}>
+                    <Text style={s.menuIcon}>🎠</Text>
+                  </View>
+                  <View style={s.menuText}>
+                    <Text style={s.menuLabel}>Contenido de la App</Text>
+                    <Text style={s.menuSub}>
+                      Edita el carrusel del inicio y las imágenes de los tipos de clase
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.menuArrow}>›</Text>
+              </View>
+            </Pressable>
           </View>
         )}
 

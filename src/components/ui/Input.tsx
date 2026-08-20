@@ -15,6 +15,7 @@ interface InputProps<T extends FieldValues> {
   placeholder?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  multiline?: boolean;
 }
 
 export function Input<T extends FieldValues>({
@@ -24,6 +25,7 @@ export function Input<T extends FieldValues>({
   placeholder,
   secureTextEntry,
   autoCapitalize = "none",
+  multiline = false,
 }: InputProps<T>) {
   const [showPassword, setShowPassword] = useState(false);
   const hidden = Boolean(secureTextEntry);
@@ -38,7 +40,13 @@ export function Input<T extends FieldValues>({
       }) => (
         <View className="mb-3">
           <Text className="mb-1 text-sm font-medium text-white">{label}</Text>
-          <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface">
+          <View
+            className={`flex-row rounded-xl border border-border bg-surface ${
+              multiline
+                ? "min-h-28 items-start py-2"
+                : "h-12 items-center"
+            }`}
+          >
             <TextInput
               value={value == null ? "" : String(value)}
               onChangeText={onChange}
@@ -47,6 +55,8 @@ export function Input<T extends FieldValues>({
               placeholderTextColor="#666666"
               secureTextEntry={hidden && !showPassword}
               autoCapitalize={autoCapitalize}
+              multiline={multiline}
+              textAlignVertical={multiline ? "top" : "center"}
               className="flex-1 px-3 text-white"
             />
             {hidden && (

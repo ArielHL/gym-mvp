@@ -60,6 +60,7 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/edit" />
       <Stack.Screen name="admin/classes" />
       <Stack.Screen name="admin/settings" />
+      <Stack.Screen name="admin/content" />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

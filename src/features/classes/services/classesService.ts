@@ -103,6 +103,7 @@ export type PublicClassTemplate = {
   class_type_id: string;
   class_type_nombre: string;
   class_type_slug: string;
+  class_type_image_url: string | null;
   duration_minutes: number;
   days_of_week_mask: number;
   start_time: string;

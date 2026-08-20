@@ -17,13 +17,14 @@ import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
+import { useHomeCarousel } from "@/features/home/hooks/useHomeCarousel";
 import { toDateKey } from "@/utils/date";
 import { Avatar } from "@/features/profile/screens/ProfileScreen";
 
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.78;
 
-const HERO_SLIDES = [
+const DEFAULT_HERO_SLIDES = [
   {
     id: "1",
     title: "Calisthenics\nFundamentals",
@@ -95,6 +96,12 @@ export function HomeScreen() {
   const { data: templates, isLoading: isLoadingClasses } =
     usePublicClassTemplates();
   const { data: classTypes } = useActiveClassTypes();
+  const { data: carousel } = useHomeCarousel();
+
+  const heroSlides =
+    carousel?.slides && carousel.slides.length > 0
+      ? carousel.slides
+      : DEFAULT_HERO_SLIDES;
 
   const todayClasses = useMemo(() => {
     const todayDay = new Date().getUTCDay();
@@ -278,7 +285,7 @@ export function HomeScreen() {
 
           {/* Hero Carousel */}
           <FlatList
-            data={HERO_SLIDES}
+            data={heroSlides}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -318,7 +325,7 @@ export function HomeScreen() {
 
           {/* Slide dots */}
           <View style={s.dots}>
-            {HERO_SLIDES.map((_, i) => (
+            {heroSlides.map((_, i) => (
               <View key={i} style={[s.dot, i === slide && s.dotActive]} />
             ))}
           </View>

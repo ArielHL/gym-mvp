@@ -22,17 +22,8 @@ const DIFF_COLORS: Record<string, string> = {
   advanced: "#A855F7",
 };
 
-const CLASS_IMAGES: Record<string, string> = {
-  default:
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=70",
-  strength:
-    "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=400&q=70",
-  cardio:
-    "https://images.unsplash.com/photo-1517963879433-6ad2171073fb?w=400&q=70",
-  yoga: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&q=70",
-  mobility:
-    "https://images.unsplash.com/photo-1599058917765-a780eda07a3e?w=400&q=70",
-};
+const DEFAULT_CLASS_IMAGE =
+  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=70";
 
 const FILTERS = ["All", "Beginner", "Intermediate", "Advanced"];
 const DAY_FILTERS = [
@@ -65,8 +56,7 @@ interface ClassCardProps {
 
 function ClassCard({ item, onPress }: ClassCardProps) {
   const diffColor = DIFF_COLORS[item.difficulty_level] ?? "#22D3EE";
-  const typeKey = item.class_type_slug?.toLowerCase() ?? "default";
-  const imgUri = CLASS_IMAGES[typeKey] ?? CLASS_IMAGES.default;
+  const imgUri = item.class_type_image_url || DEFAULT_CLASS_IMAGE;
 
   return (
     <Pressable
