@@ -27,6 +27,7 @@ const schema = z.object({
     .regex(/^[a-z0-9-]+$/, "Solo minusculas, numeros y guion"),
   descripcion: z.string().optional(),
   sort_order: z.coerce.number().int().min(0),
+  image_url: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -36,6 +37,7 @@ const emptyValues: FormValues = {
   slug: "",
   descripcion: "",
   sort_order: 0,
+  image_url: "",
 };
 
 function valuesFromType(tipo: ClassType): FormValues {
@@ -44,6 +46,7 @@ function valuesFromType(tipo: ClassType): FormValues {
     slug: tipo.slug,
     descripcion: tipo.descripcion ?? "",
     sort_order: tipo.sort_order,
+    image_url: tipo.image_url ?? "",
   };
 }
 
@@ -54,7 +57,7 @@ export function AdminClassTypesScreen() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
-  >("all");
+  >("active");
   const { control, handleSubmit, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
@@ -325,6 +328,13 @@ export function AdminClassTypesScreen() {
             name="sort_order"
             label="Orden"
             placeholder="10"
+            autoCapitalize="none"
+          />
+          <Input
+            control={control}
+            name="image_url"
+            label="Imagen (URL)"
+            placeholder="https://..."
             autoCapitalize="none"
           />
           <Button

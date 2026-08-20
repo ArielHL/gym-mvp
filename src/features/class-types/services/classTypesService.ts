@@ -8,6 +8,7 @@ export type ClassType = {
   descripcion: string | null;
   is_active: boolean;
   sort_order: number;
+  image_url: string | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -19,6 +20,7 @@ export type ClassTypeInput = {
   descripcion?: string | null;
   is_active?: boolean;
   sort_order?: number;
+  image_url?: string | null;
 };
 
 function normalizeClassTypeSlug(slug: string): string {
@@ -40,6 +42,7 @@ export async function createClassType(input: ClassTypeInput): Promise<ClassType>
     descripcion: input.descripcion || null,
     is_active: input.is_active ?? true,
     sort_order: input.sort_order ?? 0,
+    image_url: input.image_url?.trim() || null,
   });
 }
 
@@ -53,6 +56,7 @@ export async function updateClassType(
     descripcion: input.descripcion || null,
     is_active: input.is_active ?? true,
     sort_order: input.sort_order ?? 0,
+    image_url: input.image_url?.trim() || null,
   });
 }
 

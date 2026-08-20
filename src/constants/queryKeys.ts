@@ -17,5 +17,6 @@ export const queryKeys = {
   adminUsers: ["admin", "users"] as const,
   adminSettings: ["admin", "settings"] as const,
   adminAttendance: ["admin", "attendance"] as const,
+  homeCarousel: ["content", "home-carousel"] as const,
   me: ["me"] as const,
 };

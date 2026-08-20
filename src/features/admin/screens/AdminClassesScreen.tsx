@@ -45,13 +45,13 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const dayOptions = [
-  { label: "Sun", value: 0 },
-  { label: "Mon", value: 1 },
-  { label: "Tue", value: 2 },
-  { label: "Wed", value: 3 },
-  { label: "Thu", value: 4 },
-  { label: "Fri", value: 5 },
-  { label: "Sat", value: 6 },
+  { label: "Dom", value: 0 },
+  { label: "Lun", value: 1 },
+  { label: "Mar", value: 2 },
+  { label: "Mié", value: 3 },
+  { label: "Jue", value: 4 },
+  { label: "Vie", value: 5 },
+  { label: "Sáb", value: 6 },
 ] as const;
 
 function maskFromDays(days: number[]): number {
@@ -113,7 +113,7 @@ export function AdminClassesScreen() {
   const [isTypePickerVisible, setIsTypePickerVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
-  >("all");
+  >("active");
   const { control, handleSubmit, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,

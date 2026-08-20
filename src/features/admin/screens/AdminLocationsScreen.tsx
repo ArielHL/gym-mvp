@@ -49,7 +49,7 @@ export function AdminLocationsScreen() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
-  >("all");
+  >("active");
   const { control, handleSubmit, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,

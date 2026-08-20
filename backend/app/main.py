@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timezone
+import json
 import logging
 from typing import Any, AsyncIterator, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
 import httpx
@@ -73,6 +74,20 @@ class TipoClaseRequest(BaseModel):
     descripcion: str | None = None
     is_active: bool = True
     sort_order: int = 0
+    image_url: str | None = None
+
+
+class CarouselSlide(BaseModel):
+    id: str | None = None
+    title: str
+    sub: str
+    tag: str
+    tagColor: str
+    imageUri: str
+
+
+class HomeCarouselRequest(BaseModel):
+    slides: list[CarouselSlide]
 
 
 class ActiveRequest(BaseModel):
@@ -172,6 +187,16 @@ def _record_to_dict(record: asyncpg.Record) -> dict[str, Any]:
 
 def _records_to_dicts(records: list[asyncpg.Record]) -> list[dict[str, Any]]:
     return [_record_to_dict(record) for record in records]
+
+
+def _decode_jsonb_array(value: Any) -> list[Any]:
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError):
+            return []
+        return parsed if isinstance(parsed, list) else []
+    return value if isinstance(value, list) else []
 
 
 async def _get_cancellation_window_hours(
@@ -444,6 +469,7 @@ async def list_public_class_templates() -> list[dict[str, Any]]:
               ct.class_type_id,
               ctype.nombre as class_type_nombre,
               ctype.slug as class_type_slug,
+              ctype.image_url as class_type_image_url,
               ct.duration_minutes,
               ct.days_of_week_mask,
               ct.start_time,
@@ -480,6 +506,7 @@ async def get_public_class_template(template_id: str) -> dict[str, Any]:
               ct.class_type_id,
               ctype.nombre as class_type_nombre,
               ctype.slug as class_type_slug,
+              ctype.image_url as class_type_image_url,
               ct.duration_minutes,
               ct.days_of_week_mask,
               ct.start_time,
@@ -545,7 +572,7 @@ async def list_active_tipos_clase() -> list[dict[str, Any]]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select id, nombre, slug, descripcion, is_active, sort_order, created_at, updated_at
+            select id, nombre, slug, descripcion, is_active, sort_order, image_url, created_at, updated_at
             from class_types
             where is_active = true
             order by sort_order asc, nombre asc
@@ -553,6 +580,44 @@ async def list_active_tipos_clase() -> list[dict[str, Any]]:
         )
 
     return _records_to_dicts(rows)
+
+
+@app.get("/content/home-carousel")
+async def get_home_carousel() -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        slides = await conn.fetchval(
+            "select value from admin_settings where key = 'home_carousel_slides'"
+        )
+
+    return {"slides": _decode_jsonb_array(slides)}
+
+
+@app.patch("/admin/content/home-carousel", response_model=dict[str, Any])
+async def update_home_carousel(
+    request: HomeCarouselRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    slides: list[dict[str, Any]] = []
+    for slide in request.slides:
+        item = slide.model_dump()
+        if not item.get("id"):
+            item["id"] = str(uuid4())
+        slides.append(item)
+
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            insert into admin_settings (key, value, updated_at)
+            values ('home_carousel_slides', $1::jsonb, now())
+            on conflict (key)
+            do update set value = excluded.value, updated_at = now()
+            """,
+            json.dumps(slides),
+        )
+
+    return {"slides": slides}
 
 
 @app.get("/bookings/me")
@@ -1214,7 +1279,7 @@ async def list_tipos_clase(_: str = Depends(require_admin_user)) -> list[dict[st
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            select id, nombre, slug, descripcion, is_active, sort_order, image_url, created_by, created_at, updated_at
             from class_types
             order by is_active desc, sort_order asc, nombre asc
             """
@@ -1232,15 +1297,16 @@ async def create_tipo_clase(
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            insert into class_types (nombre, slug, descripcion, is_active, sort_order, created_by)
-            values ($1, lower(trim($2)), $3, $4, $5, $6)
-            returning id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            insert into class_types (nombre, slug, descripcion, is_active, sort_order, image_url, created_by)
+            values ($1, lower(trim($2)), $3, $4, $5, $6, $7)
+            returning id, nombre, slug, descripcion, is_active, sort_order, image_url, created_by, created_at, updated_at
             """,
             request.nombre.strip(),
             request.slug,
             request.descripcion,
             request.is_active,
             request.sort_order,
+            (request.image_url or "").strip() or None,
             user_id,
         )
 
@@ -1263,9 +1329,10 @@ async def update_tipo_clase(
                 descripcion = $4,
                 is_active = $5,
                 sort_order = $6,
+                image_url = $7,
                 updated_at = now()
             where id = $1
-            returning id, nombre, slug, descripcion, is_active, sort_order, created_by, created_at, updated_at
+            returning id, nombre, slug, descripcion, is_active, sort_order, image_url, created_by, created_at, updated_at
             """,
             tipo_id,
             request.nombre.strip(),
@@ -1273,6 +1340,7 @@ async def update_tipo_clase(
             request.descripcion,
             request.is_active,
             request.sort_order,
+            (request.image_url or "").strip() or None,
         )
 
     if row is None:

@@ -4,7 +4,7 @@ Keep always the good practise in software development, and follow the guidelines
 
 use Context7 to validate to the latest version of each library and framework used in the project. This will help to avoid potential security vulnerabilities and ensure compatibility with the latest features.
 
-
+Always use all the skills on the .agents/skills folder to improve the quality of the code and the overall performance of the application. This includes using best practices for coding, testing, and deployment.
 
 
 
