@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
+import { UnsplashImagePicker } from "@/features/admin/components/UnsplashImagePicker";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import {
@@ -27,6 +29,10 @@ import {
   useSaveHomeCarousel,
 } from "@/features/home/hooks/useHomeCarousel";
 import type { HomeCarouselSlide } from "@/features/home/services/homeContentService";
+
+type ImagePickerTarget =
+  | { kind: "slide" }
+  | { kind: "classType"; id: string };
 
 const slideSchema = z.object({
   title: z.string().min(1, "Titulo requerido"),
@@ -71,8 +77,11 @@ export function AdminContentScreen() {
   const dirtyRef = useRef(false);
   const slideCounterRef = useRef(0);
   const [imageInputs, setImageInputs] = useState<Record<string, string>>({});
+  const [pickerTarget, setPickerTarget] = useState<ImagePickerTarget | null>(
+    null,
+  );
 
-  const { control, handleSubmit, reset } = useForm<SlideFormValues>({
+  const { control, handleSubmit, reset, setValue } = useForm<SlideFormValues>({
     resolver: zodResolver(slideSchema),
     defaultValues: emptySlide,
   });
@@ -216,6 +225,28 @@ export function AdminContentScreen() {
     imageSaveMutation.mutate({ tipo, imageUrl: imageInputs[tipo.id] ?? "" });
   };
 
+  const closeImagePicker = () => {
+    setPickerTarget(null);
+  };
+
+  const handlePickedImageUrl = (url: string) => {
+    if (pickerTarget?.kind === "slide") {
+      setValue("imageUri", url, { shouldValidate: true, shouldDirty: true });
+    } else if (pickerTarget?.kind === "classType") {
+      const typeId = pickerTarget.id;
+      setImageInputs((prev) => ({ ...prev, [typeId]: url }));
+    }
+    closeImagePicker();
+  };
+
+  const pickerQuery =
+    pickerTarget?.kind === "classType"
+      ? (classTypesQuery.data?.find((tipo) => tipo.id === pickerTarget.id)
+          ?.nombre ?? "gym")
+      : "gym workout";
+  const pickerWidth = pickerTarget?.kind === "classType" ? 400 : 900;
+  const pickerQuality = pickerTarget?.kind === "classType" ? 70 : 80;
+
   if (initializing || carouselQuery.isLoading || classTypesQuery.isLoading) {
     return (
       <Screen scroll={false}>
@@ -302,6 +333,11 @@ export function AdminContentScreen() {
               label="URL de la imagen"
               placeholder="https://..."
               autoCapitalize="none"
+            />
+            <Button
+              label="Buscar imagen"
+              variant="secondary"
+              onPress={() => setPickerTarget({ kind: "slide" })}
             />
             <Button
               label={editingId !== null ? "Guardar Slide" : "Agregar Slide"}
@@ -489,6 +525,19 @@ export function AdminContentScreen() {
                     className="h-12 flex-1 rounded-xl border border-border bg-surface px-3 text-white"
                   />
                   <Pressable
+                    className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-surface"
+                    onPress={() =>
+                      setPickerTarget({ kind: "classType", id: tipo.id })
+                    }
+                    accessibilityLabel="Buscar imagen"
+                  >
+                    <MaterialCommunityIcons
+                      name="image-search-outline"
+                      size={22}
+                      color="#22D3EE"
+                    />
+                  </Pressable>
+                  <Pressable
                     className="rounded-xl border border-cyan-400/50 bg-cyan-950/30 px-4 py-3"
                     disabled={imageSaveMutation.isPending}
                     onPress={() => saveImage(tipo)}
@@ -503,6 +552,15 @@ export function AdminContentScreen() {
           })
         )}
       </View>
+
+      <UnsplashImagePicker
+        visible={pickerTarget !== null}
+        searchQuery={pickerQuery}
+        width={pickerWidth}
+        quality={pickerQuality}
+        onCancel={closeImagePicker}
+        onSelect={handlePickedImageUrl}
+      />
     </Screen>
   );
 }
