@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
-  Image,
+  ImageBackground,
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -60,27 +60,15 @@ function ClassCard({ item, onPress }: ClassCardProps) {
 
   return (
     <Pressable
-      style={({ pressed }) => [s.card, pressed && { opacity: 0.8 }]}
+      style={({ pressed }) => [pressed && { opacity: 0.8 }]}
       onPress={onPress}
     >
-      <View style={s.cardImgWrap}>
-        <Image source={{ uri: imgUri }} style={s.cardImg} resizeMode="cover" />
-        <View style={s.cardImgOverlay} />
-        <View
-          style={[
-            s.diffPill,
-            {
-              backgroundColor: diffColor + "22",
-              borderColor: diffColor + "66",
-            },
-          ]}
-        >
-          <Text style={[s.diffPillText, { color: diffColor }]}>
-            {item.difficulty_level.toUpperCase()}
-          </Text>
-        </View>
-      </View>
-
+      <ImageBackground
+        source={{ uri: imgUri }}
+        style={s.card}
+        imageStyle={s.cardImg}
+        resizeMode="cover"
+      >
       <View style={s.cardBody}>
         <Text style={s.cardTitle} numberOfLines={2}>
           {item.title}
@@ -110,6 +98,21 @@ function ClassCard({ item, onPress }: ClassCardProps) {
           </View>
         </View>
       </View>
+
+      <View
+        style={[
+          s.diffPill,
+          {
+            backgroundColor: diffColor + "22",
+            borderColor: diffColor + "66",
+          },
+        ]}
+      >
+        <Text style={[s.diffPillText, { color: diffColor }]}>
+          {item.difficulty_level.toUpperCase()}
+        </Text>
+      </View>
+      </ImageBackground>
     </Pressable>
   );
 }
@@ -338,24 +341,19 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
-  cardImgWrap: { height: 50, position: "relative" },
-  cardImg: { ...StyleSheet.absoluteFill },
-  cardImgOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "#000",
-    opacity: 0.25,
-  },
+  cardImg: { opacity: 0.4, borderRadius: 16 },
   diffPill: {
     position: "absolute",
     top: 10,
     right: 10,
+    zIndex: 1,
     borderWidth: 1,
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   diffPillText: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  cardBody: { padding: 16, gap: 6 },
+  cardBody: { padding: 16, paddingRight: 96, gap: 6 },
   cardTitle: { color: "#FFF", fontSize: 16, fontWeight: "800", lineHeight: 22 },
   cardTrainer: { color: "#777", fontSize: 13 },
   cardMeta: { flexDirection: "row", gap: 12, marginTop: 2, flexWrap: "wrap" },
