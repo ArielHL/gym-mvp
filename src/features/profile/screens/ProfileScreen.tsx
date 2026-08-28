@@ -14,6 +14,7 @@ import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { authService } from "@/features/auth/services/authService";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useRouter } from "expo-router";
+import { useGymBranding } from "@/features/home/hooks/useGymBranding";
 
 const MENU_ITEMS = [
   {
@@ -73,6 +74,7 @@ export function ProfileScreen() {
   const { user, role, displayName, avatarUrl } = useAuthState();
   const { data: bookings } = useMyBookings();
   const router = useRouter();
+  const { gymName } = useGymBranding();
 
   
 
@@ -162,166 +164,6 @@ export function ProfileScreen() {
           </Pressable>
         </View>
 
-        {role === "admin" && (
-          <View style={s.menuSection}>
-            <Text style={s.menuSectionTitle}>Admin</Text>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/classes" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>🏗️</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Gestionar Clases</Text>
-                    <Text style={s.menuSub}>
-                      Crear, editar, desactivar y reactivar clases
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/locations" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>📍</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Gestionar Ubicaciones</Text>
-                    <Text style={s.menuSub}>
-                      Agregar, editar, desactivar y reactivar ubicaciones del gimnasio
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/subscriptions" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>💳</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Gestionar Suscripciones</Text>
-                    <Text style={s.menuSub}>
-                      Asigna o actualiza planes y suscripciones de usuarios
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/class-types" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>🏷️</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Gestionar Tipos de Clase</Text>
-                    <Text style={s.menuSub}>
-                      Crear, editar, desactivar y eliminar categorias
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/attendance" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>✅</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Asistencia</Text>
-                    <Text style={s.menuSub}>
-                      Marca si los miembros asistieron a sus clases reservadas
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/settings" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>⚙️</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Configuración de Clases</Text>
-                    <Text style={s.menuSub}>
-                      Configura los próximos controles y preferencias de administrador
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.menuItem,
-                pressed && { backgroundColor: "#1A1A1A" },
-              ]}
-              onPress={() => router.push("/admin/content" as never)}
-            >
-              <View style={s.menuItemContent}>
-                <View style={s.menuItemLeft}>
-                  <View style={s.menuIconWrap}>
-                    <Text style={s.menuIcon}>🎠</Text>
-                  </View>
-                  <View style={s.menuText}>
-                    <Text style={s.menuLabel}>Contenido de la App</Text>
-                    <Text style={s.menuSub}>
-                      Edita el carrusel del inicio y las imágenes de los tipos de clase
-                    </Text>
-                  </View>
-                </View>
-                <Text style={s.menuArrow}>›</Text>
-              </View>
-            </Pressable>
-          </View>
-        )}
-
         {/* Menu items */}
         <View style={s.menuSection}>
           <Text style={s.menuSectionTitle}>Tu Cuenta</Text>
@@ -371,7 +213,7 @@ export function ProfileScreen() {
         </View>
 
         {/* App version */}
-        <Text style={s.version}>CaliFit · v1.0.0</Text>
+        <Text style={s.version}>{gymName} · v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

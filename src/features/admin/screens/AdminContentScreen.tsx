@@ -249,7 +249,7 @@ export function AdminContentScreen() {
 
   if (initializing || carouselQuery.isLoading || classTypesQuery.isLoading) {
     return (
-      <Screen scroll={false}>
+      <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#22D3EE" />
         </View>
@@ -259,7 +259,7 @@ export function AdminContentScreen() {
 
   if (role !== "admin") {
     return (
-      <Screen scroll={false}>
+      <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-2xl font-bold text-white">
             Acceso admin requerido
@@ -275,7 +275,7 @@ export function AdminContentScreen() {
   const dirty = dirtyRef.current;
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <View className="mb-5 mt-4">
         <Text className="text-2xl font-bold text-white">Contenido de la App</Text>
         <Text className="mt-1 text-sm text-gray-400">

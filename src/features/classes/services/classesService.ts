@@ -7,6 +7,7 @@ export type ClassTemplate = {
   id: string;
   title: string;
   description: string;
+  trainer_id: string;
   trainer_name: string;
   class_type_id: string;
   class_type_nombre?: string | null;
@@ -29,7 +30,7 @@ export type ClassTemplate = {
 export type ClassTemplateInput = {
   title: string;
   description: string;
-  trainer_name: string;
+  trainer_id: string;
   class_type_id: string;
   duration_minutes: number;
   days_of_week_mask: number;

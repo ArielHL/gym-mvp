@@ -92,6 +92,14 @@ export function SubscriptionScreen() {
             <Text className="mt-1 text-center text-sm text-muted">
               Contacta al administrador para gestionar tu plan.
             </Text>
+            <Pressable
+              className="mt-4 rounded-xl bg-accent-cyan px-4 py-3"
+              onPress={() => router.push("/subscribe" as never)}
+            >
+              <Text className="text-center text-sm font-bold text-black">
+                Contactar por WhatsApp
+              </Text>
+            </Pressable>
           </View>
         ) : (
           <View className="gap-4 rounded-3xl border border-border bg-surface p-5">

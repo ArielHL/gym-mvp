@@ -21,6 +21,7 @@ import {
   updateClassTemplate,
 } from "@/features/classes/services/classesService";
 import { fetchLocations } from "@/features/locations/services/locationsService";
+import { fetchTrainers } from "@/features/trainers/services/trainersService";
 import { toDateKey } from "@/utils/date";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
@@ -28,7 +29,7 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 const schema = z.object({
   title: z.string().min(2),
   description: z.string().min(5),
-  trainer_name: z.string().min(2),
+  trainer_id: z.string().uuid("Selecciona un entrenador"),
   class_type_id: z.string().uuid("Selecciona un tipo de clase"),
   duration_minutes: z.coerce.number().int().min(10).max(240),
   days_of_week: z
@@ -43,6 +44,12 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+const difficultyOptions = [
+  { label: "Principiante", value: "beginner" },
+  { label: "Intermedio", value: "intermediate" },
+  { label: "Avanzado", value: "advanced" },
+] as const;
 
 const dayOptions = [
   { label: "Dom", value: 0 },
@@ -74,7 +81,7 @@ function formatMask(mask: number): string {
 const emptyValues: FormValues = {
   title: "",
   description: "",
-  trainer_name: "",
+  trainer_id: "",
   class_type_id: "",
   duration_minutes: 60,
   days_of_week: [1],
@@ -90,7 +97,7 @@ function valuesFromTemplate(template: ClassTemplate): FormValues {
   return {
     title: template.title,
     description: template.description,
-    trainer_name: template.trainer_name,
+    trainer_id: template.trainer_id,
     class_type_id: template.class_type_id,
     duration_minutes: template.duration_minutes,
     days_of_week: daysFromMask(template.days_of_week_mask),
@@ -131,6 +138,12 @@ export function AdminClassesScreen() {
     enabled: role === "admin",
   });
 
+  const trainersQuery = useQuery({
+    queryKey: queryKeys.trainers,
+    queryFn: fetchTrainers,
+    enabled: role === "admin",
+  });
+
   const classTypesQuery = useActiveClassTypes(role === "admin");
 
   const filteredTemplates = useMemo(() => {
@@ -160,6 +173,22 @@ export function AdminClassesScreen() {
       shouldValidate: false,
     });
   }, [isFormVisible, locationsQuery.data, selectedTemplate, setValue]);
+
+  useEffect(() => {
+    if (selectedTemplate || !isFormVisible || !trainersQuery.data?.length) {
+      return;
+    }
+
+    const defaultTrainer =
+      trainersQuery.data.find((trainer) => trainer.is_active) ??
+      trainersQuery.data[0];
+
+    setValue("trainer_id", defaultTrainer.id, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [isFormVisible, selectedTemplate, setValue, trainersQuery.data]);
 
   useEffect(() => {
     if (selectedTemplate || !isFormVisible || !classTypesQuery.data?.length) {
@@ -277,7 +306,7 @@ export function AdminClassesScreen() {
 
   if (initializing || templatesQuery.isLoading) {
     return (
-      <Screen scroll={false}>
+      <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#22D3EE" />
         </View>
@@ -287,7 +316,7 @@ export function AdminClassesScreen() {
 
   if (role !== "admin") {
     return (
-      <Screen scroll={false}>
+      <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-2xl font-bold text-white">
             Requiere acceso de Administrador
@@ -301,7 +330,7 @@ export function AdminClassesScreen() {
   }
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-2xl font-bold text-white">Gestion de Clases</Text>
@@ -408,11 +437,62 @@ export function AdminClassesScreen() {
             label="Descripción"
             placeholder="Circuito de cuerpo completo"
           />
-          <Input
+          <Controller
             control={control}
-            name="trainer_name"
-            label="Entrenador"
-            placeholder="Alejandro"
+            name="trainer_id"
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <View className="mb-3">
+                <Text className="mb-1 text-sm font-medium text-white">
+                  Entrenador
+                </Text>
+                {trainersQuery.isLoading ? (
+                  <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
+                    <ActivityIndicator color="#22D3EE" size="small" />
+                    <Text className="ml-2 text-sm text-gray-400">
+                      Cargando entrenadores...
+                    </Text>
+                  </View>
+                ) : trainersQuery.isError ? (
+                  <Text className="rounded-xl border border-rose-500/40 bg-rose-950/20 px-3 py-3 text-sm text-rose-300">
+                    No se pudieron cargar los entrenadores.
+                  </Text>
+                ) : !trainersQuery.data?.length ? (
+                  <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                    No hay entrenadores. Crea uno desde Admin / Entrenadores.
+                  </Text>
+                ) : (
+                  <View className="gap-2">
+                    {trainersQuery.data.map((trainer) => {
+                      const selected = value === trainer.id;
+                      return (
+                        <Pressable
+                          key={trainer.id}
+                          className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-surface"}`}
+                          onPress={() => onChange(trainer.id)}
+                        >
+                          <Text className="font-semibold text-white">
+                            {trainer.name}
+                          </Text>
+                          <Text className="mt-1 text-xs text-gray-400">
+                            {trainer.tel || trainer.email}
+                          </Text>
+                          {!trainer.is_active ? (
+                            <Text className="mt-1 text-xs font-semibold text-amber-300">
+                              Inactivo
+                            </Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+                {!!error?.message && (
+                  <Text className="mt-1 text-xs text-rose-400">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
           <Controller
             control={control}
@@ -563,11 +643,39 @@ export function AdminClassesScreen() {
             label="Capacidad"
             placeholder="20"
           />
-          <Input
+          <Controller
             control={control}
             name="difficulty_level"
-            label="Dificultad (principiante/intermedio/avanzado)"
-            placeholder="principiante"
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <View className="mb-3">
+                <Text className="mb-1 text-sm font-medium text-white">
+                  Dificultad
+                </Text>
+                <View className="flex-row flex-nowrap items-center rounded-xl border border-border bg-surface p-1">
+                  {difficultyOptions.map((option) => {
+                    const selected = value === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        className={`mx-[2px] min-w-0 flex-1 rounded-full border py-2 ${selected ? "border-accent-cyan bg-cyan-950/35" : "border-border bg-surface"}`}
+                        onPress={() => onChange(option.value)}
+                      >
+                        <Text
+                          className={`text-center text-xs font-medium ${selected ? "text-cyan-300" : "text-gray-300"}`}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {!!error?.message && (
+                  <Text className="mt-1 text-xs text-rose-400">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
           <Controller
             control={control}

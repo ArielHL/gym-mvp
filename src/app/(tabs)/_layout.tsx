@@ -69,6 +69,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="admin"
+        options={{
+          title: "Admin",
+          href: role === "admin" ? "/admin/classes" : null,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="view-dashboard"
+              size={size}
+              color={String(color)}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Perfil",

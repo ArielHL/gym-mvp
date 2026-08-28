@@ -44,7 +44,7 @@ class BookingAttendanceRequest(BaseModel):
 class ClassTemplateRequest(BaseModel):
     title: str
     description: str
-    trainer_name: str
+    trainer_id: UUID
     class_type_id: UUID
     duration_minutes: int
     days_of_week_mask: int
@@ -64,6 +64,15 @@ class ClassTemplateActiveRequest(BaseModel):
 class LocationRequest(BaseModel):
     name: str
     description: str | None = None
+    address: str | None = None
+    is_active: bool = True
+
+
+class TrainerRequest(BaseModel):
+    name: str
+    document: str
+    tel: str | None = None
+    email: str
     address: str | None = None
     is_active: bool = True
 
@@ -88,6 +97,17 @@ class CarouselSlide(BaseModel):
 
 class HomeCarouselRequest(BaseModel):
     slides: list[CarouselSlide]
+
+
+class SalesContactRequest(BaseModel):
+    whatsapp: str = ""
+    phone: str = ""
+    email: str = ""
+    message: str = ""
+
+
+class GymBrandingRequest(BaseModel):
+    name: str
 
 
 class ActiveRequest(BaseModel):
@@ -187,6 +207,36 @@ def _record_to_dict(record: asyncpg.Record) -> dict[str, Any]:
 
 def _records_to_dicts(records: list[asyncpg.Record]) -> list[dict[str, Any]]:
     return [_record_to_dict(record) for record in records]
+
+
+def _normalize_gym_branding(value: Any) -> dict[str, str]:
+    data: Any = value
+    if isinstance(value, str):
+        try:
+            data = json.loads(value)
+        except (TypeError, ValueError):
+            data = {}
+    if not isinstance(data, dict):
+        data = {}
+    name = str(data.get("name") or "").strip() or "Flowly"
+    return {"name": name}
+
+
+def _normalize_sales_contact(value: Any) -> dict[str, str]:
+    data: Any = value
+    if isinstance(value, str):
+        try:
+            data = json.loads(value)
+        except (TypeError, ValueError):
+            data = {}
+    if not isinstance(data, dict):
+        data = {}
+    return {
+        "whatsapp": str(data.get("whatsapp") or "").strip(),
+        "phone": str(data.get("phone") or "").strip(),
+        "email": str(data.get("email") or "").strip(),
+        "message": str(data.get("message") or "").strip(),
+    }
 
 
 def _decode_jsonb_array(value: Any) -> list[Any]:
@@ -312,6 +362,24 @@ async def _ensure_active_class_type(conn: asyncpg.Connection, class_type_id: UUI
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ApiResponse(success=False, message="tipo de clase invalido o inactivo").model_dump(),
         )
+
+
+async def _ensure_active_trainer(conn: asyncpg.Connection, trainer_id: UUID) -> str:
+    name = await conn.fetchval(
+        """
+        select name
+        from trainers
+        where id = $1
+          and is_active = true
+        """,
+        str(trainer_id),
+    )
+    if not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="entrenador invalido o inactivo").model_dump(),
+        )
+    return name
 
 
 async def _read_user_from_token(token: str, settings: Settings) -> dict[str, Any]:
@@ -465,7 +533,8 @@ async def list_public_class_templates() -> list[dict[str, Any]]:
               ct.id,
               ct.title,
               ct.description,
-              ct.trainer_name,
+              ct.trainer_id,
+              coalesce(t.name, ct.trainer_name) as trainer_name,
               ct.class_type_id,
               ctype.nombre as class_type_nombre,
               ctype.slug as class_type_slug,
@@ -484,6 +553,7 @@ async def list_public_class_templates() -> list[dict[str, Any]]:
             from class_templates ct
             join class_types ctype on ctype.id = ct.class_type_id
             join locations l on l.id = ct.location_id
+            join trainers t on t.id = ct.trainer_id
             where ct.is_active = true
             order by ct.start_time asc, ct.title asc
             """
@@ -502,7 +572,8 @@ async def get_public_class_template(template_id: str) -> dict[str, Any]:
               ct.id,
               ct.title,
               ct.description,
-              ct.trainer_name,
+              ct.trainer_id,
+              coalesce(t.name, ct.trainer_name) as trainer_name,
               ct.class_type_id,
               ctype.nombre as class_type_nombre,
               ctype.slug as class_type_slug,
@@ -521,6 +592,7 @@ async def get_public_class_template(template_id: str) -> dict[str, Any]:
             from class_templates ct
             join class_types ctype on ctype.id = ct.class_type_id
             join locations l on l.id = ct.location_id
+            join trainers t on t.id = ct.trainer_id
             where ct.id = $1 and ct.is_active = true
             """,
             template_id,
@@ -558,6 +630,22 @@ async def list_active_locations() -> list[dict[str, Any]]:
             """
             select *
             from locations
+            where is_active = true
+            order by name asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.get("/trainers/active")
+async def list_active_trainers() -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select id, name, is_active
+            from trainers
             where is_active = true
             order by name asc
             """
@@ -618,6 +706,70 @@ async def update_home_carousel(
         )
 
     return {"slides": slides}
+
+
+@app.get("/content/sales-contact")
+async def get_sales_contact() -> dict[str, str]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        value = await conn.fetchval(
+            "select value from admin_settings where key = 'sales_contact'"
+        )
+
+    return _normalize_sales_contact(value)
+
+
+@app.patch("/admin/content/sales-contact")
+async def update_sales_contact(
+    request: SalesContactRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, str]:
+    payload = _normalize_sales_contact(request.model_dump())
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            insert into admin_settings (key, value, updated_at)
+            values ('sales_contact', $1::jsonb, now())
+            on conflict (key)
+            do update set value = excluded.value, updated_at = now()
+            """,
+            json.dumps(payload),
+        )
+
+    return payload
+
+
+@app.get("/content/gym-branding")
+async def get_gym_branding() -> dict[str, str]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        value = await conn.fetchval(
+            "select value from admin_settings where key = 'gym_branding'"
+        )
+
+    return _normalize_gym_branding(value)
+
+
+@app.patch("/admin/content/gym-branding")
+async def update_gym_branding(
+    request: GymBrandingRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, str]:
+    payload = _normalize_gym_branding({"name": request.name})
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            insert into admin_settings (key, value, updated_at)
+            values ('gym_branding', $1::jsonb, now())
+            on conflict (key)
+            do update set value = excluded.value, updated_at = now()
+            """,
+            json.dumps(payload),
+        )
+
+    return payload
 
 
 @app.get("/bookings/me")
@@ -970,15 +1122,24 @@ async def list_class_templates(_: str = Depends(require_admin_user)) -> list[dic
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select ct.*, ctype.nombre as class_type_nombre, ctype.slug as class_type_slug, l.name as location_name
+            select
+              ct.*,
+              ctype.nombre as class_type_nombre,
+              ctype.slug as class_type_slug,
+              l.name as location_name,
+              t.name as trainer_joined_name
             from class_templates ct
             left join class_types ctype on ctype.id = ct.class_type_id
             left join locations l on l.id = ct.location_id
+            left join trainers t on t.id = ct.trainer_id
             order by ct.is_active desc, ct.days_of_week_mask asc, ct.start_time asc
             """
         )
 
-    return _records_to_dicts(rows)
+    items = _records_to_dicts(rows)
+    for item in items:
+        item["trainer_name"] = item.pop("trainer_joined_name", None) or item.get("trainer_name")
+    return items
 
 
 @app.post("/admin/classes")
@@ -1001,13 +1162,14 @@ async def create_class_template(
                     )
 
                 await _ensure_active_class_type(conn, request.class_type_id)
+                trainer_name = await _ensure_active_trainer(conn, request.trainer_id)
 
                 row = await conn.fetchrow(
                     """
                     insert into class_templates (
                       title,
                       description,
-                      trainer_name,
+                      trainer_id,
                       class_type_id,
                       duration_minutes,
                       days_of_week_mask,
@@ -1020,12 +1182,12 @@ async def create_class_template(
                       created_by,
                       is_active
                     )
-                    values ($1, $2, $3, $4, $5, $6, $7::time, $8, $9, $10::uuid, coalesce($11::date, current_date), $12::date, $13, $14)
+                    values ($1, $2, $3::uuid, $4, $5, $6, $7::time, $8, $9, $10::uuid, coalesce($11::date, current_date), $12::date, $13, $14)
                     returning *, (select name from locations where id = location_id) as location_name
                     """,
                     request.title,
                     request.description,
-                    request.trainer_name,
+                    str(request.trainer_id),
                     request.class_type_id,
                     request.duration_minutes,
                     request.days_of_week_mask,
@@ -1079,7 +1241,9 @@ async def create_class_template(
             detail=ApiResponse(success=False, message="class save failed due to a database error").model_dump(),
         ) from exc
 
-    return _record_to_dict(row)
+    payload = _record_to_dict(row)
+    payload["trainer_name"] = trainer_name
+    return payload
 
 
 @app.patch("/admin/classes/{template_id}")
@@ -1103,13 +1267,14 @@ async def update_class_template(
                     )
 
                 await _ensure_active_class_type(conn, request.class_type_id)
+                trainer_name = await _ensure_active_trainer(conn, request.trainer_id)
 
                 row = await conn.fetchrow(
                     """
                     update class_templates
                     set title = $2,
                         description = $3,
-                        trainer_name = $4,
+                        trainer_id = $4::uuid,
                         class_type_id = $5::uuid,
                         duration_minutes = $6,
                         days_of_week_mask = $7,
@@ -1127,7 +1292,7 @@ async def update_class_template(
                     template_id,
                     request.title,
                     request.description,
-                    request.trainer_name,
+                    str(request.trainer_id),
                     request.class_type_id,
                     request.duration_minutes,
                     request.days_of_week_mask,
@@ -1186,7 +1351,9 @@ async def update_class_template(
             detail=ApiResponse(success=False, message="class save failed due to a database error").model_dump(),
         ) from exc
 
-    return _record_to_dict(row)
+    payload = _record_to_dict(row)
+    payload["trainer_name"] = trainer_name
+    return payload
 
 
 @app.patch("/admin/classes/{template_id}/active", response_model=ApiResponse)
@@ -1500,6 +1667,142 @@ async def set_location_active(
         )
 
     return ApiResponse(success=True, message="Location status updated")
+
+
+@app.get("/admin/trainers")
+async def list_trainers(_: str = Depends(require_admin_user)) -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select *
+            from trainers
+            order by is_active desc, name asc
+            """
+        )
+
+    return _records_to_dicts(rows)
+
+
+@app.post("/admin/trainers")
+async def create_trainer(
+    request: TrainerRequest,
+    user_id: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    name = request.name.strip()
+    document = request.document.strip()
+    email = request.email.strip()
+    if not name or not document or not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="name, document and email are required").model_dump(),
+        )
+
+    pool: asyncpg.Pool = app.state.db_pool
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                insert into trainers (name, document, tel, email, address, is_active, created_by)
+                values ($1, $2, $3, $4, $5, $6, $7)
+                returning *
+                """,
+                name,
+                document,
+                (request.tel or "").strip() or None,
+                email,
+                (request.address or "").strip() or None,
+                request.is_active,
+                user_id,
+            )
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=ApiResponse(success=False, message="trainer name already exists").model_dump(),
+        ) from exc
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/trainers/{trainer_id}")
+async def update_trainer(
+    trainer_id: str,
+    request: TrainerRequest,
+    _: str = Depends(require_admin_user),
+) -> dict[str, Any]:
+    name = request.name.strip()
+    document = request.document.strip()
+    email = request.email.strip()
+    if not name or not document or not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="name, document and email are required").model_dump(),
+        )
+
+    pool: asyncpg.Pool = app.state.db_pool
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                update trainers
+                set name = $2,
+                    document = $3,
+                    tel = $4,
+                    email = $5,
+                    address = $6,
+                    is_active = $7,
+                    updated_at = now()
+                where id = $1
+                returning *
+                """,
+                trainer_id,
+                name,
+                document,
+                (request.tel or "").strip() or None,
+                email,
+                (request.address or "").strip() or None,
+                request.is_active,
+            )
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=ApiResponse(success=False, message="trainer name already exists").model_dump(),
+        ) from exc
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="trainer not found").model_dump(),
+        )
+
+    return _record_to_dict(row)
+
+
+@app.patch("/admin/trainers/{trainer_id}/active", response_model=ApiResponse)
+async def set_trainer_active(
+    trainer_id: str,
+    request: ActiveRequest,
+    _: str = Depends(require_admin_user),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            update trainers
+            set is_active = $2, updated_at = now()
+            where id = $1
+            """,
+            trainer_id,
+            request.is_active,
+        )
+
+    if result == "UPDATE 0":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="trainer not found").model_dump(),
+        )
+
+    return ApiResponse(success=True, message="Trainer status updated")
 
 
 @app.get("/admin/bookings")
