@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButtons';
 import { authService } from '@/features/auth/services/authService';
+import { useGymBranding } from '@/features/home/hooks/useGymBranding';
 
 const KeyboardWrapper = Platform.OS === 'ios'
   ? ({ children }: { children: React.ReactNode }) => (
@@ -25,6 +26,7 @@ const KeyboardWrapper = Platform.OS === 'ios'
 
 export function CreateAccountScreen() {
   const router = useRouter();
+  const { gymName } = useGymBranding();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -81,7 +83,7 @@ export function CreateAccountScreen() {
           contentContainerClassName="min-h-full justify-center px-7 py-10"
         >
           <View className="mb-8">
-            <Text className="text-sm font-bold uppercase tracking-[3px] text-accent-purple">Join CaliFit</Text>
+            <Text className="text-sm font-bold uppercase tracking-[3px] text-accent-purple">Join {gymName}</Text>
             <Text className="mt-3 text-4xl font-black text-white">Create Account</Text>
             <Text className="mt-2 text-base text-muted">Start booking classes in a few seconds.</Text>
           </View>

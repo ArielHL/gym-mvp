@@ -23,11 +23,14 @@ function RootLayoutNav() {
   const wasAuthenticated = useRef(false);
 
   useEffect(() => {
-    if (initializing) return;
+    if (initializing) return; // get out of the effect if we're still initializing
 
     const rootSegment = segments[0] as string | undefined;
     const inProtectedRoute = rootSegment === "bookings";
-    const inAdminRoute = rootSegment === "admin";
+    const inAdminRoute =
+      rootSegment === "admin" ||
+      (rootSegment === "(tabs)" && segments[1] === "admin");
+    const isProfileRoute = rootSegment === "profile";
     const inPublicRoute = rootSegment === "(public)";
     const inPublicIndex = inPublicRoute && !segments[1];
     const signedOutAfterSession = wasAuthenticated.current && !user;
@@ -43,6 +46,8 @@ function RootLayoutNav() {
       router.replace("/(tabs)");
     } else if (!user && inPublicIndex) {
       router.replace("/(tabs)");
+    } else if (!user && isProfileRoute) {
+      router.replace("/(tabs)");
     } else if (!user && (inProtectedRoute || inAdminRoute)) {
       router.replace("/(tabs)");
     } else if (user && inAdminRoute && role !== "admin") {
@@ -50,20 +55,7 @@ function RootLayoutNav() {
     }
   }, [user, role, initializing, segments, router]);
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="classes/[classId]" />
-      <Stack.Screen name="auth/callback" />
-      <Stack.Screen name="bookings/index" />
-      <Stack.Screen name="bookings/new" />
-      <Stack.Screen name="profile/edit" />
-      <Stack.Screen name="admin/classes" />
-      <Stack.Screen name="admin/settings" />
-      <Stack.Screen name="admin/content" />
-      <Stack.Screen name="+not-found" />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {

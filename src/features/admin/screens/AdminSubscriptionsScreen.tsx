@@ -279,7 +279,7 @@ export function AdminSubscriptionsScreen() {
 
   if (initializing || usersQuery.isLoading) {
     return (
-      <Screen scroll={false}>
+      <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#22D3EE" />
         </View>
@@ -289,7 +289,7 @@ export function AdminSubscriptionsScreen() {
 
   if (role !== "admin") {
     return (
-      <Screen scroll={false}>
+      <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-2xl font-bold text-white">
             Acceso admin requerido
@@ -311,7 +311,7 @@ export function AdminSubscriptionsScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-2xl font-bold text-white">

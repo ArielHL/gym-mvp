@@ -17,6 +17,7 @@ import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
+import { useGymBranding } from "@/features/home/hooks/useGymBranding";
 import { useHomeCarousel } from "@/features/home/hooks/useHomeCarousel";
 import { toDateKey } from "@/utils/date";
 import { Avatar } from "@/features/profile/screens/ProfileScreen";
@@ -54,26 +55,11 @@ const DEFAULT_HERO_SLIDES = [
   },
 ];
 
-const DRAWER_ITEMS = [
-  {
-    id: "book",
-    icon: "📅",
-    label: "Reserva una Clase",
-    tab: "/(tabs)/bookings" as const,
-  },
-  {
-    id: "sub",
-    icon: "💳",
-    label: "Paga una Suscripción",
-    tab: "/(tabs)/bookings" as const,
-  },
-  {
-    id: "find",
-    icon: "🔍",
-    label: "Encuentra una Clase para Ti",
-    tab: "/(tabs)/classes" as const,
-  },
-];
+const DRAWER_HREFS = {
+  book: "/(tabs)/bookings",
+  sub: "/subscribe",
+  find: "/(tabs)/classes",
+} as const;
 
 const DIFF_COLORS: Record<string, string> = {
   beginner: "#22D3EE",
@@ -97,6 +83,28 @@ export function HomeScreen() {
     usePublicClassTemplates();
   const { data: classTypes } = useActiveClassTypes();
   const { data: carousel } = useHomeCarousel();
+  const { gymName } = useGymBranding();
+
+  const drawerItems = [
+    {
+      id: "book",
+      icon: "📅",
+      label: "Reserva una Clase",
+      href: DRAWER_HREFS.book,
+    },
+    {
+      id: "sub",
+      icon: "💳",
+      label: `Querés Formar Parte de ${gymName}?`,
+      href: DRAWER_HREFS.sub,
+    },
+    {
+      id: "find",
+      icon: "🔍",
+      label: "Encuentra una Clase para Ti",
+      href: DRAWER_HREFS.find,
+    },
+  ] as const;
 
   const heroSlides =
     carousel?.slides && carousel.slides.length > 0
@@ -226,9 +234,9 @@ export function HomeScreen() {
     ]).start(() => setDrawerOpen(false));
   };
 
-  const handleDrawerNav = (tab: "/(tabs)/bookings" | "/(tabs)/classes") => {
+  const handleDrawerNav = (href: (typeof drawerItems)[number]["href"]) => {
     closeDrawer();
-    setTimeout(() => router.push(tab), 200);
+    setTimeout(() => router.push(href as never), 200);
   };
 
   const onHeroScroll = (e: any) => {
@@ -259,9 +267,7 @@ export function HomeScreen() {
             <View style={[s.burgerLine, { width: 20 }]} />
             <View style={[s.burgerLine, { width: 14 }]} />
           </Pressable>
-          <Text style={s.logo}>
-            Flowly<Text style={s.logoAccent}></Text>
-          </Text>
+          <Text style={s.logo}>{gymName}</Text>
           <Pressable
             style={s.notifBtn}
             onPress={() => goToTab("/(tabs)/profile")}
@@ -480,9 +486,7 @@ export function HomeScreen() {
       >
         <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
           <View style={s.drawerHead}>
-            <Text style={s.drawerLogo}>
-              Flow<Text style={s.drawerLogoAccent}>ly</Text>
-            </Text>
+            <Text style={s.drawerLogo}>{gymName}</Text>
             <Pressable onPress={closeDrawer} style={s.drawerClose}>
               <Text style={s.drawerCloseText}>✕</Text>
             </Pressable>
@@ -533,14 +537,14 @@ export function HomeScreen() {
           </View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 10, gap: 4 }}>
-            {DRAWER_ITEMS.map((item) => (
+            {drawerItems.map((item) => (
               <Pressable
                 key={item.id}
                 style={({ pressed }) => [
                   s.drawerItem,
                   pressed && s.drawerItemPressed,
                 ]}
-                onPress={() => handleDrawerNav(item.tab)}
+                onPress={() => handleDrawerNav(item.href)}
               >
                 <View style={s.drawerItemMain}>
                   <Text style={s.drawerItemIcon}>{item.icon}</Text>
