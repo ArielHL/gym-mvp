@@ -462,7 +462,9 @@ export function AdminClassesScreen() {
                   </Text>
                 ) : (
                   <View className="gap-2">
-                    {trainersQuery.data.map((trainer) => {
+                    {trainersQuery.data
+                    .filter((trainer) => trainer.is_active)
+                    .map((trainer) => {
                       const selected = value === trainer.id;
                       return (
                         <Pressable
@@ -702,7 +704,9 @@ export function AdminClassesScreen() {
                   </Text>
                 ) : (
                   <View className="gap-2">
-                    {locationsQuery.data.map((location) => {
+                    {locationsQuery.data
+                    .filter((location) => location.is_active)
+                    .map((location) => {
                       const selected = value === location.id;
                       return (
                         <Pressable
