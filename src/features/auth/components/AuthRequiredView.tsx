@@ -15,10 +15,10 @@ export function AuthRequiredView({ title, subtitle }: AuthRequiredViewProps) {
       <Text style={s.title}>{title}</Text>
       <Text style={s.subtitle}>{subtitle}</Text>
       <Pressable style={s.signInBtn} onPress={() => router.push('/auth')}>
-        <Text style={s.signInBtnText}>Sign In</Text>
+        <Text style={s.signInBtnText}>Iniciar Sesión</Text>
       </Pressable>
       <Pressable style={s.registerBtn} onPress={() => router.push('/register')}>
-        <Text style={s.registerBtnText}>Create Account</Text>
+        <Text style={s.registerBtnText}>Crear Cuenta</Text>
       </Pressable>
     </View>
   );
