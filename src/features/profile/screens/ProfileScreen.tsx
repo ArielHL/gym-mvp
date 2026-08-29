@@ -10,6 +10,7 @@
 } from "react-native";
 import { useMemo } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { authService } from "@/features/auth/services/authService";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
@@ -109,22 +110,10 @@ export function ProfileScreen() {
     return (
       <SafeAreaView style={s.root} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
-        <View style={s.center}>
-          <Text style={{ fontSize: 56 }}>🔒</Text>
-          <Text style={s.signInTitle}>Inicia sesión para acceder{"\n"}a tu cuenta</Text>
-          <Text style={s.signInSub}>
-            Rastrea tus reservas, administra tu plan y más
-          </Text>
-          <Pressable style={s.signInBtn} onPress={() => router.push("/auth")}>
-            <Text style={s.signInBtnText}>Iniciar sesión</Text>
-          </Pressable>
-          <Pressable
-            style={s.registerBtn}
-            onPress={() => router.push("/register")}
-          >
-            <Text style={s.registerBtnText}>Crear cuenta</Text>
-          </Pressable>
-        </View>
+        <AuthRequiredView
+          title={"Inicia sesión para acceder\na tu cuenta"}
+          subtitle="Rastrea tus reservas, administra tu plan y más"
+        />
       </SafeAreaView>
     );
   }
@@ -221,47 +210,6 @@ export function ProfileScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0A0A0A" },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-    gap: 12,
-  },
-  signInTitle: {
-    color: "#FFF",
-    fontSize: 24,
-    fontWeight: "800",
-    textAlign: "center",
-    lineHeight: 32,
-    marginTop: 16,
-  },
-  signInSub: {
-    color: "#555",
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  signInBtn: {
-    width: "100%",
-    height: 54,
-    backgroundColor: "#22D3EE",
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  signInBtnText: { color: "#000", fontSize: 16, fontWeight: "800" },
-  registerBtn: {
-    width: "100%",
-    height: 54,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
-  },
-  registerBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   banner: {
     backgroundColor: "#141414",
     borderRadius: 14,

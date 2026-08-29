@@ -22,6 +22,7 @@ import { useHomeCarousel } from "@/features/home/hooks/useHomeCarousel";
 import { toDateKey } from "@/utils/date";
 import { Avatar } from "@/features/profile/screens/ProfileScreen";
 
+
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.78;
 
@@ -343,10 +344,9 @@ export function HomeScreen() {
                 key={i}
                 style={s.statPressable}
                 onPress={() =>
-                  router.push({
-                    pathname: "/bookings",
-                    params: st.params,
-                  })
+                  user 
+                  ? router.push({pathname: "/bookings",params: st.params,})
+                  : router.push("/(tabs)/bookings")
                 }
               >
                 <View style={s.statCard}>

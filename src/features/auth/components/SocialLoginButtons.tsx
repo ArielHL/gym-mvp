@@ -25,7 +25,7 @@ export function SocialLoginButtons({ disabled }: SocialLoginButtonsProps) {
   return (
     <View>
       <Button
-        label="Continue with Google"
+        label="Continuar con Google"
         icon={<GoogleIcon size={20} />}
         onPress={onGoogleSignIn}
         disabled={disabled}

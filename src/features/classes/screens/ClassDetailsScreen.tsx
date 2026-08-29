@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { usePublicClassTemplate } from "@/features/classes/hooks/useClasses";
 
 const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -31,6 +32,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export function ClassDetailsScreen() {
   const { classId } = useLocalSearchParams<{ classId?: string }>();
   const router = useRouter();
+  const { user } = useAuthState();
   const { data: template, isLoading, isError } = usePublicClassTemplate(classId);
 
   if (isLoading) {
@@ -55,6 +57,10 @@ export function ClassDetailsScreen() {
   }
 
   const onBook = () => {
+    if (!user) {
+      router.push("/(tabs)/bookings");
+      return;
+    }
     router.push({
       pathname: "/bookings/new",
       params: {

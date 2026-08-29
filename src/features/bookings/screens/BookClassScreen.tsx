@@ -226,8 +226,8 @@ export function BookClassScreen() {
       <SafeAreaView style={s.root} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         <AuthRequiredView
-          title={"Sign in to book\na class"}
-          subtitle="Create an account or sign in to reserve a spot."
+          title={"Inicia Sesión para Reservar"}
+          subtitle="Crea una Cuenta o inicia sesión para reservar un lugar."
         />
       </SafeAreaView>
     );
