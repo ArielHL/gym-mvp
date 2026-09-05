@@ -1,13 +1,4 @@
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  StatusBar,
-} from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet, StatusBar } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +9,8 @@ import {
 } from "@/features/bookings/hooks/useBookings";
 import { prettyDateTime } from "@/utils/date";
 
+import { colors, fontStyle, withAlpha } from "@/theme";
+import { Text } from "@/components/ui/Text";
 type BookingsFilter = "all" | "week" | "day";
 
 export function MyBookingsScreen() {
@@ -104,7 +97,7 @@ export function MyBookingsScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.inverse} />
 
       <View style={styles.header}>
         <Pressable
@@ -117,11 +110,11 @@ export function MyBookingsScreen() {
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color="#22D3EE"
+            color={colors.accent.cyan}
           />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.heading}>Mis Classes Reservadas</Text>
+          <Text variant="title" style={styles.heading}>Mis Classes Reservadas</Text>
           <Text style={styles.subheading}>{subheading}</Text>
         </View>
       </View>
@@ -130,7 +123,7 @@ export function MyBookingsScreen() {
 
       {isLoading && (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#22D3EE" />
+          <ActivityIndicator size="large" color={colors.accent.cyan} />
         </View>
       )}
 
@@ -218,7 +211,7 @@ export function MyBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000000" },
+  root: { flex: 1, backgroundColor: colors.inverse },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -230,23 +223,23 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  heading: { fontSize: 24, fontWeight: "900", color: "#ffffff" },
-  subheading: { color: "#666666", fontSize: 14, marginTop: 4 },
-  divider: { height: 1, backgroundColor: "#1c1c1c", marginHorizontal: 16 },
+  heading: { fontSize: 24, fontWeight: "900", color: colors.foreground, ...fontStyle.title },
+  subheading: { color: colors.muted, fontSize: 14, marginTop: 4 },
+  divider: { height: 1, backgroundColor: colors.surface.elevated, marginHorizontal: 16 },
   list: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
   card: {
-    backgroundColor: "#111111",
+    backgroundColor: colors.background,
     borderRadius: 18,
     padding: 18,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: colors.border,
   },
   cardTopRow: {
     flexDirection: "row",
@@ -254,12 +247,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   cardTitleWrap: { flex: 1 },
-  cardTitle: { fontSize: 17, fontWeight: "800", color: "#ffffff" },
-  cardTrainer: { fontSize: 13, color: "#777777", marginTop: 4 },
-  cardLocation: { fontSize: 13, color: "#22D3EE", marginTop: 8 },
-  cardLocationAddress: { fontSize: 12, color: "#555555", marginTop: 2 },
+  cardTitle: { fontSize: 17, fontWeight: "800", color: colors.foreground },
+  cardTrainer: { fontSize: 13, color: colors.muted, marginTop: 4 },
+  cardLocation: { fontSize: 13, color: colors.accent.cyan, marginTop: 8 },
+  cardLocationAddress: { fontSize: 12, color: colors.muted, marginTop: 2 },
   cardTime: {
-    color: "#9CA3AF",
+    color: colors.muted,
     flexShrink: 1,
     fontSize: 12,
     fontWeight: "600",
@@ -275,39 +268,39 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#052e16",
-    borderColor: "#22C55E44",
+    backgroundColor: withAlpha(colors.success, "22"),
+    borderColor: withAlpha(colors.success, "44"),
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
-  statusText: { fontSize: 12, fontWeight: "800", color: "#22C55E" },
+  statusText: { fontSize: 12, fontWeight: "800", color: colors.success },
   cancelBtn: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#EF444455",
-    backgroundColor: "#EF444411",
+    borderColor: withAlpha(colors.danger, "55"),
+    backgroundColor: withAlpha(colors.danger, "11"),
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
   cancelBtnDisabled: {
-    borderColor: "#3f3f3f",
-    backgroundColor: "#181818",
+    borderColor: colors.border,
+    backgroundColor: colors.surface.DEFAULT,
   },
-  cancelBtnText: { color: "#f87171", fontSize: 12, fontWeight: "800" },
-  cancelBtnTextDisabled: { color: "#555555" },
+  cancelBtnText: { color: colors.danger, fontSize: 12, fontWeight: "800" },
+  cancelBtnTextDisabled: { color: colors.muted },
   notCancellableWrap: {
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#F59E0B33",
-    backgroundColor: "#F59E0B11",
+    borderColor: withAlpha(colors.accent.amber, "33"),
+    backgroundColor: withAlpha(colors.accent.amber, "11"),
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   notCancellableText: {
-    color: "#FBBF24",
+    color: colors.accent.amber,
     fontSize: 12,
     fontWeight: "600",
     lineHeight: 17,
@@ -318,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
   },
-  errorText: { color: "#f87171", fontSize: 15 },
-  emptyText: { color: "#555555", fontSize: 15, fontWeight: "600" },
-  emptyHint: { color: "#333333", fontSize: 13, marginTop: 6 },
+  errorText: { color: colors.danger, fontSize: 15 },
+  emptyText: { color: colors.muted, fontSize: 15, fontWeight: "600" },
+  emptyHint: { color: colors.faint, fontSize: 13, marginTop: 6 },
 });

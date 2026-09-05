@@ -1,13 +1,11 @@
 import { useState } from "react";
 import {
-  Controller,
-  type Control,
-  type FieldValues,
-  type Path,
-} from "react-hook-form";
-import { Pressable, Text, TextInput, View } from "react-native";
+  Controller, type Control, type FieldValues, type Path, } from "react-hook-form";
+import { Pressable, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { colors, fontStyle } from "@/theme";
 
+import { Text } from "@/components/ui/Text";
 interface InputProps<T extends FieldValues> {
   name: Path<T>;
   label: string;
@@ -39,7 +37,9 @@ export function Input<T extends FieldValues>({
         fieldState: { error },
       }) => (
         <View className="mb-3">
-          <Text className="mb-1 text-sm font-medium text-white">{label}</Text>
+          <Text className="mb-1 text-sm font-medium text-foreground" style={fontStyle.sans}>
+            {label}
+          </Text>
           <View
             className={`flex-row rounded-xl border border-border bg-surface ${
               multiline
@@ -52,12 +52,13 @@ export function Input<T extends FieldValues>({
               onChangeText={onChange}
               onBlur={onBlur}
               placeholder={placeholder}
-              placeholderTextColor="#666666"
+              placeholderTextColor={colors.muted}
               secureTextEntry={hidden && !showPassword}
               autoCapitalize={autoCapitalize}
               multiline={multiline}
               textAlignVertical={multiline ? "top" : "center"}
-              className="flex-1 px-3 text-white"
+              className="flex-1 px-3 text-foreground"
+              style={fontStyle.sans}
             />
             {hidden && (
               <Pressable
@@ -71,13 +72,15 @@ export function Input<T extends FieldValues>({
                 <MaterialCommunityIcons
                   name={showPassword ? "eye-off" : "eye"}
                   size={20}
-                  color="#666666"
+                  color={colors.muted}
                 />
               </Pressable>
             )}
           </View>
           {!!error?.message && (
-            <Text className="mt-1 text-xs text-rose-400">{error.message}</Text>
+            <Text className="mt-1 text-xs text-danger" style={fontStyle.sans}>
+              {error.message}
+            </Text>
           )}
         </View>
       )}

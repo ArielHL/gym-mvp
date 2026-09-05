@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  Text,
-  View,
-} from "react-native";
+  ActivityIndicator, Alert, Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { fetchMySubscriptions, type Subscription } from "@/features/subscriptions/services/subscriptionService";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 function formatDate(value: string | null): string {
   if (!value) {
     return "—";
@@ -64,7 +59,7 @@ export function SubscriptionScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-7 py-6"
@@ -75,13 +70,13 @@ export function SubscriptionScreen() {
               Cancelar
             </Text>
           </Pressable>
-          <Text className="text-lg font-black text-white">Mi Suscripción</Text>
+          <Text className="text-lg font-black text-white" variant="title">Mi Suscripción</Text>
           <View className="w-20" />
         </View>
 
         {loading ? (
           <View className="py-20 items-center">
-            <ActivityIndicator color="#22D3EE" />
+            <ActivityIndicator color={colors.accent.cyan} />
           </View>
         ) : !subscription ? (
           <View className="items-center rounded-3xl border border-border bg-surface p-8">
@@ -104,19 +99,19 @@ export function SubscriptionScreen() {
         ) : (
           <View className="gap-4 rounded-3xl border border-border bg-surface p-5">
             <View>
-              <Text className="mb-1 text-sm font-semibold text-neutral-300">
+              <Text className="mb-1 text-sm font-semibold text-muted">
                 Plan
               </Text>
               <Text className="text-base text-white">{subscription.plan}</Text>
             </View>
             <View>
-              <Text className="mb-1 text-sm font-semibold text-neutral-300">
+              <Text className="mb-1 text-sm font-semibold text-muted">
                 Estado
               </Text>
               <Text className="text-base text-white">{subscription.status}</Text>
             </View>
             <View>
-              <Text className="mb-1 text-sm font-semibold text-neutral-300">
+              <Text className="mb-1 text-sm font-semibold text-muted">
                 ID de Suscripción (Stripe)
               </Text>
               <Text className="text-base text-white">
@@ -124,7 +119,7 @@ export function SubscriptionScreen() {
               </Text>
             </View>
             <View>
-              <Text className="mb-1 text-sm font-semibold text-neutral-300">
+              <Text className="mb-1 text-sm font-semibold text-muted">
                 Fin del Período Actual
               </Text>
               <Text className="text-base text-white">

@@ -1,27 +1,14 @@
 import { useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  Pressable,
-  FlatList,
-  ActivityIndicator,
-  StyleSheet,
-  StatusBar,
-  ImageBackground,
-  TextInput,
-} from "react-native";
+  View, Pressable, FlatList, ActivityIndicator, StyleSheet, StatusBar, ImageBackground, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { PublicClassTemplate } from "@/features/classes/services/classesService";
 import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
+import { colors, difficultyColor, fontStyle, withAlpha } from "@/theme";
 
-const DIFF_COLORS: Record<string, string> = {
-  beginner: "#22D3EE",
-  intermediate: "#F59E0B",
-  advanced: "#A855F7",
-};
-
+import { Text } from "@/components/ui/Text";
 const DEFAULT_CLASS_IMAGE =
   "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=70";
 
@@ -55,7 +42,7 @@ interface ClassCardProps {
 }
 
 function ClassCard({ item, onPress }: ClassCardProps) {
-  const diffColor = DIFF_COLORS[item.difficulty_level] ?? "#22D3EE";
+  const diffColor = difficultyColor(item.difficulty_level);
   const imgUri = item.class_type_image_url || DEFAULT_CLASS_IMAGE;
 
   return (
@@ -140,18 +127,18 @@ export function ClassesScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       <View style={s.header}>
         <Pressable style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color="#22D3EE"
+            color={colors.accent.cyan}
           />
         </Pressable>
         <View>
-          <Text style={s.heading}>Clases</Text>
+          <Text variant="title" style={s.heading}>Clases</Text>
           <Text style={s.subHeading}>{filtered.length} Clases Disponibles</Text>
         </View>
       </View>
@@ -161,14 +148,14 @@ export function ClassesScreen() {
         <TextInput
           style={s.searchInput}
           placeholder="Search classes..."
-          placeholderTextColor="#444"
+          placeholderTextColor={colors.muted}
           value={search}
           onChangeText={setSearch}
           returnKeyType="search"
         />
         {search.length > 0 && (
           <Pressable onPress={() => setSearch("")}>
-            <Text style={{ color: "#555", fontSize: 16 }}>✕</Text>
+            <Text style={{ color: colors.muted, fontSize: 16 }}>✕</Text>
           </Pressable>
         )}
       </View>
@@ -211,8 +198,8 @@ export function ClassesScreen() {
           const active = item === filter;
           const color =
             item === "All"
-              ? "#22D3EE"
-              : (DIFF_COLORS[item.toLowerCase()] ?? "#22D3EE");
+              ? colors.accent.cyan
+              : difficultyColor(item);
           return (
             <Pressable
               style={[
@@ -221,7 +208,7 @@ export function ClassesScreen() {
               ]}
               onPress={() => setFilter(item)}
             >
-              <Text style={[s.filterChipText, active && { color: "#000" }]}>
+              <Text style={[s.filterChipText, active && { color: colors.inverse }]}>
                 {item}
               </Text>
             </Pressable>
@@ -231,7 +218,7 @@ export function ClassesScreen() {
 
       {isLoading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color="#22D3EE" />
+          <ActivityIndicator size="large" color={colors.accent.cyan} />
         </View>
       ) : isError ? (
         <View style={s.center}>
@@ -268,7 +255,7 @@ export function ClassesScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0A0A0A" },
+  root: { flex: 1, backgroundColor: colors.background },
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -281,61 +268,61 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  heading: { color: "#FFF", fontSize: 26, fontWeight: "900" },
-  subHeading: { color: "#444", fontSize: 13 },
+  heading: { color: colors.foreground, fontSize: 26, fontWeight: "900", ...fontStyle.title },
+  subHeading: { color: colors.muted, fontSize: 13 },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 20,
     marginVertical: 10,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "#222",
+    borderColor: colors.border,
   },
   searchIcon: { fontSize: 15, marginRight: 8 },
-  searchInput: { flex: 1, color: "#FFF", fontSize: 14, padding: 0 },
+  searchInput: { flex: 1, color: colors.foreground, fontSize: 14, padding: 0 },
   filterBar: { flexGrow: 0, flexShrink: 0 },
   filterList: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
   filterChip: {
     height: 36,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 0,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     alignItems: "center",
     justifyContent: "center",
   },
   filterChipText: {
-    color: "#888",
+    color: colors.muted,
     fontSize: 13,
     fontWeight: "600",
     lineHeight: 16,
   },
-  dayFilterChipActive: { backgroundColor: "#22D3EE", borderColor: "#22D3EE" },
-  filterChipTextActive: { color: "#000" },
+  dayFilterChipActive: { backgroundColor: colors.accent.cyan, borderColor: colors.accent.cyan },
+  filterChipTextActive: { color: colors.inverse },
   list: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },
-  errorText: { color: "#EF4444", fontSize: 14 },
-  emptyText: { color: "#FFF", fontSize: 16, fontWeight: "700", marginTop: 8 },
-  emptySubText: { color: "#555", fontSize: 13 },
+  errorText: { color: colors.danger, fontSize: 14 },
+  emptyText: { color: colors.foreground, fontSize: 16, fontWeight: "700", marginTop: 8 },
+  emptySubText: { color: colors.muted, fontSize: 13 },
   card: {
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1.5,
-    borderColor: "#3F5661",
-    shadowColor: "#22D3EE",
+    borderColor: withAlpha(colors.accent.cyan, "55"),
+    shadowColor: colors.accent.cyan,
     shadowOpacity: 0.14,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
@@ -354,19 +341,19 @@ const s = StyleSheet.create({
   },
   diffPillText: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
   cardBody: { padding: 16, paddingRight: 96, gap: 6 },
-  cardTitle: { color: "#FFF", fontSize: 16, fontWeight: "800", lineHeight: 22 },
-  cardTrainer: { color: "#777", fontSize: 13 },
+  cardTitle: { color: colors.foreground, fontSize: 16, fontWeight: "800", lineHeight: 22 },
+  cardTrainer: { color: colors.muted, fontSize: 13 },
   cardMeta: { flexDirection: "row", gap: 12, marginTop: 2, flexWrap: "wrap" },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaIcon: { fontSize: 12 },
-  metaText: { color: "#666", fontSize: 12 },
+  metaText: { color: colors.muted, fontSize: 12 },
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 8,
   },
-  validityText: { fontSize: 12, color: "#9CA3AF" },
+  validityText: { fontSize: 12, color: colors.muted },
   bookBtn: {
     minWidth: 92,
     minHeight: 28,
@@ -374,14 +361,14 @@ const s = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#22D3EE55",
-    backgroundColor: "#22D3EE22",
+    borderColor: withAlpha(colors.accent.cyan, "55"),
+    backgroundColor: withAlpha(colors.accent.cyan, "22"),
     overflow: "hidden",
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   bookBtnText: {
-    color: "#22D3EE",
+    color: colors.accent.cyan,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.2,

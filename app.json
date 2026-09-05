@@ -34,7 +34,15 @@
           "enforceContrast": false
         }
       ],
-      "expo-font"
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Oi-Regular.ttf",
+            "./assets/fonts/Manrope.ttf"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,6 +1,7 @@
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import type { ClassType } from "@/features/class-types/services/classTypesService";
 
+import { Text } from "@/components/ui/Text";
 type ClassTypePickerModalProps = {
   visible: boolean;
   options: ClassType[];
@@ -28,7 +29,7 @@ export function ClassTypePickerModal({
 
         <View className="w-full max-w-md rounded-2xl border border-border bg-background p-4">
           <Text className="text-lg font-bold text-white">Selecciona tipo</Text>
-          <Text className="mt-1 text-xs text-gray-400">
+          <Text className="mt-1 text-xs text-muted">
             Elige el tipo de clase para la plantilla
           </Text>
 
@@ -39,16 +40,16 @@ export function ClassTypePickerModal({
                 return (
                   <Pressable
                     key={option.id}
-                    className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-surface"}`}
+                    className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-surface"}`}
                     onPress={() => onSelect(option)}
                   >
                     <Text className="font-semibold text-white">{option.nombre}</Text>
                     {!!option.descripcion && (
-                      <Text className="mt-1 text-xs text-gray-400">
+                      <Text className="mt-1 text-xs text-muted">
                         {option.descripcion}
                       </Text>
                     )}
-                    <Text className="mt-1 text-[11px] text-gray-500">{option.slug}</Text>
+                    <Text className="mt-1 text-[11px] text-muted">{option.slug}</Text>
                   </Pressable>
                 );
               })}
@@ -60,7 +61,7 @@ export function ClassTypePickerModal({
               className="flex-1 rounded-xl border border-border bg-surface px-4 py-3"
               onPress={onCancel}
             >
-              <Text className="text-center font-semibold text-gray-300">Cancelar</Text>
+              <Text className="text-center font-semibold text-muted">Cancelar</Text>
             </Pressable>
           </View>
         </View>

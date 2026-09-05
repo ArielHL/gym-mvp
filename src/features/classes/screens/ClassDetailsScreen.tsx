@@ -1,17 +1,12 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { usePublicClassTemplate } from "@/features/classes/hooks/useClasses";
 
+import { colors, fontStyle } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function formatDays(mask: number): string {
@@ -39,7 +34,7 @@ export function ClassDetailsScreen() {
     return (
       <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#22D3EE" />
+          <ActivityIndicator size="large" color={colors.accent.cyan} />
           <Text style={styles.mutedText}>Loading class...</Text>
         </View>
       </SafeAreaView>
@@ -77,7 +72,7 @@ export function ClassDetailsScreen() {
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color="#22D3EE"
+            color={colors.accent.cyan}
           />
         </Pressable>
         <Text style={styles.headerTitle}>Detalles de la Clase</Text>
@@ -86,7 +81,7 @@ export function ClassDetailsScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{template.title}</Text>
+        <Text variant="title" style={styles.title}>{template.title}</Text>
         <Text style={styles.desc}>{template.description}</Text>
 
         <View style={styles.infoCard}>
@@ -118,7 +113,7 @@ export function ClassDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000000" },
+  root: { flex: 1, backgroundColor: colors.inverse },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -130,14 +125,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  headerTitle: { color: "#ffffff", fontSize: 16, fontWeight: "800" },
+  headerTitle: { color: colors.foreground, fontSize: 16, fontWeight: "800" },
   center: {
     flex: 1,
     alignItems: "center",
@@ -145,30 +140,30 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 20,
   },
-  mutedText: { color: "#666666", fontSize: 14 },
-  errorText: { color: "#ef4444", fontSize: 15, fontWeight: "700" },
+  mutedText: { color: colors.muted, fontSize: 14 },
+  errorText: { color: colors.danger, fontSize: 15, fontWeight: "700" },
   scroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48 },
-  title: { fontSize: 28, fontWeight: "900", color: "#ffffff", lineHeight: 34 },
-  desc: { fontSize: 15, color: "#666666", marginTop: 8, lineHeight: 22 },
+  title: { fontSize: 28, fontWeight: "900", color: colors.foreground, lineHeight: 34, ...fontStyle.title },
+  desc: { fontSize: 15, color: colors.muted, marginTop: 8, lineHeight: 22 },
   infoCard: {
-    backgroundColor: "#111111",
+    backgroundColor: colors.background,
     borderRadius: 14,
     padding: 16,
     marginTop: 20,
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: colors.border,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: colors.surface.elevated,
   },
-  rowLabel: { fontSize: 14, color: "#555555" },
+  rowLabel: { fontSize: 14, color: colors.muted },
   rowValue: {
     fontSize: 14,
-    color: "#ffffff",
+    color: colors.foreground,
     fontWeight: "600",
     flex: 1,
     textAlign: "right",
@@ -177,7 +172,7 @@ const styles = StyleSheet.create({
   btnShell: {
     marginTop: 48,
     height: 54,
-    backgroundColor: "#add8e6",
+    backgroundColor: colors.accent.cyan,
     borderRadius: 12,
     overflow: "hidden",
     alignItems: "center",
@@ -188,5 +183,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   btnDisabled: { opacity: 0.45 },
-  btnText: { fontSize: 16, fontWeight: "700", color: "#000000" },
+  btnText: { fontSize: 16, fontWeight: "700", color: colors.inverse },
 });

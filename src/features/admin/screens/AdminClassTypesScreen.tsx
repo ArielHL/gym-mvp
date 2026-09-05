@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,8 @@ import {
   updateClassType,
 } from "@/features/class-types/services/classTypesService";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const schema = z.object({
   nombre: z.string().min(2, "Minimo 2 caracteres"),
   slug: z
@@ -187,7 +189,7 @@ export function AdminClassTypesScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -197,10 +199,10 @@ export function AdminClassTypesScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Acceso admin requerido
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Solo admins pueden gestionar tipos de clase.
           </Text>
         </View>
@@ -212,8 +214,8 @@ export function AdminClassTypesScreen() {
     <Screen edges={[]}>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-white">Tipos de Clase</Text>
-          <Text className="mt-1 text-sm text-gray-400">
+          <Text className="text-2xl font-bold text-white" variant="title">Tipos de Clase</Text>
+          <Text className="mt-1 text-sm text-muted">
             Crea, edita, desactiva o elimina tipos para categorizar clases.
           </Text>
         </View>
@@ -253,7 +255,7 @@ export function AdminClassTypesScreen() {
               return (
                 <Pressable
                   key={tipo.id}
-                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-background"}`}
+                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-background"}`}
                   onPress={() => {
                     setSelectedType(tipo);
                     setIsFormVisible(true);
@@ -262,14 +264,14 @@ export function AdminClassTypesScreen() {
                   <View className="flex-row items-start justify-between gap-3">
                     <View className="flex-1">
                       <Text className="font-bold text-white">{tipo.nombre}</Text>
-                      <Text className="mt-1 text-xs text-gray-400">{tipo.slug}</Text>
+                      <Text className="mt-1 text-xs text-muted">{tipo.slug}</Text>
                       {!!tipo.descripcion && (
-                        <Text className="mt-2 text-sm text-gray-500">{tipo.descripcion}</Text>
+                        <Text className="mt-2 text-sm text-muted">{tipo.descripcion}</Text>
                       )}
                     </View>
                     <View className="items-end gap-2">
                       <Pressable
-                        className={`rounded-full border px-3 py-2 ${tipo.is_active ? "border-cyan-400/60 bg-cyan-950/40" : "border-amber-400/60 bg-amber-950/30"}`}
+                        className={`rounded-full border px-3 py-2 ${tipo.is_active ? "border-accent-cyan/60 bg-accent-cyan/10" : "border-accent-amber/60 bg-accent-amber/10"}`}
                         disabled={activeMutation.isPending}
                         onPress={(event) => {
                           event.stopPropagation();
@@ -277,19 +279,19 @@ export function AdminClassTypesScreen() {
                         }}
                       >
                         <Text
-                          className={`text-xs font-bold ${tipo.is_active ? "text-cyan-300" : "text-amber-300"}`}
+                          className={`text-xs font-bold ${tipo.is_active ? "text-accent-cyan" : "text-accent-amber"}`}
                         >
                           {tipo.is_active ? "ACTIVO" : "INACTIVO"}
                         </Text>
                       </Pressable>
-                      <Text className="text-[11px] text-gray-500">Orden {tipo.sort_order}</Text>
+                      <Text className="text-[11px] text-muted">Orden {tipo.sort_order}</Text>
                     </View>
                   </View>
                 </Pressable>
               );
             })
           ) : (
-            <Text className="text-sm text-gray-400">
+            <Text className="text-sm text-muted">
               {statusFilter !== "all"
                 ? "No hay tipos de clase que coincidan con el filtro."
                 : "Aun no hay tipos de clase."}

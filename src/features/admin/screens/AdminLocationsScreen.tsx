@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -18,6 +18,8 @@ import {
   updateLocation,
 } from "@/features/locations/services/locationsService";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const schema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
@@ -169,7 +171,7 @@ export function AdminLocationsScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -179,10 +181,10 @@ export function AdminLocationsScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Accesso de Administrador Requerido
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Solo los administradores pueden gestionar ubicaciones.
           </Text>
         </View>
@@ -194,10 +196,10 @@ export function AdminLocationsScreen() {
     <Screen edges={[]}>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-white">
+          <Text className="text-2xl font-bold text-white" variant="title">
             Gestionar Ubicaciones
           </Text>
-          <Text className="mt-1 text-sm text-gray-400">
+          <Text className="mt-1 text-sm text-muted">
             Agregar ubicaciones, actualizar detalles de las áreas del gimnasio y desactivar salas no utilizadas.
           </Text>
         </View>
@@ -237,7 +239,7 @@ export function AdminLocationsScreen() {
               return (
                 <Pressable
                   key={location.id}
-                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-background"}`}
+                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-background"}`}
                   onPress={() => {
                     setSelectedLocation(location);
                     setIsFormVisible(true);
@@ -248,17 +250,17 @@ export function AdminLocationsScreen() {
                       <Text className="font-bold text-white">
                         {location.name}
                       </Text>
-                      <Text className="mt-1 text-xs text-gray-400">
+                      <Text className="mt-1 text-xs text-muted">
                         {location.address || "No se proporcionó dirección"}
                       </Text>
                       {location.description ? (
-                        <Text className="mt-2 text-sm text-gray-500">
+                        <Text className="mt-2 text-sm text-muted">
                           {location.description}
                         </Text>
                       ) : null}
                     </View>
                     <Pressable
-                      className={`rounded-full border px-3 py-2 ${location.is_active ? "border-cyan-400/60 bg-cyan-950/40" : "border-amber-400/60 bg-amber-950/30"}`}
+                      className={`rounded-full border px-3 py-2 ${location.is_active ? "border-accent-cyan/60 bg-accent-cyan/10" : "border-accent-amber/60 bg-accent-amber/10"}`}
                       disabled={activeMutation.isPending}
                       onPress={(event) => {
                         event.stopPropagation();
@@ -266,7 +268,7 @@ export function AdminLocationsScreen() {
                       }}
                     >
                       <Text
-                        className={`text-xs font-bold ${location.is_active ? "text-cyan-300" : "text-amber-300"}`}
+                        className={`text-xs font-bold ${location.is_active ? "text-accent-cyan" : "text-accent-amber"}`}
                       >
                         {location.is_active ? "ACTIVO" : "INACTIVO"}
                       </Text>
@@ -276,7 +278,7 @@ export function AdminLocationsScreen() {
               );
             })
           ) : (
-            <Text className="text-sm text-gray-400">
+            <Text className="text-sm text-muted">
               {statusFilter !== "all"
                 ? "No hay ubicaciones que coincidan con el filtro seleccionado."
                 : "Aún no hay ubicaciones."}

@@ -50,6 +50,7 @@ export function useBookClass() {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings(userId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.allBookings(userId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId) });
     },
   });
 }
@@ -64,6 +65,7 @@ export function useCancelBooking() {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings(userId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.allBookings(userId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId) });
     },
   });
 }

@@ -53,6 +53,22 @@ export interface NotificationToken {
   created_at: string;
 }
 
+export type AppNotificationType =
+  | "booking_confirmed"
+  | "booking_cancelled"
+  | "general";
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: AppNotificationType;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+}
+
 export interface CallableResponse<T = unknown> {
   success: boolean;
   message: string;

@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +8,9 @@ import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButton
 import { authService } from '@/features/auth/services/authService';
 import { useGymBranding } from '@/features/home/hooks/useGymBranding';
 
+import { colors } from "@/theme";
+
+import { Text } from "@/components/ui/Text";
 const KeyboardWrapper = Platform.OS === 'ios'
   ? ({ children }: { children: React.ReactNode }) => (
       <KeyboardAvoidingView className="flex-1" behavior="padding">{children}</KeyboardAvoidingView>
@@ -75,7 +68,7 @@ export function CreateAccountScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <KeyboardWrapper>
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -84,19 +77,19 @@ export function CreateAccountScreen() {
         >
           <View className="mb-8">
             <Text className="text-sm font-bold uppercase tracking-[3px] text-accent-purple">Join {gymName}</Text>
-            <Text className="mt-3 text-4xl font-black text-white">Create Account</Text>
+            <Text className="mt-3 text-4xl font-black text-white" variant="title">Create Account</Text>
             <Text className="mt-2 text-base text-muted">Start booking classes in a few seconds.</Text>
           </View>
 
           <View className="gap-4 rounded-3xl border border-border bg-surface p-5">
             <View>
-              <Text className="mb-2 text-sm font-semibold text-neutral-300">Full Name</Text>
+              <Text className="mb-2 text-sm font-semibold text-muted">Full Name</Text>
               <TextInput
                 className="h-14 rounded-2xl border border-border bg-black px-4 text-base text-white"
                 value={name}
                 onChangeText={setName}
                 placeholder="Jane Smith"
-                placeholderTextColor="#666666"
+                placeholderTextColor={colors.muted}
                 autoCapitalize="words"
                 autoComplete="name"
                 autoCorrect={false}
@@ -105,13 +98,13 @@ export function CreateAccountScreen() {
             </View>
 
             <View>
-              <Text className="mb-2 text-sm font-semibold text-neutral-300">Email</Text>
+              <Text className="mb-2 text-sm font-semibold text-muted">Email</Text>
               <TextInput
                 className="h-14 rounded-2xl border border-border bg-black px-4 text-base text-white"
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor="#666666"
+                placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
@@ -121,14 +114,14 @@ export function CreateAccountScreen() {
             </View>
 
             <View>
-              <Text className="mb-2 text-sm font-semibold text-neutral-300">Password</Text>
+              <Text className="mb-2 text-sm font-semibold text-muted">Password</Text>
               <View className="h-14 flex-row items-center rounded-2xl border border-border bg-black">
                 <TextInput
                   className="flex-1 px-4 text-base text-white"
                   value={password}
                   onChangeText={setPassword}
                   placeholder="********"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={colors.muted}
                   secureTextEntry={!showPassword}
                   autoComplete="new-password"
                   textContentType="newPassword"
@@ -143,21 +136,21 @@ export function CreateAccountScreen() {
                   <MaterialCommunityIcons
                     name={showPassword ? 'eye-off' : 'eye'}
                     size={22}
-                    color="#666666"
+                    color={colors.muted}
                   />
                 </Pressable>
               </View>
             </View>
 
             <View>
-              <Text className="mb-2 text-sm font-semibold text-neutral-300">Confirm Password</Text>
+              <Text className="mb-2 text-sm font-semibold text-muted">Confirm Password</Text>
               <View className="h-14 flex-row items-center rounded-2xl border border-border bg-black">
                 <TextInput
                   className="flex-1 px-4 text-base text-white"
                   value={confirm}
                   onChangeText={setConfirm}
                   placeholder="********"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={colors.muted}
                   secureTextEntry={!showConfirm}
                   autoComplete="new-password"
                   textContentType="newPassword"
@@ -173,7 +166,7 @@ export function CreateAccountScreen() {
                   <MaterialCommunityIcons
                     name={showConfirm ? 'eye-off' : 'eye'}
                     size={22}
-                    color="#666666"
+                    color={colors.muted}
                   />
                 </Pressable>
               </View>
@@ -185,7 +178,7 @@ export function CreateAccountScreen() {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#000000" />
+                <ActivityIndicator color={colors.inverse} />
               ) : (
                 <Text className="text-base font-black text-black">Create Account</Text>
               )}

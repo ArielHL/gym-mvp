@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -22,6 +22,8 @@ import {
   saveGymBranding,
 } from "@/features/home/services/gymBrandingService";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const schema = z.object({
   cancellationWindowHours: z
     .string()
@@ -163,7 +165,7 @@ export function AdminSettingsScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -173,10 +175,10 @@ export function AdminSettingsScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Admin access required
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Only admins can manage class settings.
           </Text>
         </View>
@@ -186,10 +188,10 @@ export function AdminSettingsScreen() {
 
   return (
     <Screen edges={[]}>
-      <Text className="mb-2 mt-4 text-2xl font-bold text-white">
+      <Text className="mb-2 mt-4 text-2xl font-bold text-white" variant="title">
         Nombre del gimnasio
       </Text>
-      <Text className="mb-3 text-sm leading-5 text-gray-400">
+      <Text className="mb-3 text-sm leading-5 text-muted">
         Se muestra en el inicio, el menú, el inicio de sesión y el perfil.
       </Text>
       {brandingQuery.isError ? (
@@ -215,10 +217,10 @@ export function AdminSettingsScreen() {
         </View>
       )}
 
-      <Text className="mb-2 text-2xl font-bold text-white">
+      <Text className="mb-2 text-2xl font-bold text-white" variant="title">
         Ajustes de Clases
       </Text>
-      <Text className="mb-3 text-sm leading-5 text-gray-400">
+      <Text className="mb-3 text-sm leading-5 text-muted">
         Configura las reglas que controlan las reservas y cancelaciones.
       </Text>
 
@@ -231,7 +233,7 @@ export function AdminSettingsScreen() {
           <Text className="mb-1 text-base font-bold text-white">
             Ventana de cancelación
           </Text>
-          <Text className="mb-3 text-sm leading-5 text-gray-400">
+          <Text className="mb-3 text-sm leading-5 text-muted">
             Horas antes del inicio de la clase en las que los miembros ya no
             pueden cancelar su reserva.
           </Text>
@@ -249,10 +251,10 @@ export function AdminSettingsScreen() {
         </View>
       )}
 
-      <Text className="mb-2 mt-8 text-2xl font-bold text-white">
+      <Text className="mb-2 mt-8 text-2xl font-bold text-white" variant="title">
         Contacto de ventas
       </Text>
-      <Text className="mb-3 text-sm leading-5 text-gray-400">
+      <Text className="mb-3 text-sm leading-5 text-muted">
         Este WhatsApp se muestra en Paga una Suscripción para que los miembros
         escriban a un asesor.
       </Text>

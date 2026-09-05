@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/features/profile/screens/ProfileScreen";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { colors, fonts } from "@/theme";
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -14,10 +15,10 @@ export default function TabsLayout() {
       backBehavior="history"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#22D3EE",
-        tabBarInactiveTintColor: "#666666",
+            tabBarActiveTintColor: colors.accent.cyan,
+        tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: "#0E0E0E",
+          backgroundColor: colors.tabBar,
           borderTopWidth: 0,
           height: 58 + bottomInset,
           paddingTop: 8,
@@ -26,6 +27,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",
+          fontFamily: fonts.sans || undefined,
         },
       }}
     >

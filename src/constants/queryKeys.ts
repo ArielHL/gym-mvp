@@ -16,6 +16,8 @@ export const queryKeys = {
   allBookings: (userId?: string) =>
     ["bookings", "all", userId ?? "anonymous"] as const,
   subscriptions: ["subscriptions"] as const,
+  notifications: (userId?: string) =>
+    ["notifications", userId ?? "anonymous"] as const,
   adminUsers: ["admin", "users"] as const,
   adminSettings: ["admin", "settings"] as const,
   adminAttendance: ["admin", "attendance"] as const,

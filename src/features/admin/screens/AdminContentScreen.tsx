@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+  ActivityIndicator, Alert, Image, Pressable, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +23,8 @@ import {
 } from "@/features/home/hooks/useHomeCarousel";
 import type { HomeCarouselSlide } from "@/features/home/services/homeContentService";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 type ImagePickerTarget =
   | { kind: "slide" }
   | { kind: "classType"; id: string };
@@ -50,7 +45,7 @@ const emptySlide: SlideFormValues = {
   title: "",
   sub: "",
   tag: "",
-  tagColor: "#22D3EE",
+  tagColor: colors.accent.cyan,
   imageUri: "",
 };
 
@@ -251,7 +246,7 @@ export function AdminContentScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -261,10 +256,10 @@ export function AdminContentScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Acceso admin requerido
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Solo admins pueden editar el contenido de la app.
           </Text>
         </View>
@@ -277,8 +272,8 @@ export function AdminContentScreen() {
   return (
     <Screen edges={[]}>
       <View className="mb-5 mt-4">
-        <Text className="text-2xl font-bold text-white">Contenido de la App</Text>
-        <Text className="mt-1 text-sm text-gray-400">
+        <Text className="text-2xl font-bold text-white" variant="title">Contenido de la App</Text>
+        <Text className="mt-1 text-sm text-muted">
           Edita el carrusel del inicio y las imagenes de los tipos de clase.
         </Text>
       </View>
@@ -288,7 +283,7 @@ export function AdminContentScreen() {
         <Text className="mb-1 text-base font-bold text-white">
           Carrusel Principal (Home)
         </Text>
-        <Text className="mb-4 text-sm leading-5 text-gray-400">
+        <Text className="mb-4 text-sm leading-5 text-muted">
           Selecciona el texto y las imagenes que se muestran en el carrusel del
           inicio.
         </Text>
@@ -324,7 +319,7 @@ export function AdminContentScreen() {
               control={control}
               name="tagColor"
               label="Color de etiqueta"
-              placeholder="#22D3EE"
+              placeholder={colors.accent.cyan}
               autoCapitalize="none"
             />
             <Input
@@ -352,7 +347,7 @@ export function AdminContentScreen() {
                 No se pudieron cargar las slides del carrusel.
               </Text>
             ) : slides.length === 0 ? (
-              <Text className="mb-3 text-sm text-gray-400">
+              <Text className="mb-3 text-sm text-muted">
                 Aun no hay slides. Agrega la primera.
               </Text>
             ) : (
@@ -373,7 +368,7 @@ export function AdminContentScreen() {
                       <Text className="text-sm font-bold text-white">
                         {slide.title}
                       </Text>
-                      <Text className="mt-0.5 text-xs text-gray-400">
+                      <Text className="mt-0.5 text-xs text-muted">
                         {slide.sub}
                       </Text>
                       <View
@@ -404,7 +399,7 @@ export function AdminContentScreen() {
                         onPress={() => moveSlide(index, -1)}
                       >
                         <Text
-                          className={`font-bold ${index === 0 ? "text-gray-600" : "text-white"}`}
+                          className={`font-bold ${index === 0 ? "text-muted" : "text-foreground"}`}
                         >
                           ↑
                         </Text>
@@ -415,7 +410,7 @@ export function AdminContentScreen() {
                         onPress={() => moveSlide(index, 1)}
                       >
                         <Text
-                          className={`font-bold ${index === slides.length - 1 ? "text-gray-600" : "text-white"}`}
+                          className={`font-bold ${index === slides.length - 1 ? "text-muted" : "text-foreground"}`}
                         >
                           ↓
                         </Text>
@@ -423,10 +418,10 @@ export function AdminContentScreen() {
                     </View>
                     <View className="flex-row gap-2">
                       <Pressable
-                        className="rounded-lg border border-cyan-400/50 bg-cyan-950/30 px-3 py-2"
+                        className="rounded-lg border border-accent-cyan/50 bg-accent-cyan/10 px-3 py-2"
                         onPress={() => openEditSlide(slide.id)}
                       >
-                        <Text className="text-xs font-bold text-cyan-300">
+                        <Text className="text-xs font-bold text-accent-cyan">
                           Editar
                         </Text>
                       </Pressable>
@@ -463,7 +458,7 @@ export function AdminContentScreen() {
         <Text className="mb-1 text-base font-bold text-white">
           Imagenes de Tipos de Clase
         </Text>
-        <Text className="mb-4 text-sm leading-5 text-gray-400">
+        <Text className="mb-4 text-sm leading-5 text-muted">
           Define la imagen que se muestra para cada tipo en la pantalla de
           clases.
         </Text>
@@ -473,7 +468,7 @@ export function AdminContentScreen() {
             No se pudieron cargar los tipos de clase.
           </Text>
         ) : (classTypesQuery.data ?? []).length === 0 ? (
-          <Text className="text-sm text-gray-400">
+          <Text className="text-sm text-muted">
             Aun no hay tipos de clase.
           </Text>
         ) : (
@@ -497,7 +492,7 @@ export function AdminContentScreen() {
                         width: 56,
                         height: 56,
                         borderRadius: 10,
-                        backgroundColor: "#1A1A1A",
+                        backgroundColor: colors.surface.elevated,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
@@ -507,7 +502,7 @@ export function AdminContentScreen() {
                   )}
                   <View className="flex-1">
                     <Text className="font-bold text-white">{tipo.nombre}</Text>
-                    <Text className="mt-0.5 text-xs text-gray-400">
+                    <Text className="mt-0.5 text-xs text-muted">
                       {tipo.slug}
                     </Text>
                   </View>
@@ -520,7 +515,7 @@ export function AdminContentScreen() {
                       setImageInputs((prev) => ({ ...prev, [tipo.id]: value }))
                     }
                     placeholder="https://..."
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={colors.muted}
                     autoCapitalize="none"
                     className="h-12 flex-1 rounded-xl border border-border bg-surface px-3 text-white"
                   />
@@ -534,15 +529,15 @@ export function AdminContentScreen() {
                     <MaterialCommunityIcons
                       name="image-search-outline"
                       size={22}
-                      color="#22D3EE"
+                      color={colors.accent.cyan}
                     />
                   </Pressable>
                   <Pressable
-                    className="rounded-xl border border-cyan-400/50 bg-cyan-950/30 px-4 py-3"
+                    className="rounded-xl border border-accent-cyan/50 bg-accent-cyan/10 px-4 py-3"
                     disabled={imageSaveMutation.isPending}
                     onPress={() => saveImage(tipo)}
                   >
-                    <Text className="text-xs font-bold text-cyan-300">
+                    <Text className="text-xs font-bold text-accent-cyan">
                       {imageSaveMutation.isPending ? "..." : "Guardar"}
                     </Text>
                   </Pressable>

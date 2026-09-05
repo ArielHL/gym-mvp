@@ -1,3 +1,11 @@
+const { colors, fonts } = require('./src/theme/tokens');
+
+const fontFamily = {};
+if (fonts.sans) fontFamily.sans = [fonts.sans];
+if (fonts.subtitle) fontFamily.subtitle = [fonts.subtitle];
+if (fonts.title) fontFamily.title = [fonts.title];
+if (fonts.display) fontFamily.display = [fonts.display];
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{ts,tsx}'],
@@ -6,25 +14,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#0A0A0A',
-        surface: {
-          DEFAULT: '#141414',
-          elevated: '#1A1A1A'
-        },
-        border: '#222222',
-        muted: '#666666',
-        accent: {
-          cyan: '#22D3EE',
-          purple: '#A855F7',
-          amber: '#F59E0B'
-        },
-        brand: {
-          50: '#ECFEFF',
-          500: '#22D3EE',
-          700: '#0E7490'
-        }
-      }
-    }
+        background: colors.background,
+        surface: colors.surface,
+        border: colors.border,
+        muted: colors.muted,
+        faint: colors.faint,
+        foreground: colors.foreground,
+        inverse: colors.inverse,
+        danger: colors.danger,
+        success: colors.success,
+        accent: colors.accent,
+        difficulty: colors.difficulty,
+        tabBar: colors.tabBar,
+      },
+      fontFamily,
+    },
   },
-  plugins: []
+  plugins: [],
 };

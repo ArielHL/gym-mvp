@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/ui/Screen";
 import { FilterChipRow } from "@/components/ui/FilterChipRow";
@@ -11,6 +11,8 @@ import {
   setBookingAttendance,
 } from "@/features/admin/services/attendanceService";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 type TimeFilter = "all" | "past" | "upcoming";
 
 function scheduledAt(booking: AttendanceBooking): Date {
@@ -76,7 +78,7 @@ export function AdminAttendanceScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -86,10 +88,10 @@ export function AdminAttendanceScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Acceso admin requerido
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Solo los administradores pueden gestionar la asistencia.
           </Text>
         </View>
@@ -100,8 +102,8 @@ export function AdminAttendanceScreen() {
   return (
     <Screen edges={[]}>
       <View className="mb-5 mt-4">
-        <Text className="text-2xl font-bold text-white">Asistencia</Text>
-        <Text className="mt-1 text-sm text-gray-400">
+        <Text className="text-2xl font-bold text-white" variant="title">Asistencia</Text>
+        <Text className="mt-1 text-sm text-muted">
           Marca si cada miembro asistió a la clase reservada.
         </Text>
       </View>
@@ -122,7 +124,7 @@ export function AdminAttendanceScreen() {
           <Text className="text-base font-bold text-white">
             Reservas ({filteredBookings.length})
           </Text>
-          <Text className="text-sm font-semibold text-cyan-300">
+          <Text className="text-sm font-semibold text-accent-cyan">
             {attendedCount} asistieron
           </Text>
         </View>
@@ -142,20 +144,20 @@ export function AdminAttendanceScreen() {
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1">
                     <Text className="font-bold text-white">{name}</Text>
-                    <Text className="mt-1 text-sm text-gray-300">
+                    <Text className="mt-1 text-sm text-muted">
                       {booking.title}
                     </Text>
-                    <Text className="mt-1 text-xs text-gray-400">
+                    <Text className="mt-1 text-xs text-muted">
                       {booking.date} · {booking.start_time} - {booking.end_time}
                     </Text>
-                    <Text className="mt-1 text-xs text-cyan-300">
+                    <Text className="mt-1 text-xs text-accent-cyan">
                       {booking.location}
                     </Text>
                   </View>
                   <Pressable
                     className={`rounded-full border px-3 py-2 ${
                       booking.attended
-                        ? "border-cyan-400/60 bg-cyan-950/40"
+                        ? "border-accent-cyan/60 bg-accent-cyan/10"
                         : "border-border bg-surface"
                     }`}
                     disabled={attendanceMutation.isPending}
@@ -163,7 +165,7 @@ export function AdminAttendanceScreen() {
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        booking.attended ? "text-cyan-300" : "text-gray-400"
+                        booking.attended ? "text-accent-cyan" : "text-muted"
                       }`}
                     >
                       {booking.attended ? "ASISTIÓ" : "NO ASISTIÓ"}
@@ -174,7 +176,7 @@ export function AdminAttendanceScreen() {
             );
           })
         ) : (
-          <Text className="text-sm text-gray-400">
+          <Text className="text-sm text-muted">
             {timeFilter === "all"
               ? "Aún no hay reservas."
               : timeFilter === "past"

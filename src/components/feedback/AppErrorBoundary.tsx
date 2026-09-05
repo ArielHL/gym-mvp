@@ -1,6 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { colors } from '@/theme';
 
+import { Text } from "@/components/ui/Text";
 interface AppErrorBoundaryProps {
   children: ReactNode;
 }
@@ -47,23 +49,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#020617',
+    backgroundColor: colors.background,
     paddingHorizontal: 24
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fca5a5'
+    color: colors.danger
   },
   message: {
     marginTop: 12,
     textAlign: 'center',
-    color: '#cbd5e1'
+    color: colors.muted
   },
   hint: {
     marginTop: 12,
     textAlign: 'center',
-    color: '#94a3b8',
+    color: colors.muted,
     fontSize: 12
   }
 });

@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { Platform, View } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 
+import { colors } from "@/theme";
+
+import { Text } from "@/components/ui/Text";
 const HOURS = Array.from({ length: 24 }, (_, hour) =>
   hour.toString().padStart(2, "0"),
 );
@@ -22,11 +25,11 @@ function parseTime(value: string): { hour: string; minute: string } {
 export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
   const { hour, minute } = parseTime(value);
   const pickerMode = Platform.OS === "android" ? "dropdown" : undefined;
-  const pickerItemColor = Platform.OS === "android" ? "#111827" : "#E5E7EB";
+  const pickerItemColor = Platform.OS === "android" ? colors.inverse : colors.foreground;
   const pickerTextStyle =
     Platform.OS === "android"
-      ? { color: "#E5E7EB", height: 55 }
-      : { color: "#E5E7EB" };
+      ? { color: colors.foreground, height: 55 }
+      : { color: colors.foreground };
   const [activeField, setActiveField] = useState<"hour" | "minute" | null>(
     null,
   );
@@ -34,22 +37,22 @@ export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
 
   const hourContainerClassName =
     activeField === "hour"
-      ? "flex-1 overflow-hidden rounded-lg border border-cyan-400/70 bg-cyan-950/25"
+      ? "flex-1 overflow-hidden rounded-lg border border-accent-cyan/70 bg-accent-cyan/10"
       : "flex-1 overflow-hidden rounded-lg border border-border bg-background";
 
   const minuteContainerClassName =
     activeField === "minute"
-      ? "w-28 overflow-hidden rounded-lg border border-cyan-400/70 bg-cyan-950/25"
+      ? "w-28 overflow-hidden rounded-lg border border-accent-cyan/70 bg-accent-cyan/10"
       : "w-28 overflow-hidden rounded-lg border border-border bg-background";
 
   return (
     <View className="rounded-xl border border-border bg-surface p-3">
       <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <Text className="text-xs font-semibold uppercase tracking-wide text-muted">
           Hour
         </Text>
-        <Text className="text-lg font-bold text-cyan-300">{displayValue}</Text>
-        <Text className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <Text className="text-lg font-bold text-accent-cyan">{displayValue}</Text>
+        <Text className="text-xs font-semibold uppercase tracking-wide text-muted">
           Minute
         </Text>
       </View>
@@ -64,8 +67,8 @@ export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
             onBlur={() => setActiveField((current) => (current === "hour" ? null : current))}
             onTouchStart={() => setActiveField("hour")}
             style={pickerTextStyle}
-            itemStyle={{ color: "#E5E7EB", fontSize: 18 }}
-            dropdownIconColor="#22D3EE"
+            itemStyle={{ color: colors.foreground, fontSize: 18 }}
+            dropdownIconColor={colors.accent.cyan}
           >
             {HOURS.map((hourOption) => (
               <Picker.Item
@@ -78,7 +81,7 @@ export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
           </Picker>
         </View>
 
-        <Text className="text-lg font-bold text-gray-400">:</Text>
+        <Text className="text-lg font-bold text-muted">:</Text>
 
         <View className={minuteContainerClassName}>
           <Picker
@@ -91,8 +94,8 @@ export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
             }
             onTouchStart={() => setActiveField("minute")}
             style={pickerTextStyle}
-            itemStyle={{ color: "#E5E7EB", fontSize: 18 }}
-            dropdownIconColor="#22D3EE"
+            itemStyle={{ color: colors.foreground, fontSize: 18 }}
+            dropdownIconColor={colors.accent.cyan}
           >
             {MINUTES.map((minuteOption) => (
               <Picker.Item
@@ -108,8 +111,8 @@ export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
 
       {Platform.OS === "android" ? (
         <View className="mt-2 flex-row justify-between px-2">
-          <Text className="text-xs text-gray-400">Tap to open list</Text>
-          <Text className="text-xs text-gray-400">{displayValue}</Text>
+          <Text className="text-xs text-muted">Tap to open list</Text>
+          <Text className="text-xs text-muted">{displayValue}</Text>
         </View>
       ) : null}
     </View>

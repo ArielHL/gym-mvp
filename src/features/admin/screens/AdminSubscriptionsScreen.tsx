@@ -1,12 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+  ActivityIndicator, Alert, Pressable, TextInput, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -27,7 +21,9 @@ import {
   updateUserSubscription,
 } from "@/features/subscriptions/services/adminSubscriptionService";
 import { toDateKey } from "@/utils/date";
+import { calendarSelectedMark, calendarTheme, colors } from "@/theme";
 
+import { Text } from "@/components/ui/Text";
 LocaleConfig.locales.es = {
   monthNames: [
     "enero",
@@ -116,23 +112,6 @@ function formatDate(value: string | null): string {
     year: "numeric",
   });
 }
-
-const calendarTheme = {
-  calendarBackground: "#141414",
-  backgroundColor: "#141414",
-  dayTextColor: "#DDD",
-  textDisabledColor: "#333",
-  selectedDayBackgroundColor: "#22D3EE",
-  selectedDayTextColor: "#000",
-  todayTextColor: "#22D3EE",
-  monthTextColor: "#FFF",
-  arrowColor: "#22D3EE",
-  textMonthFontWeight: "800" as const,
-  textDayFontSize: 14,
-  textMonthFontSize: 16,
-  dotColor: "#22D3EE",
-  selectedDotColor: "#000",
-};
 
 export function AdminSubscriptionsScreen() {
   const { role, initializing } = useAuthState();
@@ -281,7 +260,7 @@ export function AdminSubscriptionsScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -291,10 +270,10 @@ export function AdminSubscriptionsScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Acceso admin requerido
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Solo admins pueden gestionar suscripciones.
           </Text>
         </View>
@@ -303,21 +282,17 @@ export function AdminSubscriptionsScreen() {
   }
 
   const markedDates: Record<string, any> = {
-    [periodEnd]: {
-      selected: true,
-      selectedColor: "#22D3EE",
-      selectedTextColor: "#000",
-    },
+    [periodEnd]: calendarSelectedMark(),
   };
 
   return (
     <Screen edges={[]}>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-white">
+          <Text className="text-2xl font-bold text-white" variant="title">
             Gestionar Suscripciones
           </Text>
-          <Text className="mt-1 text-sm text-gray-400">
+          <Text className="mt-1 text-sm text-muted">
             Asigna o actualiza el plan y suscripción de cada usuario.
           </Text>
         </View>
@@ -330,7 +305,7 @@ export function AdminSubscriptionsScreen() {
             value={search}
             onChangeText={setSearch}
             placeholder="Buscar por nombre..."
-            placeholderTextColor="#666666"
+            placeholderTextColor={colors.muted}
             autoCapitalize="words"
             autoCorrect={false}
           />
@@ -387,13 +362,13 @@ export function AdminSubscriptionsScreen() {
                         <Text className="font-bold text-white">
                           {user.full_name || user.email || "Usuario"}
                         </Text>
-                        <Text className="mt-1 text-xs text-gray-400">
+                        <Text className="mt-1 text-xs text-muted">
                           {user.email || "Sin email"}
                         </Text>
-                        <Text className="mt-2 text-sm text-gray-500">
+                        <Text className="mt-2 text-sm text-muted">
                           {sub ? `${sub.plan} · ${sub.status}` : "Sin suscripción"}
                         </Text>
-                        <Text className="mt-1 text-xs text-cyan-300">
+                        <Text className="mt-1 text-xs text-accent-cyan">
                           {user.attended_classes}{" "}
                           {user.attended_classes === 1
                             ? "clase asistida"
@@ -401,7 +376,7 @@ export function AdminSubscriptionsScreen() {
                         </Text>
                       </View>
                       <View className="items-end gap-1">
-                        <Text className="text-[11px] text-gray-500">Hasta</Text>
+                        <Text className="text-[11px] text-muted">Hasta</Text>
                         <Text className="text-sm font-semibold text-white">
                           {sub ? formatDate(sub.current_period_end) : "—"}
                         </Text>
@@ -411,7 +386,7 @@ export function AdminSubscriptionsScreen() {
                 );
               })
             ) : (
-              <Text className="text-sm text-gray-400">
+              <Text className="text-sm text-muted">
                 {search ? "Sin resultados para la búsqueda." : "Aún no hay usuarios."}
               </Text>
             )}
@@ -423,14 +398,14 @@ export function AdminSubscriptionsScreen() {
             <Text className="text-base font-bold text-white">
               {selectedUser?.full_name || selectedUser?.email || "Usuario"}
             </Text>
-            <Text className="mt-1 text-xs text-gray-400">
+            <Text className="mt-1 text-xs text-muted">
               {selectedUser?.email || ""}
             </Text>
           </View>
 
           {!subscription ? (
-            <View className="mb-4 rounded-xl border border-cyan-400/50 bg-cyan-950/30 p-3">
-              <Text className="text-sm text-cyan-300">
+            <View className="mb-4 rounded-xl border border-accent-cyan/50 bg-accent-cyan/10 p-3">
+              <Text className="text-sm text-accent-cyan">
                 Este usuario no tiene suscripción. Completa el formulario para
                 crear una.
               </Text>
@@ -438,29 +413,29 @@ export function AdminSubscriptionsScreen() {
           ) : null}
 
           {hasEnded ? (
-            <View className="mb-4 rounded-xl border border-amber-400/50 bg-amber-950/30 p-3">
-              <Text className="text-sm text-amber-300">
+            <View className="mb-4 rounded-xl border border-accent-amber/50 bg-accent-amber/10 p-3">
+              <Text className="text-sm text-accent-amber">
                 La suscripción finalizó el{" "}
                 {formatDate(subscription?.current_period_end ?? null)}. Puedes
                 crear una nueva con otra fecha o actualizar la existente.
               </Text>
               <View className="mt-3 flex-row gap-3">
                 <Pressable
-                  className={`flex-1 rounded-full border px-3 py-2 ${mode === "create" ? "border-cyan-400/60 bg-cyan-950/40" : "border-border bg-background"}`}
+                  className={`flex-1 rounded-full border px-3 py-2 ${mode === "create" ? "border-accent-cyan/60 bg-accent-cyan/10" : "border-border bg-background"}`}
                   onPress={() => applyMode("create")}
                 >
                   <Text
-                    className={`text-center text-xs font-bold ${mode === "create" ? "text-cyan-300" : "text-gray-400"}`}
+                    className={`text-center text-xs font-bold ${mode === "create" ? "text-accent-cyan" : "text-muted"}`}
                   >
                     Crear Nueva
                   </Text>
                 </Pressable>
                 <Pressable
-                  className={`flex-1 rounded-full border px-3 py-2 ${mode === "update" ? "border-cyan-400/60 bg-cyan-950/40" : "border-border bg-background"}`}
+                  className={`flex-1 rounded-full border px-3 py-2 ${mode === "update" ? "border-accent-cyan/60 bg-accent-cyan/10" : "border-border bg-background"}`}
                   onPress={() => applyMode("update")}
                 >
                   <Text
-                    className={`text-center text-xs font-bold ${mode === "update" ? "text-cyan-300" : "text-gray-400"}`}
+                    className={`text-center text-xs font-bold ${mode === "update" ? "text-accent-cyan" : "text-muted"}`}
                   >
                     Actualizar Existente
                   </Text>
@@ -504,11 +479,11 @@ export function AdminSubscriptionsScreen() {
               borderRadius: 16,
               overflow: "hidden",
               borderWidth: 1,
-              borderColor: "#1E1E1E",
+              borderColor: colors.surface.elevated,
               marginBottom: 12,
             }}
           />
-          <Text className="mb-3 text-xs text-gray-400">
+          <Text className="mb-3 text-xs text-muted">
             Fin del período seleccionado: {periodEnd}
           </Text>
 
