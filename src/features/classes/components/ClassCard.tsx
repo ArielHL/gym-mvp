@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import type { GymClass } from '@/types/models';
 
+import { Text } from "@/components/ui/Text";
 interface ClassCardProps {
   gymClass: GymClass;
   onPress: () => void;
@@ -22,7 +23,7 @@ export function ClassCard({ gymClass, onPress }: ClassCardProps) {
       <Text className="mt-1 text-sm text-slate-400">
         {gymClass.start_time} - {gymClass.end_time}
       </Text>
-      <Text className="mt-2 text-xs uppercase text-cyan-300">{gymClass.difficulty_level}</Text>
+      <Text className="mt-2 text-xs uppercase text-accent-cyan">{gymClass.difficulty_level}</Text>
     </Pressable>
   );
 }

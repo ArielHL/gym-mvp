@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  StatusBar,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+  View, Pressable, ScrollView, StyleSheet, StatusBar, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,13 +18,9 @@ import {
 import { BOOKING_ERROR_CODES } from "@/features/bookings/constants/bookingErrorCodes";
 import { isApiErrorWithCode } from "@/services/api/client";
 import { toDateKey } from "@/utils/date";
+import { calendarSelectedMark, calendarTheme, colors, difficultyColor, fontStyle, withAlpha } from "@/theme";
 
-const DIFF_COLORS: Record<string, string> = {
-  beginner: "#22D3EE",
-  intermediate: "#F59E0B",
-  advanced: "#A855F7",
-};
-
+import { Text } from "@/components/ui/Text";
 LocaleConfig.locales.es = {
   monthNames: [
     "enero",
@@ -224,7 +212,7 @@ export function BookClassScreen() {
   if (!user) {
     return (
       <SafeAreaView style={s.root} edges={["top"]}>
-        <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         <AuthRequiredView
           title={"Inicia Sesión para Reservar"}
           subtitle="Crea una Cuenta o inicia sesión para reservar un lugar."
@@ -336,27 +324,23 @@ export function BookClassScreen() {
   };
 
   const markedDates: Record<string, any> = {
-    [selectedDate]: {
-      selected: true,
-      selectedColor: "#22D3EE",
-      selectedTextColor: "#000",
-    },
+    [selectedDate]: calendarSelectedMark(),
   };
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       <View style={s.header}>
         <Pressable style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color="#22D3EE"
+            color={colors.accent.cyan}
           />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={s.heading}>{className || "Reserva una clase"}</Text>
+          <Text variant="title" style={s.heading}>{className || "Reserva una clase"}</Text>
           <Text style={s.subHeading}>
             Elije Una Clase · Elige la Fecha · Confirma
           </Text>
@@ -377,7 +361,7 @@ export function BookClassScreen() {
 
           {isLoadingTemplates ? (
             <View style={s.loadingWrap}>
-              <ActivityIndicator color="#22D3EE" />
+              <ActivityIndicator color={colors.accent.cyan} />
             </View>
           ) : !templates || templates.length === 0 ? (
             <View style={s.emptyWrap}>
@@ -388,7 +372,7 @@ export function BookClassScreen() {
             <View style={{ gap: 10 }}>
               {templates.map((c) => {
                 const active = c.id === selectedTemplateId;
-                const diffColor = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
+                const diffColor = difficultyColor(c.difficulty_level);
                 const weekdays = formatWeekdays(c.days_of_week_mask);
                 return (
                   <Pressable
@@ -399,7 +383,7 @@ export function BookClassScreen() {
                     <View
                       style={[
                         s.classAccent,
-                        { backgroundColor: active ? diffColor : "#2A2A2A" },
+                        { backgroundColor: active ? diffColor : colors.border },
                       ]}
                     />
                     <View style={{ flex: 1, paddingLeft: 14 }}>
@@ -446,22 +430,7 @@ export function BookClassScreen() {
             markedDates={markedDates}
             minDate={today}
             disabledByWeekDays={disabledWeekDays}
-            theme={{
-              calendarBackground: "#141414",
-              backgroundColor: "#141414",
-              dayTextColor: "#FFF",
-              textDisabledColor: "#333",
-              selectedDayBackgroundColor: "#22D3EE",
-              selectedDayTextColor: "#000",
-              todayTextColor: "#22D3EE",
-              monthTextColor: "#FFF",
-              arrowColor: "#22D3EE",
-              textMonthFontWeight: "800",
-              textDayFontSize: 14,
-              textMonthFontSize: 16,
-              dotColor: "#22D3EE",
-              selectedDotColor: "#000",
-            }}
+            theme={calendarTheme}
             style={s.calendar}
           />
           {!isDateValid && selectedTemplate ? (
@@ -516,7 +485,7 @@ export function BookClassScreen() {
             ]}
           >
             {bookMutation.isPending ? (
-              <ActivityIndicator color={isReadyToBook ? "#000" : "#777"} />
+              <ActivityIndicator color={isReadyToBook ? colors.inverse : colors.muted} />
             ) : (
               <View style={s.bookCtaContent}>
                 <Text
@@ -531,7 +500,7 @@ export function BookClassScreen() {
                   <MaterialCommunityIcons
                     name="arrow-right"
                     size={20}
-                    color="#000"
+                    color={colors.inverse}
                   />
                 ) : null}
               </View>
@@ -544,7 +513,7 @@ export function BookClassScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0A0A0A" },
+  root: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -556,14 +525,14 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  heading: { color: "#FFF", fontSize: 20, fontWeight: "800" },
-  subHeading: { color: "#555", fontSize: 12, marginTop: 2 },
+  heading: { color: colors.foreground, fontSize: 20, fontWeight: "800", ...fontStyle.title },
+  subHeading: { color: colors.muted, fontSize: 12, marginTop: 2 },
   stepBlock: { marginHorizontal: 20, marginTop: 24 },
   stepRow: {
     flexDirection: "row",
@@ -575,82 +544,82 @@ const s = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "#22D3EE",
+    backgroundColor: colors.accent.cyan,
     alignItems: "center",
     justifyContent: "center",
   },
-  stepNumText: { color: "#000", fontSize: 13, fontWeight: "800" },
-  stepTitle: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  stepNumText: { color: colors.inverse, fontSize: 13, fontWeight: "800" },
+  stepTitle: { color: colors.foreground, fontSize: 16, fontWeight: "700" },
   calendar: {
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: colors.surface.elevated,
   },
   dateErrorText: {
     marginTop: 10,
-    color: "#fca5a5",
+    color: colors.danger,
     fontSize: 12,
   },
   loadingWrap: { paddingVertical: 32, alignItems: "center" },
   emptyWrap: { paddingVertical: 28, alignItems: "center", gap: 8 },
-  emptyText: { color: "#555", fontSize: 14 },
-  errorText: { color: "#f87171", fontSize: 14 },
+  emptyText: { color: colors.muted, fontSize: 14 },
+  errorText: { color: colors.danger, fontSize: 14 },
   classRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: colors.surface.elevated,
     position: "relative",
   },
-  classRowActive: { borderColor: "#22D3EE44", backgroundColor: "#0F2A2E" },
+  classRowActive: { borderColor: withAlpha(colors.accent.cyan, "44"), backgroundColor: withAlpha(colors.accent.cyan, "22") },
   classAccent: { width: 4, height: 42, borderRadius: 2 },
-  classTitle: { color: "#FFF", fontSize: 14, fontWeight: "700" },
-  classMeta: { color: "#666", fontSize: 12, marginTop: 3 },
+  classTitle: { color: colors.foreground, fontSize: 14, fontWeight: "700" },
+  classMeta: { color: colors.muted, fontSize: 12, marginTop: 3 },
   checkIcon: {
     position: "absolute",
     top: 10,
     right: 12,
-    color: "#22D3EE",
+    color: colors.accent.cyan,
     fontSize: 16,
     fontWeight: "700",
   },
   locCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: colors.surface.elevated,
   },
-  locCardActive: { borderColor: "#22D3EE44", backgroundColor: "#0F2A2E" },
-  locName: { color: "#FFF", fontSize: 14, fontWeight: "700" },
-  locAddr: { color: "#666", fontSize: 12, marginTop: 2 },
+  locCardActive: { borderColor: withAlpha(colors.accent.cyan, "44"), backgroundColor: withAlpha(colors.accent.cyan, "22") },
+  locName: { color: colors.foreground, fontSize: 14, fontWeight: "700" },
+  locAddr: { color: colors.muted, fontSize: 12, marginTop: 2 },
   locCheck: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#22D3EE22",
+    backgroundColor: withAlpha(colors.accent.cyan, "22"),
     borderWidth: 1,
-    borderColor: "#22D3EE44",
+    borderColor: withAlpha(colors.accent.cyan, "44"),
     alignItems: "center",
     justifyContent: "center",
   },
   summaryCard: {
     marginHorizontal: 20,
     marginTop: 24,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: colors.surface.elevated,
   },
   summaryTitle: {
-    color: "#FFF",
+    color: colors.foreground,
     fontSize: 15,
     fontWeight: "800",
     marginBottom: 14,
@@ -660,11 +629,11 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#1E1E1E",
+    borderBottomColor: colors.surface.elevated,
   },
-  summaryLabel: { color: "#555", fontSize: 13 },
+  summaryLabel: { color: colors.muted, fontSize: 13 },
   summaryValue: {
-    color: "#FFF",
+    color: colors.foreground,
     fontSize: 13,
     fontWeight: "600",
     maxWidth: "60%",
@@ -677,9 +646,9 @@ const s = StyleSheet.create({
     right: 0,
     padding: 20,
     paddingBottom: 20,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: "#1A1A1A",
+    borderTopColor: colors.surface.elevated,
   },
   bookPressable: {
     borderRadius: 18,
@@ -693,12 +662,12 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   bookVisualReady: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#FFFFFF",
+    backgroundColor: colors.foreground,
+    borderColor: colors.foreground,
   },
   bookVisualBlocked: {
-    backgroundColor: "#141414",
-    borderColor: "#2A2A2A",
+    backgroundColor: colors.surface.DEFAULT,
+    borderColor: colors.border,
   },
   bookCtaContent: {
     alignItems: "center",
@@ -706,6 +675,6 @@ const s = StyleSheet.create({
     gap: 8,
     justifyContent: "center",
   },
-  bookCtaText: { color: "#000", fontSize: 16, fontWeight: "900" },
-  bookCtaTextBlocked: { color: "#9CA3AF" },
+  bookCtaText: { color: colors.inverse, fontSize: 16, fontWeight: "900" },
+  bookCtaTextBlocked: { color: colors.muted },
 });

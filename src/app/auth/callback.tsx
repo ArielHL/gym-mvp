@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase/client';
+import { colors } from '@/theme';
 
+import { Text } from "@/components/ui/Text";
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -75,8 +77,8 @@ export default function AuthCallbackScreen() {
 
   return (
     <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
-      <ActivityIndicator color="#22D3EE" />
-      <Text className="text-center text-sm font-semibold text-neutral-300">{message}</Text>
+      <ActivityIndicator color={colors.accent.cyan} />
+      <Text className="text-center text-sm font-semibold text-muted">{message}</Text>
     </View>
   );
 }

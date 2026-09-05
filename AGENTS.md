@@ -45,4 +45,5 @@ Always use all the skills on the .agents/skills folder to improve the quality of
 ## Styling And Imports
 - Use `@/` imports for `src/*`; aliases are configured in both `tsconfig.json` and `babel.config.js`.
 - NativeWind is wired through `global.css`, `tailwind.config.js`, `nativewind/babel`, and `withNativeWind`; keep Tailwind content paths aligned with `src/**/*.{ts,tsx}`.
-- The app’s visual language is a dark gym UI with cyan/purple/amber accents; preserve existing tokens and patterns unless explicitly redesigning.
+- Design values live only in `src/theme/tokens.js` (colors and font family names). `tailwind.config.js`, StyleSheets, and loaders must read from there. `src/theme/fontAssets.ts` maps font files only — no hex or family names.
+- The app’s visual language is a dark gym UI with cyan/purple/amber accents; change look-and-feel in `src/theme/tokens.js`, not in screen files.

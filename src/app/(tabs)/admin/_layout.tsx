@@ -1,7 +1,8 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Text } from "@/components/ui/Text";
 const tabs = [
   { href: "/admin/classes", label: "Clases" },
   { href: "/admin/catalog", label: "Catálogo" },
@@ -26,7 +27,7 @@ export default function AdminTabsLayout() {
               onPress={() => router.replace(tab.href)}
             >
               <Text
-                className={`text-xs font-bold ${active ? "text-cyan-300" : "text-gray-500"}`}
+                className={`text-xs font-bold ${active ? "text-accent-cyan" : "text-muted"}`}
               >
                 {tab.label}
               </Text>

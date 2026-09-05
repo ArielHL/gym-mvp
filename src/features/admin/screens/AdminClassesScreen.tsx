@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
@@ -24,6 +24,9 @@ import { fetchLocations } from "@/features/locations/services/locationsService";
 import { fetchTrainers } from "@/features/trainers/services/trainersService";
 import { toDateKey } from "@/utils/date";
 
+import { colors } from "@/theme";
+
+import { Text } from "@/components/ui/Text";
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 const schema = z.object({
@@ -308,7 +311,7 @@ export function AdminClassesScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#22D3EE" />
+          <ActivityIndicator color={colors.accent.cyan} />
         </View>
       </Screen>
     );
@@ -318,10 +321,10 @@ export function AdminClassesScreen() {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-white" variant="title">
             Requiere acceso de Administrador
           </Text>
-          <Text className="mt-2 text-center text-sm text-gray-500">
+          <Text className="mt-2 text-center text-sm text-muted">
             Solo Administradores pueden acceder a esta sección.
           </Text>
         </View>
@@ -333,8 +336,8 @@ export function AdminClassesScreen() {
     <Screen edges={[]}>
       <View className="mb-5 mt-4 flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-white">Gestion de Clases</Text>
-          <Text className="mt-1 text-sm text-gray-400">
+          <Text className="text-2xl font-bold text-white" variant="title">Gestion de Clases</Text>
+          <Text className="mt-1 text-sm text-muted">
             Crear plantillas recurrentes, editar datos de clases y desactivar
             clases inactivas.
           </Text>
@@ -375,7 +378,7 @@ export function AdminClassesScreen() {
               return (
                 <Pressable
                   key={template.id}
-                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-background"}`}
+                  className={`mb-3 rounded-xl border p-3 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-background"}`}
                   onPress={() => {
                     setSelectedTemplate(template);
                     setIsFormVisible(true);
@@ -386,7 +389,7 @@ export function AdminClassesScreen() {
                       <Text className="font-bold text-white">
                         {template.title}
                       </Text>
-                      <Text className="mt-1 text-xs text-gray-400">
+                      <Text className="mt-1 text-xs text-muted">
                         {formatMask(template.days_of_week_mask)} at{" "}
                         {template.start_time.slice(0, 5)} ·{" "}
                         {template.trainer_name} ·{" "}
@@ -394,7 +397,7 @@ export function AdminClassesScreen() {
                       </Text>
                     </View>
                     <Pressable
-                      className={`rounded-full border px-3 py-2 ${template.is_active ? "border-cyan-400/60 bg-cyan-950/40" : "border-amber-400/60 bg-amber-950/30"}`}
+                      className={`rounded-full border px-3 py-2 ${template.is_active ? "border-accent-cyan/60 bg-accent-cyan/10" : "border-accent-amber/60 bg-accent-amber/10"}`}
                       disabled={activeMutation.isPending}
                       onPress={(event) => {
                         event.stopPropagation();
@@ -402,7 +405,7 @@ export function AdminClassesScreen() {
                       }}
                     >
                       <Text
-                        className={`text-xs font-bold ${template.is_active ? "text-cyan-300" : "text-amber-300"}`}
+                        className={`text-xs font-bold ${template.is_active ? "text-accent-cyan" : "text-accent-amber"}`}
                       >
                         {template.is_active ? "ACTIVE" : "INACTIVE"}
                       </Text>
@@ -412,7 +415,7 @@ export function AdminClassesScreen() {
               );
             })
           ) : (
-            <Text className="text-sm text-gray-400">
+            <Text className="text-sm text-muted">
               {statusFilter !== "all"
                 ? "No hay plantillas de clase que coincidan con el filtro seleccionado."
                 : "Aún no hay plantillas de clase."}
@@ -447,8 +450,8 @@ export function AdminClassesScreen() {
                 </Text>
                 {trainersQuery.isLoading ? (
                   <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
-                    <ActivityIndicator color="#22D3EE" size="small" />
-                    <Text className="ml-2 text-sm text-gray-400">
+                    <ActivityIndicator color={colors.accent.cyan} size="small" />
+                    <Text className="ml-2 text-sm text-muted">
                       Cargando entrenadores...
                     </Text>
                   </View>
@@ -457,7 +460,7 @@ export function AdminClassesScreen() {
                     No se pudieron cargar los entrenadores.
                   </Text>
                 ) : !trainersQuery.data?.length ? (
-                  <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                  <Text className="rounded-xl border border-accent-amber/40 bg-accent-amber/10 px-3 py-3 text-sm text-accent-amber">
                     No hay entrenadores. Crea uno desde Admin / Entrenadores.
                   </Text>
                 ) : (
@@ -469,17 +472,17 @@ export function AdminClassesScreen() {
                       return (
                         <Pressable
                           key={trainer.id}
-                          className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-surface"}`}
+                          className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-surface"}`}
                           onPress={() => onChange(trainer.id)}
                         >
                           <Text className="font-semibold text-white">
                             {trainer.name}
                           </Text>
-                          <Text className="mt-1 text-xs text-gray-400">
+                          <Text className="mt-1 text-xs text-muted">
                             {trainer.tel || trainer.email}
                           </Text>
                           {!trainer.is_active ? (
-                            <Text className="mt-1 text-xs font-semibold text-amber-300">
+                            <Text className="mt-1 text-xs font-semibold text-accent-amber">
                               Inactivo
                             </Text>
                           ) : null}
@@ -509,8 +512,8 @@ export function AdminClassesScreen() {
                   <Text className="mb-1 text-sm font-medium text-white">Tipo</Text>
                   {classTypesQuery.isLoading ? (
                     <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
-                      <ActivityIndicator color="#22D3EE" size="small" />
-                      <Text className="ml-2 text-sm text-gray-400">
+                      <ActivityIndicator color={colors.accent.cyan} size="small" />
+                      <Text className="ml-2 text-sm text-muted">
                         Cargando tipos...
                       </Text>
                     </View>
@@ -519,7 +522,7 @@ export function AdminClassesScreen() {
                       No se pudieron cargar los tipos de clase.
                     </Text>
                   ) : !classTypesQuery.data?.length ? (
-                    <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                    <Text className="rounded-xl border border-accent-amber/40 bg-accent-amber/10 px-3 py-3 text-sm text-accent-amber">
                       No hay tipos activos. Crea uno desde Admin / Tipos de Clase.
                     </Text>
                   ) : (
@@ -530,11 +533,11 @@ export function AdminClassesScreen() {
                       <Text className="text-base font-semibold text-white">
                         {selectedType?.nombre ?? "Selecciona un tipo"}
                       </Text>
-                      <Text className="text-xs text-cyan-300">Cambiar</Text>
+                      <Text className="text-xs text-accent-cyan">Cambiar</Text>
                     </Pressable>
                   )}
                   {!!selectedType?.descripcion && (
-                    <Text className="mt-1 text-xs text-gray-400">
+                    <Text className="mt-1 text-xs text-muted">
                       {selectedType.descripcion}
                     </Text>
                   )}
@@ -577,7 +580,7 @@ export function AdminClassesScreen() {
                     return (
                       <Pressable
                         key={option.value}
-                        className={`mx-[2px] min-w-0 flex-1 rounded-full border py-1 ${selected ? "border-accent-cyan bg-cyan-950/35" : "border-border bg-surface"}`}
+                        className={`mx-[2px] min-w-0 flex-1 rounded-full border py-1 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-surface"}`}
                         onPress={() => {
                           if (selected) {
                             onChange(
@@ -591,7 +594,7 @@ export function AdminClassesScreen() {
                         }}
                       >
                         <Text
-                          className={`text-center text-xs font-medium ${selected ? "text-cyan-300" : "text-gray-300"}`}
+                          className={`text-center text-xs font-medium ${selected ? "text-accent-cyan" : "text-muted"}`}
                         >
                           {option.label}
                         </Text>
@@ -620,7 +623,7 @@ export function AdminClassesScreen() {
                   onPress={() => setIsTimePickerVisible(true)}
                 >
                   <Text className="text-base font-semibold text-white">{value}</Text>
-                  <Text className="text-xs text-cyan-300">Cambiar</Text>
+                  <Text className="text-xs text-accent-cyan">Cambiar</Text>
                 </Pressable>
                 <TimePickerModal
                   visible={isTimePickerVisible}
@@ -659,11 +662,11 @@ export function AdminClassesScreen() {
                     return (
                       <Pressable
                         key={option.value}
-                        className={`mx-[2px] min-w-0 flex-1 rounded-full border py-2 ${selected ? "border-accent-cyan bg-cyan-950/35" : "border-border bg-surface"}`}
+                        className={`mx-[2px] min-w-0 flex-1 rounded-full border py-2 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-surface"}`}
                         onPress={() => onChange(option.value)}
                       >
                         <Text
-                          className={`text-center text-xs font-medium ${selected ? "text-cyan-300" : "text-gray-300"}`}
+                          className={`text-center text-xs font-medium ${selected ? "text-accent-cyan" : "text-muted"}`}
                         >
                           {option.label}
                         </Text>
@@ -689,8 +692,8 @@ export function AdminClassesScreen() {
                 </Text>
                 {locationsQuery.isLoading ? (
                   <View className="h-12 flex-row items-center rounded-xl border border-border bg-surface px-3">
-                    <ActivityIndicator color="#22D3EE" size="small" />
-                    <Text className="ml-2 text-sm text-gray-400">
+                    <ActivityIndicator color={colors.accent.cyan} size="small" />
+                    <Text className="ml-2 text-sm text-muted">
                       Loading locations...
                     </Text>
                   </View>
@@ -699,7 +702,7 @@ export function AdminClassesScreen() {
                     Could not load locations.
                   </Text>
                 ) : !locationsQuery.data?.length ? (
-                  <Text className="rounded-xl border border-amber-500/40 bg-amber-950/20 px-3 py-3 text-sm text-amber-300">
+                  <Text className="rounded-xl border border-accent-amber/40 bg-accent-amber/10 px-3 py-3 text-sm text-accent-amber">
                     No locations available. Create a location first.
                   </Text>
                 ) : (
@@ -711,17 +714,17 @@ export function AdminClassesScreen() {
                       return (
                         <Pressable
                           key={location.id}
-                          className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-cyan-950/30" : "border-border bg-surface"}`}
+                          className={`rounded-xl border px-3 py-3 ${selected ? "border-accent-cyan bg-accent-cyan/10" : "border-border bg-surface"}`}
                           onPress={() => onChange(location.id)}
                         >
                           <Text className="font-semibold text-white">
                             {location.name}
                           </Text>
-                          <Text className="mt-1 text-xs text-gray-400">
+                          <Text className="mt-1 text-xs text-muted">
                             {location.address || "No address provided"}
                           </Text>
                           {!location.is_active ? (
-                            <Text className="mt-1 text-xs font-semibold text-amber-300">
+                            <Text className="mt-1 text-xs font-semibold text-accent-amber">
                               Inactive
                             </Text>
                           ) : null}

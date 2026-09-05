@@ -192,6 +192,8 @@ def _database_unavailable_response():
 
 
 def _json_value(value: Any) -> Any:
+    if isinstance(value, UUID):
+        return str(value)
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, date):
@@ -199,6 +201,21 @@ def _json_value(value: Any) -> Any:
     if isinstance(value, time):
         return value.isoformat()
     return value
+
+
+def _format_hhmm(value: str | time) -> str:
+    hours, minutes = _parse_start_time(value)
+    return f"{hours:02d}:{minutes:02d}"
+
+
+def _notification_data(value: Any) -> dict[str, Any]:
+    data: Any = value
+    if isinstance(value, str):
+        try:
+            data = json.loads(value)
+        except (TypeError, ValueError):
+            data = {}
+    return data if isinstance(data, dict) else {}
 
 
 def _record_to_dict(record: asyncpg.Record) -> dict[str, Any]:
@@ -806,6 +823,78 @@ async def list_my_bookings(user_id: str = Depends(get_user_id)) -> list[dict[str
             results.append(item)
 
     return results
+
+
+@app.get("/notifications/me")
+async def list_my_notifications(user_id: str = Depends(get_user_id)) -> list[dict[str, Any]]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select id, user_id, type, title, body, data, read_at, created_at
+            from notifications
+            where user_id = $1
+            order by created_at desc
+            limit 100
+            """,
+            user_id,
+        )
+
+    results: list[dict[str, Any]] = []
+    for row in rows:
+        item = _record_to_dict(row)
+        item["data"] = _notification_data(item.get("data"))
+        results.append(item)
+    return results
+
+
+@app.patch("/notifications/read-all", response_model=ApiResponse)
+async def mark_all_notifications_read(user_id: str = Depends(get_user_id)) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            update notifications
+            set read_at = coalesce(read_at, now())
+            where user_id = $1
+              and read_at is null
+            """,
+            user_id,
+        )
+
+    return ApiResponse(success=True, message="Notifications marked as read")
+
+
+@app.patch("/notifications/{notification_id}/read", response_model=ApiResponse)
+async def mark_notification_read(
+    notification_id: UUID,
+    user_id: str = Depends(get_user_id),
+) -> ApiResponse:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            update notifications
+            set read_at = coalesce(read_at, now())
+            where id = $1
+              and user_id = $2
+            returning id
+            """,
+            notification_id,
+            user_id,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(
+                success=False,
+                message="notification not found",
+                error_code="NOTIFICATION_NOT_FOUND",
+            ).model_dump(),
+        )
+
+    return ApiResponse(success=True, message="Notification marked as read")
 
 
 @app.get("/me")
@@ -1890,7 +1979,7 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
 
                 row = await conn.fetchrow(
                     """
-                    select id, days_of_week_mask, start_time, capacity, valid_from, valid_until, is_active
+                    select id, title, days_of_week_mask, start_time, capacity, valid_from, valid_until, is_active
                     from class_templates
                     where id = $1
                     """,
@@ -2013,6 +2102,29 @@ async def book_class(request: BookingRequest, user_id: str = Depends(get_user_id
                     session["id"],
                     request.location_id,
                 )
+
+                start_time_label = _format_hhmm(row["start_time"])
+                notification_body = (
+                    f"Tu reserva para {row['title']} el "
+                    f"{request.requested_date.isoformat()} a las {start_time_label} fue confirmada."
+                )
+                await conn.execute(
+                    """
+                    insert into notifications (user_id, type, title, body, data)
+                    values ($1, 'booking_confirmed', $2, $3, $4::jsonb)
+                    """,
+                    user_id,
+                    "Reserva confirmada",
+                    notification_body,
+                    json.dumps(
+                        {
+                            "session_id": str(session["id"]),
+                            "template_id": str(request.template_id),
+                            "location_id": str(request.location_id),
+                            "date": request.requested_date.isoformat(),
+                        }
+                    ),
+                )
     except asyncpg.exceptions.ForeignKeyViolationError as exc:
         logger.warning("Booking failed due to foreign key constraint: %s", exc)
         raise HTTPException(
@@ -2055,51 +2167,73 @@ async def cancel_booking(request: CancelBookingRequest, user_id: str = Depends(g
     pool: asyncpg.Pool = app.state.db_pool
 
     async with pool.acquire() as conn:
-        scheduled_at = await conn.fetchval(
-            """
-            select cs.scheduled_at
-            from class_sessions cs
-            join bookings b on b.session_id = cs.id
-            where cs.id = $1 and b.user_id = $2 and b.status = 'confirmed'
-            """,
-            request.session_id,
-            user_id,
-        )
-
-        if scheduled_at is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ApiResponse(
-                    success=False,
-                    message="active booking not found",
-                    error_code="BOOKING_NOT_FOUND",
-                ).model_dump(),
+        async with conn.transaction():
+            booking_info = await conn.fetchrow(
+                """
+                select cs.scheduled_at, ct.title
+                from class_sessions cs
+                join bookings b on b.session_id = cs.id
+                join class_templates ct on ct.id = cs.template_id
+                where cs.id = $1 and b.user_id = $2 and b.status = 'confirmed'
+                """,
+                request.session_id,
+                user_id,
             )
 
-        if isinstance(scheduled_at, datetime):
-            now = datetime.now(timezone.utc)
-            if scheduled_at.tzinfo is None:
-                scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
-            window_hours = await _get_cancellation_window_hours(conn)
-            if (scheduled_at - now).total_seconds() <= window_hours * 60 * 60:
+            if booking_info is None:
                 raise HTTPException(
-                    status_code=status.HTTP_423_LOCKED,
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail=ApiResponse(
                         success=False,
-                        message="cancellation window closed",
-                        error_code="CANCELLATION_WINDOW_CLOSED",
+                        message="active booking not found",
+                        error_code="BOOKING_NOT_FOUND",
                     ).model_dump(),
                 )
 
-        await conn.execute(
-            """
-            update bookings
-            set status = 'cancelled', cancelled_at = now()
-            where user_id = $1 and session_id = $2 and status = 'confirmed'
-            """,
-            user_id,
-            request.session_id,
-        )
+            scheduled_at = booking_info["scheduled_at"]
+            if isinstance(scheduled_at, datetime):
+                now = datetime.now(timezone.utc)
+                if scheduled_at.tzinfo is None:
+                    scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
+                window_hours = await _get_cancellation_window_hours(conn)
+                if (scheduled_at - now).total_seconds() <= window_hours * 60 * 60:
+                    raise HTTPException(
+                        status_code=status.HTTP_423_LOCKED,
+                        detail=ApiResponse(
+                            success=False,
+                            message="cancellation window closed",
+                            error_code="CANCELLATION_WINDOW_CLOSED",
+                        ).model_dump(),
+                    )
+
+            await conn.execute(
+                """
+                update bookings
+                set status = 'cancelled', cancelled_at = now()
+                where user_id = $1 and session_id = $2 and status = 'confirmed'
+                """,
+                user_id,
+                request.session_id,
+            )
+
+            scheduled_label = (
+                scheduled_at.astimezone(timezone.utc).strftime("%Y-%m-%d a las %H:%M")
+                if isinstance(scheduled_at, datetime)
+                else "fecha pendiente"
+            )
+            notification_body = (
+                f"Tu reserva para {booking_info['title']} el {scheduled_label} fue cancelada."
+            )
+            await conn.execute(
+                """
+                insert into notifications (user_id, type, title, body, data)
+                values ($1, 'booking_cancelled', $2, $3, $4::jsonb)
+                """,
+                user_id,
+                "Reserva cancelada",
+                notification_body,
+                json.dumps({"session_id": str(request.session_id)}),
+            )
 
     return ApiResponse(success=True, message="Booking cancelled")
 

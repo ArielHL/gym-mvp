@@ -1,10 +1,12 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { colors } from '@/theme';
 
+import { Text } from "@/components/ui/Text";
 export function LoadingView({ label = 'Loading...' }: { label?: string }) {
   return (
     <View className="flex-1 items-center justify-center">
-      <ActivityIndicator size="large" color="#22D3EE" />
-      <Text className="mt-3 text-neutral-300">{label}</Text>
+      <ActivityIndicator size="large" color={colors.accent.cyan} />
+      <Text className="mt-3 text-muted">{label}</Text>
     </View>
   );
 }
@@ -20,7 +22,7 @@ export function ErrorView({ message }: { message: string }) {
 export function EmptyView({ message }: { message: string }) {
   return (
     <View className="rounded-xl border border-border bg-surface p-4">
-      <Text className="text-neutral-300">{message}</Text>
+      <Text className="text-muted">{message}</Text>
     </View>
   );
 }

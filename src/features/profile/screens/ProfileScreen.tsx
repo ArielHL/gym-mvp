@@ -5,7 +5,6 @@
   ScrollView,
   StyleSheet,
   StatusBar,
-  Text,
   View,
 } from "react-native";
 import { useMemo } from "react";
@@ -17,6 +16,8 @@ import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useRouter } from "expo-router";
 import { useGymBranding } from "@/features/home/hooks/useGymBranding";
 
+import { colors, fontStyle, withAlpha } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const MENU_ITEMS = [
   {
     id: "edit",
@@ -109,7 +110,7 @@ export function ProfileScreen() {
   if (!user) {
     return (
       <SafeAreaView style={s.root} edges={["top"]}>
-        <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         <AuthRequiredView
           title={"Inicia sesión para acceder\na tu cuenta"}
           subtitle="Rastrea tus reservas, administra tu plan y más"
@@ -120,7 +121,7 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -130,7 +131,7 @@ export function ProfileScreen() {
           <View style={s.bannerPattern} />
           <View style={s.bannerContent}>
             <Avatar name={displayName} avatarUrl={avatarUrl} />
-            <Text style={s.displayName}>{displayName || "Athlete"}</Text>
+            <Text variant="title" style={s.displayName}>{displayName || "Athlete"}</Text>
             <Text style={s.email}>{user.email}</Text>
             <View style={[s.roleBadge, role === "admin" && s.roleBadgeAdmin]}>
               <Text style={[s.roleText, role === "admin" && s.roleTextAdmin]}>
@@ -148,9 +149,9 @@ export function ProfileScreen() {
             <Text style={s.memberLabel}>Plan Actual</Text>
             <Text style={s.memberPlan}>Membresía Premium</Text>
           </View>
-          <Pressable style={s.upgradeBtn}>
+          {/* <Pressable style={s.upgradeBtn}>
             <Text style={s.upgradeBtnText}>Actualizar</Text>
-          </Pressable>
+          </Pressable> */}
         </View>
 
         {/* Menu items */}
@@ -163,7 +164,7 @@ export function ProfileScreen() {
                 s.menuItem,
                 i === 0 && s.menuItemFirst,
                 i === MENU_ITEMS.length - 1 && s.menuItemLast,
-                pressed && { backgroundColor: "#1A1A1A" },
+                pressed && { backgroundColor: colors.surface.elevated },
               ]}
               onPress={() => onMenuItemPress(item.id)}
             >
@@ -209,15 +210,15 @@ export function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0A0A0A" },
+  root: { flex: 1, backgroundColor: colors.background },
   banner: {
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 14,
     paddingTop: 24,
     marginHorizontal:5,
     paddingBottom: 28,
     borderBottomWidth: 1,
-    borderBottomColor: "#1E1E1E",
+    borderBottomColor: colors.surface.elevated,
     overflow: "hidden",
     position: "relative",
     
@@ -229,40 +230,40 @@ const s = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: "#22D3EE08",
+    backgroundColor: withAlpha(colors.accent.cyan, "08"),
   },
   bannerContent: { alignItems: "center", gap: 6 },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#0F2A2E",
+    backgroundColor: withAlpha(colors.accent.cyan, "22"),
     borderWidth: 2,
-    borderColor: "#22D3EE44",
+    borderColor: withAlpha(colors.accent.cyan, "44"),
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
   },
-  avatarText: { color: "#22D3EE", fontSize: 28, fontWeight: "800" },
+  avatarText: { color: colors.accent.cyan, fontSize: 28, fontWeight: "800" },
   avatarImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
   },
-  displayName: { color: "#FFF", fontSize: 22, fontWeight: "800" },
-  email: { color: "#666", fontSize: 13 },
+  displayName: { color: colors.foreground, fontSize: 22, fontWeight: "800", ...fontStyle.title },
+  email: { color: colors.muted, fontSize: 13 },
   roleBadge: {
     marginTop: 4,
     paddingHorizontal: 14,
     paddingVertical: 5,
-    backgroundColor: "#22D3EE22",
+    backgroundColor: withAlpha(colors.accent.cyan, "22"),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#22D3EE33",
+    borderColor: withAlpha(colors.accent.cyan, "33"),
   },
-  roleBadgeAdmin: { backgroundColor: "#A855F722", borderColor: "#A855F733" },
-  roleText: { color: "#22D3EE", fontSize: 12, fontWeight: "700" },
-  roleTextAdmin: { color: "#A855F7" },
+  roleBadgeAdmin: { backgroundColor: withAlpha(colors.accent.purple, "22"), borderColor: withAlpha(colors.accent.purple, "33") },
+  roleText: { color: colors.accent.cyan, fontSize: 12, fontWeight: "700" },
+  roleTextAdmin: { color: colors.accent.purple },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
@@ -271,16 +272,16 @@ const s = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 14,
     alignItems: "center",
     paddingVertical: 16,
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: colors.surface.elevated,
   },
   statVal: { fontSize: 22, fontWeight: "800" },
   statLabel: {
-    color: "#555",
+    color: colors.muted,
     fontSize: 11,
     textAlign: "center",
     marginTop: 4,
@@ -292,24 +293,24 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     marginHorizontal:5,
     marginTop: 16,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: colors.surface.elevated,
   },
-  memberLabel: { color: "#555", fontSize: 12 },
-  memberPlan: { color: "#FFF", fontSize: 15, fontWeight: "700", marginTop: 2 },
+  memberLabel: { color: colors.muted, fontSize: 12 },
+  memberPlan: { color: colors.foreground, fontSize: 15, fontWeight: "700", marginTop: 2 },
   upgradeBtn: {
-    backgroundColor: "#22D3EE",
+    backgroundColor: colors.accent.cyan,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  upgradeBtnText: { color: "#000", fontSize: 13, fontWeight: "800" },
+  upgradeBtnText: { color: colors.inverse, fontSize: 13, fontWeight: "800" },
   menuSection: { marginHorizontal: 20, marginTop: 24 },
   menuSectionTitle: {
-    color: "#444",
+    color: colors.muted,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
@@ -317,11 +318,11 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
   },
   menuItem: {
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: "#1E1E1E",
+    borderTopColor: colors.surface.elevated,
     borderRadius: 14,
     marginBottom: 8,
   },
@@ -329,7 +330,7 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 14,
     borderTopRightRadius: 14,
     borderTopWidth: 1,
-    borderTopColor: "#1E1E1E",
+    borderTopColor: colors.surface.elevated,
   },
   menuItemLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
   menuItemContent: {
@@ -352,9 +353,9 @@ const s = StyleSheet.create({
   },
   menuIcon: { fontSize: 20, lineHeight: 24, textAlign: "center" },
   menuText: { flex: 1, justifyContent: "center" },
-  menuLabel: { color: "#FFF", fontSize: 14, fontWeight: "600" },
-  menuSub: { color: "#555", fontSize: 12, marginTop: 2 },
-  menuArrow: { color: "#333", fontSize: 22, lineHeight: 24 },
+  menuLabel: { color: colors.foreground, fontSize: 14, fontWeight: "600" },
+  menuSub: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  menuArrow: { color: colors.faint, fontSize: 22, lineHeight: 24 },
   logoutBtn: {
     marginHorizontal: 20,
     marginTop: 24,
@@ -363,9 +364,9 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#EF444433",
-    backgroundColor: "#EF444411",
+    borderColor: withAlpha(colors.danger, "33"),
+    backgroundColor: withAlpha(colors.danger, "11"),
   },
-  logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "700" },
-  version: { color: "#333", fontSize: 12, textAlign: "center", marginTop: 20 },
+  logoutText: { color: colors.danger, fontSize: 15, fontWeight: "700" },
+  version: { color: colors.faint, fontSize: 12, textAlign: "center", marginTop: 20 },
 });

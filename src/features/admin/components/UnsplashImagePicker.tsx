@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Modal,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+  ActivityIndicator, Alert, Linking, Modal, Pressable, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -16,6 +9,8 @@ import type {
   WebViewNavigation,
 } from "react-native-webview";
 
+import { colors } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const BRIDGE_JS = `(function() {
   function isCdn(url) {
     return !!url && (url.indexOf('images.unsplash.com') !== -1 || url.indexOf('plus.unsplash.com') !== -1);
@@ -288,13 +283,13 @@ export function UnsplashImagePicker({
               <MaterialCommunityIcons
                 name="arrow-left"
                 size={20}
-                color={canGoBack ? "#FFFFFF" : "#666666"}
+                color={canGoBack ? colors.foreground : colors.muted}
               />
             </Pressable>
           )}
           <View className="flex-1">
             <Text className="text-base font-bold text-white">Elegir imagen</Text>
-            <Text className="text-xs text-gray-400">
+            <Text className="text-xs text-muted">
               Toca una foto para seleccionarla
             </Text>
           </View>
@@ -303,7 +298,7 @@ export function UnsplashImagePicker({
             className="rounded-xl border border-border bg-surface px-3 py-2"
             accessibilityLabel="Cerrar"
           >
-            <Text className="text-xs font-bold text-gray-300">Cerrar</Text>
+            <Text className="text-xs font-bold text-muted">Cerrar</Text>
           </Pressable>
         </View>
 
@@ -312,7 +307,7 @@ export function UnsplashImagePicker({
             <Text className="text-center text-base font-bold text-white">
               Unsplash no se puede mostrar en web
             </Text>
-            <Text className="mt-2 text-center text-sm leading-5 text-gray-400">
+            <Text className="mt-2 text-center text-sm leading-5 text-muted">
               Abre Unsplash, copia la URL de la imagen y pegala en el campo.
             </Text>
             <Pressable
@@ -326,7 +321,7 @@ export function UnsplashImagePicker({
           <WebView
             ref={webViewRef}
             source={{ uri }}
-            style={{ flex: 1, backgroundColor: "#0A0A0A" }}
+            style={{ flex: 1, backgroundColor: colors.background }}
             startInLoadingState
             javaScriptEnabled
             setSupportMultipleWindows
@@ -349,10 +344,10 @@ export function UnsplashImagePicker({
                   left: 0,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: "#0A0A0A",
+                  backgroundColor: colors.background,
                 }}
               >
-                <ActivityIndicator color="#22D3EE" />
+                <ActivityIndicator color={colors.accent.cyan} />
               </View>
             )}
           />
@@ -368,7 +363,7 @@ export function UnsplashImagePicker({
               className={`h-12 items-center justify-center rounded-xl bg-accent-cyan ${extracting ? "opacity-50" : ""}`}
             >
               {extracting ? (
-                <ActivityIndicator color="#000000" />
+                <ActivityIndicator color={colors.inverse} />
               ) : (
                 <Text className="text-base font-semibold text-black">
                   Usar esta imagen

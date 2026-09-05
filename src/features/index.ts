@@ -5,3 +5,4 @@ export * as ProfileFeature from './profile';
 export * as HomeFeature from './home';
 export * as CoreFeature from './core';
 export * as AdminFeature from './admin';
+export * as NotificationsFeature from './notifications';

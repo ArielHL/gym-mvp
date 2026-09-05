@@ -1,6 +1,7 @@
 import "react-native-gesture-handler";
 import "../../global.css";
 import { useEffect, useRef } from "react";
+import { useFonts } from "expo-font";
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -9,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuthState } from "@/features/auth/hooks/useAuthState";
 import { AppErrorBoundary } from "@/components/feedback/AppErrorBoundary";
+import { fontAssets } from "@/theme";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +61,13 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const hasCustomFonts = Object.keys(fontAssets).length > 0;
+  const [fontsLoaded] = useFonts(fontAssets);
+
+  if (hasCustomFonts && !fontsLoaded) {
+    return null;
+  }
+
   return (
     <AppErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Modal, Platform, Pressable, Text, View } from "react-native";
+import { Modal, Platform, Pressable, View } from "react-native";
 import { TimeWheelPicker } from "@/components/ui/TimeWheelPicker";
 
+import { Text } from "@/components/ui/Text";
 type TimePickerModalProps = {
   visible: boolean;
   initialValue: string;
@@ -51,7 +52,7 @@ export function TimePickerModal({
 
         <View className={contentContainerClassName}>
           <Text className="text-lg font-bold text-white">Select start time</Text>
-          <Text className="mt-1 text-xs text-gray-400">24h format, 30-minute steps</Text>
+          <Text className="mt-1 text-xs text-muted">24h format, 30-minute steps</Text>
 
           <View className={pickerWrapClassName}>
             <TimeWheelPicker value={draftValue} onChange={setDraftValue} />
@@ -62,13 +63,13 @@ export function TimePickerModal({
               className="flex-1 rounded-xl border border-border bg-surface px-4 py-3"
               onPress={onCancel}
             >
-              <Text className="text-center font-semibold text-gray-300">Cancel</Text>
+              <Text className="text-center font-semibold text-muted">Cancel</Text>
             </Pressable>
             <Pressable
-              className="flex-1 rounded-xl border border-cyan-400/60 bg-cyan-950/40 px-4 py-3"
+              className="flex-1 rounded-xl border border-accent-cyan/60 bg-accent-cyan/10 px-4 py-3"
               onPress={() => onConfirm(draftValue)}
             >
-              <Text className="text-center font-semibold text-cyan-300">Apply</Text>
+              <Text className="text-center font-semibold text-accent-cyan">Apply</Text>
             </Pressable>
           </View>
         </View>

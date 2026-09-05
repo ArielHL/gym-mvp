@@ -1,16 +1,5 @@
 ﻿import { useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Dimensions, FlatList, Image, Pressable, ScrollView, StatusBar, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
@@ -19,10 +8,11 @@ import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes"
 import { usePublicClassTemplates } from "@/features/classes/hooks/useClasses";
 import { useGymBranding } from "@/features/home/hooks/useGymBranding";
 import { useHomeCarousel } from "@/features/home/hooks/useHomeCarousel";
+import { useNotificationFeed } from "@/features/notifications";
 import { toDateKey } from "@/utils/date";
 import { Avatar } from "@/features/profile/screens/ProfileScreen";
-
-
+import { colors, difficultyColor, fontStyle, withAlpha } from "@/theme";
+import { Text } from "@/components/ui/Text";
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.78;
 
@@ -32,7 +22,7 @@ const DEFAULT_HERO_SLIDES = [
     title: "Calisthenics\nFundamentals",
     sub: "Build real strength with bodyweight",
     tag: "BEGINNER",
-    tagColor: "#22D3EE",
+    tagColor: colors.accent.cyan,
     imageUri:
       "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=900&q=80",
   },
@@ -41,7 +31,7 @@ const DEFAULT_HERO_SLIDES = [
     title: "Advanced\nMuscle Up",
     sub: "Master the bar and ring movements",
     tag: "ADVANCED",
-    tagColor: "#A855F7",
+    tagColor: colors.accent.purple,
     imageUri:
       "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=900&q=80",
   },
@@ -50,7 +40,7 @@ const DEFAULT_HERO_SLIDES = [
     title: "Handstand\nMastery",
     sub: "Balance, control and body awareness",
     tag: "INTERMEDIATE",
-    tagColor: "#F59E0B",
+    tagColor: colors.accent.amber,
     imageUri:
       "https://images.unsplash.com/photo-1576094168768-4078c686a1c5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aGFuZHN0YW5kfGVufDB8fDB8fHww",
   },
@@ -61,12 +51,6 @@ const DRAWER_HREFS = {
   sub: "/subscribe",
   find: "/(tabs)/classes",
 } as const;
-
-const DIFF_COLORS: Record<string, string> = {
-  beginner: "#22D3EE",
-  intermediate: "#F59E0B",
-  advanced: "#A855F7",
-};
 
 type TabRoute = "/(tabs)/classes" | "/(tabs)/bookings" | "/(tabs)/profile";
 
@@ -85,6 +69,12 @@ export function HomeScreen() {
   const { data: classTypes } = useActiveClassTypes();
   const { data: carousel } = useHomeCarousel();
   const { gymName } = useGymBranding();
+  const { data: notifications } = useNotificationFeed();
+  const unreadCount = useMemo(
+    () => (user ? (notifications ?? []).filter((item) => !item.read_at).length : 0),
+    [notifications, user],
+  );
+  const unreadLabel = unreadCount > 9 ? "9+" : String(unreadCount);
 
   const drawerItems = [
     {
@@ -254,7 +244,7 @@ export function HomeScreen() {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         {/* Header */}
@@ -268,13 +258,22 @@ export function HomeScreen() {
             <View style={[s.burgerLine, { width: 20 }]} />
             <View style={[s.burgerLine, { width: 14 }]} />
           </Pressable>
-          <Text style={s.logo}>{gymName}</Text>
+          <Text variant="display" style={s.logo}>{gymName}</Text>
           <Pressable
             style={s.notifBtn}
-            onPress={() => goToTab("/(tabs)/profile")}
-            accessibilityLabel="Go to profile tab"
+            onPress={() => router.push("/notifications")}
+            accessibilityLabel={
+              unreadCount > 0
+                ? `Abrir notificaciones, ${unreadCount} sin leer`
+                : "Abrir notificaciones"
+            }
           >
             <Text style={{ fontSize: 20 }}>🔔</Text>
+            {unreadCount > 0 ? (
+              <View style={s.notifBadge}>
+                <Text style={s.notifBadgeText}>{unreadLabel}</Text>
+              </View>
+            ) : null}
           </Pressable>
         </View>
 
@@ -285,7 +284,7 @@ export function HomeScreen() {
           {/* Greeting */}
           <View style={s.greet}>
             <Text style={s.greetSub}>{greeting},</Text>
-            <Text style={s.greetName}>
+            <Text variant="title" style={s.greetName}>
               {user && displayName ? `${displayName} 👊` : " "}
             </Text>
           </View>
@@ -314,7 +313,7 @@ export function HomeScreen() {
                         {item.tag}
                       </Text>
                     </View>
-                    <Text style={s.heroTitle}>{item.title}</Text>
+                    <Text variant="title" style={s.heroTitle}>{item.title}</Text>
                     <Text style={s.heroSub}>{item.sub}</Text>
                     <Pressable
                       style={[s.heroBtn, { borderColor: item.tagColor }]}
@@ -406,13 +405,13 @@ export function HomeScreen() {
               </View>
             ) : (
               filteredTodayClasses.map((c) => {
-                const color = DIFF_COLORS[c.difficulty_level] ?? "#22D3EE";
+                const color = difficultyColor(c.difficulty_level);
                 const diff = c.difficulty_level.slice(0, 3).toUpperCase();
 
                 return (
                   <Pressable
                     key={c.id}
-                    className="min-h-[84px] flex-row items-center rounded-2xl border border-[#24262B] bg-[#111317] px-4 py-4"
+                    className="min-h-[84px] flex-row items-center rounded-2xl border border-border bg-background px-4 py-4"
                     style={({ pressed }) => pressed && { opacity: 0.75 }}
                     onPress={() =>
                       user
@@ -437,7 +436,7 @@ export function HomeScreen() {
                       <Text className="text-[15px] font-bold text-white">
                         {c.title}
                       </Text>
-                      <Text className="mt-1 text-xs text-[#666]">
+                      <Text className="mt-1 text-xs text-muted">
                         {c.trainer_name} · {c.start_time}
                       </Text>
                     </View>
@@ -454,7 +453,7 @@ export function HomeScreen() {
                       >
                         <Text style={[s.diffText, { color }]}>{diff}</Text>
                       </View>
-                      <Text className="mt-1 text-[11px] text-[#555]">
+                      <Text className="mt-1 text-[11px] text-muted">
                         {c.duration_minutes} min
                       </Text>
                     </View>
@@ -486,7 +485,7 @@ export function HomeScreen() {
       >
         <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
           <View style={s.drawerHead}>
-            <Text style={s.drawerLogo}>{gymName}</Text>
+            <Text variant="title" style={s.drawerLogo}>{gymName}</Text>
             <Pressable onPress={closeDrawer} style={s.drawerClose}>
               <Text style={s.drawerCloseText}>✕</Text>
             </Pressable>
@@ -562,7 +561,7 @@ export function HomeScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0A0A0A" },
+  root: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -574,24 +573,45 @@ const s = StyleSheet.create({
   burgerLine: {
     width: 24,
     height: 2,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.foreground,
     borderRadius: 2,
   },
-  logo: { fontSize: 20, fontWeight: "900", color: "#FFFFFF", letterSpacing: 4 },
-  logoAccent: { color: "#22D3EE" },
+  logo: { fontSize: 20, color: colors.foreground, letterSpacing: 4 },
+  logoAccent: { color: colors.accent.cyan },
   notifBtn: { padding: 4 },
+  notifBadge: {
+    alignItems: "center",
+    backgroundColor: colors.accent.cyan,
+    borderColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 2,
+    height: 20,
+    justifyContent: "center",
+    minWidth: 20,
+    paddingHorizontal: 3,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  notifBadgeText: {
+    color: colors.inverse,
+    fontSize: 9,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "800",
+    lineHeight: 11,
+  },
   greet: { paddingHorizontal: 20, marginTop: 4, marginBottom: 14 },
-  greetSub: { color: "#666", fontSize: 14 },
-  greetName: { color: "#FFF", fontSize: 26, fontWeight: "800", marginTop: 2 },
+  greetSub: { color: colors.muted, fontSize: 14 },
+  greetName: { color: colors.foreground, fontSize: 30, fontWeight: "800", marginTop: 2 },
   heroSlide: { width: SW, paddingHorizontal: 20 },
   heroCard: {
     height: 244,
     position: "relative",
     overflow: "hidden",
     borderRadius: 24,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: "#1F1F1F",
+    borderColor: colors.border,
   },
   heroImage: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
   heroOverlay: {
@@ -600,7 +620,7 @@ const s = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: "#000",
+    backgroundColor: colors.inverse,
     opacity: 0.34,
   },
   heroContent: {
@@ -619,8 +639,8 @@ const s = StyleSheet.create({
     paddingVertical: 2,
   },
   heroBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
-  heroTitle: { color: "#FFF", fontSize: 28, fontWeight: "900", lineHeight: 34 },
-  heroSub: { color: "rgba(255,255,255,0.7)", fontSize: 13 },
+  heroTitle: { color: colors.foreground, fontSize: 34, fontWeight: "900", lineHeight: 34, ...fontStyle.title },
+  heroSub: { color: "rgba(255,255,255,0.7)", fontSize: 14 },
   heroBtn: {
     alignSelf: "flex-start",
     marginTop: 4,
@@ -637,8 +657,8 @@ const s = StyleSheet.create({
     marginTop: 12,
     marginBottom: 18,
   },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#333" },
-  dotActive: { backgroundColor: "#22D3EE", width: 20 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.faint },
+  dotActive: { backgroundColor: colors.accent.cyan, width: 20 },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
@@ -650,17 +670,17 @@ const s = StyleSheet.create({
   statCard: {
     width: 100,
     height: 94,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
     borderWidth: 1,
-    borderColor: "#242424",
+    borderColor: colors.border,
   },
-  statVal: { color: "#22D3EE", fontSize: 22, fontWeight: "800" },
+  statVal: { color: colors.accent.cyan, fontSize: 22, fontWeight: "800" },
   statLabel: {
-    color: "#666",
+    color: colors.muted,
     fontSize: 11,
     textAlign: "center",
     marginTop: 4,
@@ -673,19 +693,19 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 14,
   },
-  sectionTitle: { color: "#FFF", fontSize: 17, fontWeight: "800" },
-  sectionLink: { color: "#22D3EE", fontSize: 13, fontWeight: "600" },
+  sectionTitle: { color: colors.foreground, fontSize: 17, fontWeight: "800" },
+  sectionLink: { color: colors.accent.cyan, fontSize: 13, fontWeight: "600" },
   chip: {
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 7,
-    backgroundColor: "#141414",
+    backgroundColor: colors.surface.DEFAULT,
   },
-  chipActive: { backgroundColor: "#22D3EE", borderColor: "#22D3EE" },
-  chipText: { color: "#888", fontSize: 13, fontWeight: "600" },
-  chipTextActive: { color: "#000" },
+  chipActive: { backgroundColor: colors.accent.cyan, borderColor: colors.accent.cyan },
+  chipText: { color: colors.muted, fontSize: 13, fontWeight: "600" },
+  chipTextActive: { color: colors.inverse },
   diffBadge: {
     borderWidth: 1,
     borderRadius: 4,
@@ -699,24 +719,24 @@ const s = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#24262B",
-    backgroundColor: "#111317",
+    borderColor: colors.border,
+    backgroundColor: colors.background,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
-  emptyClassText: { color: "#666", fontSize: 13, fontWeight: "600" },
-  overlay: { backgroundColor: "#000", zIndex: 10 },
+  emptyClassText: { color: colors.muted, fontSize: 13, fontWeight: "600" },
+  overlay: { backgroundColor: colors.inverse, zIndex: 10 },
   drawer: {
     position: "absolute",
     top: 0,
     left: 0,
     bottom: 0,
     width: DRAWER_W,
-    backgroundColor: "#0E0E0E",
+    backgroundColor: colors.tabBar,
     zIndex: 20,
     borderRightWidth: 1,
-    borderRightColor: "#1E1E1E",
-    shadowColor: "#000",
+    borderRightColor: colors.surface.elevated,
+    shadowColor: colors.inverse,
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 16,
@@ -733,26 +753,27 @@ const s = StyleSheet.create({
   drawerLogo: {
     fontSize: 22,
     fontWeight: "900",
-    color: "#FFF",
+    color: colors.foreground,
     letterSpacing: 4,
+    ...fontStyle.title,
   },
-  drawerLogoAccent: { color: "#22D3EE" },
+  drawerLogoAccent: { color: colors.accent.cyan },
   drawerClose: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface.elevated,
     alignItems: "center",
     justifyContent: "center",
   },
-  drawerCloseText: { color: "#888", fontSize: 14 },
+  drawerCloseText: { color: colors.muted, fontSize: 14 },
   drawerDivider: {
     height: 1,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: colors.surface.elevated,
     marginHorizontal: 24,
   },
-  drawerGreet: { color: "#FFF", fontSize: 18, fontWeight: "800" },
-  drawerGreetSub: { color: "#555", fontSize: 13, marginTop: 2 },
+  drawerGreet: { color: colors.foreground, fontSize: 18, fontWeight: "800" },
+  drawerGreetSub: { color: colors.muted, fontSize: 13, marginTop: 2 },
   drawerItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -761,7 +782,7 @@ const s = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
   },
-  drawerItemPressed: { backgroundColor: "#1A1A1A" },
+  drawerItemPressed: { backgroundColor: colors.surface.elevated },
   drawerItemMain: {
     flexDirection: "row",
     alignItems: "center",
@@ -772,11 +793,11 @@ const s = StyleSheet.create({
   drawerItemLabel: {
     flexGrow: 1,
     flexShrink: 1,
-    color: "#F3F4F6",
+    color: colors.foreground,
     fontSize: 15,
     fontWeight: "600",
   },
-  drawerItemArrow: { color: "#666", fontSize: 22, marginLeft: 12 },
+  drawerItemArrow: { color: colors.muted, fontSize: 22, marginLeft: 12 },
   drawerProfileBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -787,12 +808,12 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#0F2A2E",
+    backgroundColor: withAlpha(colors.accent.cyan, "22"),
     borderWidth: 1,
-    borderColor: "#22D3EE44",
+    borderColor: withAlpha(colors.accent.cyan, "44"),
     alignItems: "center",
     justifyContent: "center",
   },
-  drawerProfileName: { color: "#FFF", fontSize: 15, fontWeight: "700" },
-  drawerProfileSub: { color: "#22D3EE", fontSize: 12, marginTop: 2 },
+  drawerProfileName: { color: colors.foreground, fontSize: 15, fontWeight: "700" },
+  drawerProfileSub: { color: colors.accent.cyan, fontSize: 12, marginTop: 2 },
 });
