@@ -1,19 +1,66 @@
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { Screen } from "@/components/ui/Screen";
 import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import {
   type AttendanceBooking,
   fetchAttendanceBookings,
   setBookingAttendance,
 } from "@/features/admin/services/attendanceService";
+import { toDateKey } from "@/utils/date";
 
-import { colors } from "@/theme";
+import { calendarSelectedMark, calendarTheme, colors } from "@/theme";
 import { Text } from "@/components/ui/Text";
 type TimeFilter = "all" | "past" | "upcoming";
+
+LocaleConfig.locales.es = {
+  monthNames: [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ],
+  monthNamesShort: [
+    "ene.",
+    "feb.",
+    "mar.",
+    "abr.",
+    "may.",
+    "jun.",
+    "jul.",
+    "ago.",
+    "sep.",
+    "oct.",
+    "nov.",
+    "dic.",
+  ],
+  dayNames: [
+    "domingo",
+    "lunes",
+    "martes",
+    "miércoles",
+    "jueves",
+    "viernes",
+    "sábado",
+  ],
+  dayNamesShort: ["dom.", "lun.", "mar.", "mié.", "jue.", "vie.", "sáb."],
+  today: "Hoy",
+};
+
+LocaleConfig.defaultLocale = "es";
 
 function scheduledAt(booking: AttendanceBooking): Date {
   return new Date(`${booking.date}T${booking.start_time}:00Z`);
@@ -22,16 +69,20 @@ function scheduledAt(booking: AttendanceBooking): Date {
 export function AdminAttendanceScreen() {
   const { role, initializing } = useAuthState();
   const queryClient = useQueryClient();
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("past");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [selectedDate, setSelectedDate] = useState(toDateKey(new Date()));
+  const [isCalendarVisible, setIsCalendarVisible] = useState(true);
 
   const bookingsQuery = useQuery({
     queryKey: queryKeys.adminAttendance,
     queryFn: fetchAttendanceBookings,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   const filteredBookings = useMemo(() => {
-    const bookings = bookingsQuery.data ?? [];
+    const bookings = (bookingsQuery.data ?? []).filter(
+      (booking) => booking.date === selectedDate,
+    );
     if (timeFilter === "all") {
       return bookings;
     }
@@ -41,12 +92,16 @@ export function AdminAttendanceScreen() {
         ? scheduledAt(booking).getTime() < now
         : scheduledAt(booking).getTime() >= now,
     );
-  }, [bookingsQuery.data, timeFilter]);
+  }, [bookingsQuery.data, selectedDate, timeFilter]);
 
   const attendedCount = useMemo(
     () => filteredBookings.filter((booking) => booking.attended).length,
     [filteredBookings],
   );
+
+  const markedDates: Record<string, any> = {
+    [selectedDate]: calendarSelectedMark(),
+  };
 
   const attendanceMutation = useMutation({
     mutationFn: ({
@@ -84,7 +139,7 @@ export function AdminAttendanceScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
@@ -111,13 +166,60 @@ export function AdminAttendanceScreen() {
       <FilterChipRow
         label="Período"
         options={[
+          { label: "Todas", value: "all" },
           { label: "Pasadas", value: "past" },
           { label: "Próximas", value: "upcoming" },
-          { label: "Todas", value: "all" },
         ]}
         selected={timeFilter}
         onSelect={setTimeFilter}
       />
+
+      <View className="mb-4 rounded-2xl border border-border bg-surface p-4">
+        <View className="mb-3 flex-row items-center justify-between gap-3">
+          <View className="flex-1">
+            <Text className="text-base font-bold text-white">
+              Fecha seleccionada
+            </Text>
+            <Text className="mt-1 text-xs text-muted">
+              {isCalendarVisible
+                ? "Selecciona el día de la clase para marcar asistencia."
+                : "La lista se filtra por esta fecha."}
+            </Text>
+          </View>
+          <View className="items-end gap-2">
+            <Text className="text-sm font-semibold text-accent-cyan">
+              {selectedDate}
+            </Text>
+            {!isCalendarVisible ? (
+              <Pressable
+                className="rounded-full border border-accent-cyan/60 bg-accent-cyan/10 px-3 py-2"
+                onPress={() => setIsCalendarVisible(true)}
+              >
+                <Text className="text-xs font-bold text-accent-cyan">
+                  MODIFICAR
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+        {isCalendarVisible ? (
+          <Calendar
+            current={selectedDate}
+            onDayPress={(day) => {
+              setSelectedDate(day.dateString);
+              setIsCalendarVisible(false);
+            }}
+            markedDates={markedDates}
+            theme={calendarTheme}
+            style={{
+              borderRadius: 16,
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: colors.surface.elevated,
+            }}
+          />
+        ) : null}
+      </View>
 
       <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
         <View className="mb-3 flex-row items-center justify-between">
@@ -178,10 +280,10 @@ export function AdminAttendanceScreen() {
         ) : (
           <Text className="text-sm text-muted">
             {timeFilter === "all"
-              ? "Aún no hay reservas."
+              ? `No hay reservas para el ${selectedDate}.`
               : timeFilter === "past"
-                ? "No hay clases pasadas."
-                : "No hay clases próximas."}
+                ? `No hay clases pasadas para el ${selectedDate}.`
+                : `No hay clases próximas para el ${selectedDate}.`}
           </Text>
         )}
       </View>

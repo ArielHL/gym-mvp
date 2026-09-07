@@ -6,13 +6,17 @@ La administración se hace **dentro de la misma app** (no hay panel web aparte).
 
 ## Acceso de administrador
 
-No se puede promover a alguien desde la app. En Supabase (SQL) hay que asignar el rol y luego **cerrar sesión y volver a entrar**:
+Hay tres roles: **member**, **admin** y **super_admin**.
+
+El menú **Admin** aparece para `admin` y `super_admin`. Solo un **Super Admin** puede promover o quitar administradores desde **Miembros → Roles**.
+
+El primer Super Admin se asigna en Supabase (SQL) y luego hay que **cerrar sesión y volver a entrar**:
 
 ```sql
-update public.profiles set role = 'admin' where email = 'tu@correo.com';
+update public.profiles set role = 'super_admin' where email = 'tu@correo.com';
 ```
 
-Sin ese rol, las pantallas `/admin` no se abren.
+Sin rol `admin` o `super_admin`, las pantallas `/admin` no se abren.
 
 ---
 
@@ -164,7 +168,22 @@ Filtros: búsqueda por nombre, con/sin suscripción, tipo de plan y estado.
 
 Si el período ya venció, puedes **Crear Nueva** o **Actualizar Existente**.
 
-Esto **no cobra** ni abre Stripe. El ID se escribe a mano. Tampoco se crean ni se borran cuentas, ni se cambia el rol a admin.
+Esto **no cobra** ni abre Stripe. El ID se escribe a mano. Tampoco se crean ni se borran cuentas.
+
+---
+
+## 8. Roles (solo Super Admin)
+
+Pantalla: **Miembros → Roles**.
+
+Lista todos los usuarios. Buscá por nombre o email y asigná o quitá el rol **admin**.
+
+| Acción | Cómo |
+|---|---|
+| Hacer admin | **Hacer admin** → confirmar |
+| Quitar admin | **Quitar admin** → confirmar |
+
+No se puede cambiar un Super Admin ni el rol de tu propia cuenta desde la app.
 
 El socio solo **consulta** su plan en **Mi Suscripción**. Tener o no plan **no impide** reservar.
 
@@ -186,7 +205,7 @@ Desde aquí no se crean ni se cancelan reservas.
 
 ## Qué no se configura en la app
 
-- Dar o quitar rol **admin**
+- Crear el primer **Super Admin** (SQL)
 - Alta o baja de cuentas de socio
 - Un directorio de instructores (el nombre va en **Entrenador**)
 - Varios “gimnasios” aparte de **Ubicaciones**

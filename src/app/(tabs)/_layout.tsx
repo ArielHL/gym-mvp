@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/features/profile/screens/ProfileScreen";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import { colors, fonts } from "@/theme";
 
 export default function TabsLayout() {
@@ -74,7 +75,7 @@ export default function TabsLayout() {
         name="admin"
         options={{
           title: "Admin",
-          href: role === "admin" ? "/admin/classes" : null,
+          href: hasAdminAccess(role) ? "/admin/classes" : null,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="view-dashboard"

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import {
   type Location,
   createLocation,
@@ -60,7 +61,7 @@ export function AdminLocationsScreen() {
   const locationsQuery = useQuery({
     queryKey: queryKeys.locations,
     queryFn: fetchLocations,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   const filteredLocations = useMemo(() => {
@@ -177,7 +178,7 @@ export function AdminLocationsScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">

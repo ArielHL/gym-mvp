@@ -6,3 +6,4 @@ export * from "./screens/AdminAttendanceScreen";
 export * from "./screens/AdminSettingsScreen";
 export * from "./screens/AdminSubscriptionsScreen";
 export * from "./screens/AdminContentScreen";
+export * from "./screens/AdminRolesScreen";

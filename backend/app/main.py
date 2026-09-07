@@ -133,6 +133,10 @@ class AdminSubscriptionRequest(BaseModel):
     current_period_end: datetime | None = None
 
 
+class UserRoleUpdateRequest(BaseModel):
+    role: Literal["admin", "member"]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -474,13 +478,28 @@ async def get_auth_user(
     return await _read_user_from_token(token, settings)
 
 
+STAFF_ROLES = {"admin", "super_admin"}
+ASSIGNABLE_ROLES = {"admin", "member"}
+
+
 async def require_admin_user(user_id: str = Depends(get_user_id)) -> str:
     pool: asyncpg.Pool = app.state.db_pool
     async with pool.acquire() as conn:
         role = await conn.fetchval("select role from profiles where id = $1", user_id)
 
-    if role != "admin":
+    if role not in STAFF_ROLES:
         raise _forbidden("admin access required")
+
+    return user_id
+
+
+async def require_super_admin_user(user_id: str = Depends(get_user_id)) -> str:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        role = await conn.fetchval("select role from profiles where id = $1", user_id)
+
+    if role != "super_admin":
+        raise _forbidden("super admin access required")
 
     return user_id
 
@@ -1042,6 +1061,70 @@ async def list_admin_users(_: str = Depends(require_admin_user)) -> list[dict[st
         )
 
     return _records_to_dicts(rows)
+
+
+@app.patch("/admin/users/{user_id}/role")
+async def update_user_role(
+    user_id: UUID,
+    request: UserRoleUpdateRequest,
+    actor_id: str = Depends(require_super_admin_user),
+) -> dict[str, Any]:
+    if request.role not in ASSIGNABLE_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(success=False, message="role must be admin or member").model_dump(),
+        )
+
+    target_id = str(user_id)
+    if target_id == actor_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ApiResponse(
+                success=False,
+                message="cannot change your own role",
+                error_code="CANNOT_CHANGE_OWN_ROLE",
+            ).model_dump(),
+        )
+
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        current_role = await conn.fetchval(
+            "select role from profiles where id = $1",
+            target_id,
+        )
+        if current_role is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=ApiResponse(success=False, message="user not found").model_dump(),
+            )
+        if current_role == "super_admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ApiResponse(
+                    success=False,
+                    message="cannot change a super admin role",
+                    error_code="CANNOT_CHANGE_SUPER_ADMIN",
+                ).model_dump(),
+            )
+
+        row = await conn.fetchrow(
+            """
+            update profiles
+            set role = $2, updated_at = now()
+            where id = $1
+            returning id, full_name, email, role, created_at
+            """,
+            target_id,
+            request.role,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ApiResponse(success=False, message="user not found").model_dump(),
+        )
+
+    return _record_to_dict(row)
 
 
 @app.post("/admin/users/{user_id}/subscription", response_model=dict[str, Any])

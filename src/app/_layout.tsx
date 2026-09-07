@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import { AppErrorBoundary } from "@/components/feedback/AppErrorBoundary";
 import { fontAssets } from "@/theme";
 
@@ -52,7 +53,7 @@ function RootLayoutNav() {
       router.replace("/(tabs)");
     } else if (!user && (inProtectedRoute || inAdminRoute)) {
       router.replace("/(tabs)");
-    } else if (user && inAdminRoute && role !== "admin") {
+    } else if (user && inAdminRoute && !hasAdminAccess(role)) {
       router.replace("/(tabs)");
     }
   }, [user, role, initializing, segments, router]);
