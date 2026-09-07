@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import { useClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import {
   type ClassType,
@@ -65,7 +66,7 @@ export function AdminClassTypesScreen() {
     defaultValues: emptyValues,
   });
 
-  const classTypesQuery = useClassTypes(role === "admin");
+  const classTypesQuery = useClassTypes(hasAdminAccess(role));
 
   const filteredTypes = useMemo(() => {
     const items = classTypesQuery.data ?? [];
@@ -195,7 +196,7 @@ export function AdminClassTypesScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">

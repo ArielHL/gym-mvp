@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import {
   type AdminSubscriptionInput,
   type AdminUser,
@@ -132,7 +133,7 @@ export function AdminSubscriptionsScreen() {
   const usersQuery = useQuery({
     queryKey: queryKeys.adminUsers,
     queryFn: fetchAdminUsers,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   const planOptions = useMemo(() => {
@@ -266,7 +267,7 @@ export function AdminSubscriptionsScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">

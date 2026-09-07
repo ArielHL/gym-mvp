@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthRequiredView } from "@/features/auth/components/AuthRequiredView";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import { authService } from "@/features/auth/services/authService";
 import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useRouter } from "expo-router";
@@ -133,9 +134,13 @@ export function ProfileScreen() {
             <Avatar name={displayName} avatarUrl={avatarUrl} />
             <Text variant="title" style={s.displayName}>{displayName || "Athlete"}</Text>
             <Text style={s.email}>{user.email}</Text>
-            <View style={[s.roleBadge, role === "admin" && s.roleBadgeAdmin]}>
-              <Text style={[s.roleText, role === "admin" && s.roleTextAdmin]}>
-                {role === "admin" ? "⭐ Admin" : "🏋️ Member"}
+            <View style={[s.roleBadge, hasAdminAccess(role) && s.roleBadgeAdmin]}>
+              <Text style={[s.roleText, hasAdminAccess(role) && s.roleTextAdmin]}>
+                {role === "super_admin"
+                  ? "🛡️ Super Admin"
+                  : role === "admin"
+                    ? "⭐ Admin"
+                    : "🏋️ Member"}
               </Text>
             </View>
           </View>

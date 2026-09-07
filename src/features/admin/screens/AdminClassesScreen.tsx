@@ -12,6 +12,7 @@ import { Screen } from "@/components/ui/Screen";
 import { TimePickerModal } from "@/components/ui/TimePickerModal";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import { useActiveClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import {
   type ClassTemplate,
@@ -132,22 +133,22 @@ export function AdminClassesScreen() {
   const templatesQuery = useQuery({
     queryKey: queryKeys.classTemplates,
     queryFn: fetchClassTemplates,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   const locationsQuery = useQuery({
     queryKey: queryKeys.locations,
     queryFn: fetchLocations,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   const trainersQuery = useQuery({
     queryKey: queryKeys.trainers,
     queryFn: fetchTrainers,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
-  const classTypesQuery = useActiveClassTypes(role === "admin");
+  const classTypesQuery = useActiveClassTypes(hasAdminAccess(role));
 
   const filteredTemplates = useMemo(() => {
     const items = templatesQuery.data ?? [];
@@ -317,7 +318,7 @@ export function AdminClassesScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">

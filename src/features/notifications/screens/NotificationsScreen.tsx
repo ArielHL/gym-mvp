@@ -22,7 +22,7 @@ import {
   useNotificationFeed,
 } from "../hooks/useNotificationFeed";
 
-const notificationIcon: Record<AppNotificationType, keyof typeof MaterialCommunityIcons.glyphMap> = {
+const notificationIcon: Record<AppNotificationType, string> = {
   booking_confirmed: "calendar-check",
   booking_cancelled: "calendar-remove",
   general: "bell-outline",

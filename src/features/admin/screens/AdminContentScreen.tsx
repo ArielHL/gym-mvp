@@ -12,6 +12,7 @@ import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import { UnsplashImagePicker } from "@/features/admin/components/UnsplashImagePicker";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import { useClassTypes } from "@/features/class-types/hooks/useClassTypes";
 import {
   type ClassType,
@@ -64,7 +65,7 @@ export function AdminContentScreen() {
   const queryClient = useQueryClient();
   const carouselQuery = useHomeCarousel();
   const saveCarouselMutation = useSaveHomeCarousel();
-  const classTypesQuery = useClassTypes(role === "admin");
+  const classTypesQuery = useClassTypes(hasAdminAccess(role));
 
   const [slides, setSlides] = useState<HomeCarouselSlide[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -252,7 +253,7 @@ export function AdminContentScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">

@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import type { UserRole } from "@/features/auth/role";
 import { apiGet, apiPatch, apiPost } from "@/services/api/client";
 
 export type ProfileRecord = {
@@ -6,7 +7,7 @@ export type ProfileRecord = {
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
-  role: "admin" | "member";
+  role: UserRole;
   address: string | null;
   doc_number: string | null;
 };

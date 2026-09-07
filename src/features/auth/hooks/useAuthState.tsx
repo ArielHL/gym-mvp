@@ -3,10 +3,11 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
 import { hasSupabaseConfig } from '@/lib/env';
 import { createUserProfileIfMissing, fetchUserProfile } from '@/services/userService';
+import { parseUserRole, type UserRole } from '@/features/auth/role';
 
 interface AuthContextValue {
   user: User | null;
-  role: 'admin' | 'member';
+  role: UserRole;
   displayName: string;
   avatarUrl: string | null;
   address: string | null;
@@ -28,7 +29,7 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const [role, setRole] = useState<UserRole>('member');
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [initializing, setInitializing] = useState(true);
 
   const applyProfile = (profile: { role?: string | null; full_name?: string | null; avatar_url?: string | null; address?: string | null; doc_number?: string | null } | null, fallbackUser: User | null) => {
-    setRole(profile?.role === 'admin' ? 'admin' : 'member');
+    setRole(parseUserRole(profile?.role));
     setDisplayName(profile?.full_name ?? fallbackUser?.user_metadata?.full_name ?? fallbackUser?.email ?? '');
     setAvatarUrl(profile?.avatar_url ?? null);
     setAddress(profile?.address ?? null);

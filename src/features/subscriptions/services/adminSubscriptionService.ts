@@ -46,6 +46,16 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
   return apiGet<AdminUser[]>("/admin/users");
 }
 
+export async function updateUserRole(
+  userId: string,
+  role: "admin" | "member",
+): Promise<{ id: string; role: string }> {
+  return apiPatch<{ id: string; role: string }>(
+    `/admin/users/${encodeURIComponent(userId)}/role`,
+    { role },
+  );
+}
+
 export async function createUserSubscription(
   userId: string,
   input: AdminSubscriptionInput,

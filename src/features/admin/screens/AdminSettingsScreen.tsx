@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
+import { hasAdminAccess } from "@/features/auth/role";
 import {
   fetchAdminSettings,
   updateCancellationWindow,
@@ -72,7 +73,7 @@ export function AdminSettingsScreen() {
   const settingsQuery = useQuery({
     queryKey: queryKeys.adminSettings,
     queryFn: fetchAdminSettings,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export function AdminSettingsScreen() {
   const salesQuery = useQuery({
     queryKey: queryKeys.salesContact,
     queryFn: fetchSalesContact,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   useEffect(() => {
@@ -119,7 +120,7 @@ export function AdminSettingsScreen() {
   const brandingQuery = useQuery({
     queryKey: queryKeys.gymBranding,
     queryFn: fetchGymBranding,
-    enabled: role === "admin",
+    enabled: hasAdminAccess(role),
   });
 
   useEffect(() => {
@@ -171,7 +172,7 @@ export function AdminSettingsScreen() {
     );
   }
 
-  if (role !== "admin") {
+  if (!hasAdminAccess(role)) {
     return (
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
