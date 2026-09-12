@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from 'react-native';
+  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButton
 import { authService } from '@/features/auth/services/authService';
 import { useGymBranding } from '@/features/home/hooks/useGymBranding';
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors } from "@/theme";
 
 import { Text } from "@/components/ui/Text";
@@ -28,7 +29,7 @@ export function SignInScreen() {
   const onSubmit = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
-      Alert.alert('Missing fields', 'Please enter email and password.');
+      showAlert('Missing fields', 'Please enter email and password.');
       return;
     }
 
@@ -36,7 +37,7 @@ export function SignInScreen() {
     try {
       await authService.login(trimmedEmail, password);
     } catch (err) {
-      Alert.alert('Login failed', (err as Error).message);
+      showAlert('Login failed', (err as Error).message);
     } finally {
       setLoading(false);
     }

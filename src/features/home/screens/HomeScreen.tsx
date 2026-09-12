@@ -736,11 +736,7 @@ const s = StyleSheet.create({
     zIndex: 20,
     borderRightWidth: 1,
     borderRightColor: colors.surface.elevated,
-    shadowColor: colors.inverse,
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 20,
+    boxShadow: `4px 0px 16px ${withAlpha(colors.inverse, 0.5)}`,
   },
   drawerHead: {
     flexDirection: "row",

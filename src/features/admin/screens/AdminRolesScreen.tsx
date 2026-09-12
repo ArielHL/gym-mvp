@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   TextInput,
   View,
 } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
@@ -61,7 +61,7 @@ export function AdminRolesScreen() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers });
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 
@@ -73,7 +73,7 @@ export function AdminRolesScreen() {
         ? `¿Dar rol de administrador a ${name}?`
         : `¿Quitar el rol de administrador a ${name}?`;
 
-    Alert.alert(title, message, [
+    showAlert(title, message, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Confirmar",

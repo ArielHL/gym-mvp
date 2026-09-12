@@ -1,5 +1,5 @@
 ﻿import { useEffect } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import * as Contacts from "expo-contacts";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import parsePhoneNumberFromString, {
   type CountryCode,
 } from "libphonenumber-js/max";
 import { z } from "zod";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
@@ -164,10 +165,10 @@ export function AdminSettingsScreen() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.adminSettings,
       });
-      Alert.alert("Guardado", "Ajustes actualizados correctamente.");
+      showAlert("Guardado", "Ajustes actualizados correctamente.");
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 
@@ -190,10 +191,10 @@ export function AdminSettingsScreen() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.gymBranding,
       });
-      Alert.alert("Guardado", "Nombre del gimnasio actualizado.");
+      showAlert("Guardado", "Nombre del gimnasio actualizado.");
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 
@@ -209,17 +210,17 @@ export function AdminSettingsScreen() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.salesContact,
       });
-      Alert.alert("Guardado", "Contacto de ventas actualizado.");
+      showAlert("Guardado", "Contacto de ventas actualizado.");
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 
   const pasteContactPhone = async (target: PhoneFieldName) => {
     const permission = await Contacts.requestPermissionsAsync();
     if (permission.status !== "granted") {
-      Alert.alert(
+      showAlert(
         "Permiso requerido",
         "Necesitamos acceso a contactos para seleccionar un teléfono.",
       );
@@ -235,7 +236,7 @@ export function AdminSettingsScreen() {
     const phones = details.phones?.filter((phone) => phone.number) ?? [];
 
     if (phones.length === 0) {
-      Alert.alert(
+      showAlert(
         "Sin teléfonos",
         "El contacto seleccionado no tiene teléfonos.",
       );
@@ -253,7 +254,7 @@ export function AdminSettingsScreen() {
       });
 
       if (!parsed) {
-        Alert.alert(
+        showAlert(
           "Revisa el teléfono",
           "Pegamos el número. Agrega el código de país si falta, por ejemplo +54 9 11 2345 6789.",
         );
@@ -265,7 +266,7 @@ export function AdminSettingsScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       "Selecciona un teléfono",
       "Este contacto tiene más de un teléfono.",
       [

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  View, Pressable, ScrollView, StyleSheet, StatusBar, Alert, ActivityIndicator } from "react-native";
+  View, Pressable, ScrollView, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -20,6 +20,8 @@ import { BOOKING_ERROR_CODES } from "@/features/bookings/constants/bookingErrorC
 import { isApiErrorWithCode } from "@/services/api/client";
 import { toDateKey } from "@/utils/date";
 import { calendarSelectedMark, calendarTheme, colors, difficultyColor, fontStyle, withAlpha } from "@/theme";
+import { showAlert } from "@/components/feedback/AppAlert";
+import { renderCalendarArrow } from "@/components/ui/CalendarArrow";
 
 import { Text } from "@/components/ui/Text";
 LocaleConfig.locales.es = {
@@ -233,25 +235,25 @@ export function BookClassScreen() {
 
   const handleBook = async () => {
     if (!selectedTemplateId) {
-      Alert.alert("Seleccionar una Clase", "Por favor Elige una Clase");
+      showAlert("Seleccionar una Clase", "Por favor Elige una Clase");
       return;
     }
     if (!selectedLocationId) {
-      Alert.alert(
+      showAlert(
         "Selecciona una Ubicación",
         "Por Favor selecciona una Ubicación",
       );
       return;
     }
     if (!isDateValid) {
-      Alert.alert(
+      showAlert(
         "Invalid date",
         dateReason ?? "Pick a valid date for this class.",
       );
       return;
     }
     if (isClassFull) {
-      Alert.alert(
+      showAlert(
         "Clase llena",
         "Esta clase está llena. Por favor elige otra fecha o clase.",
         [{ text: "Aceptar" }],
@@ -265,7 +267,7 @@ export function BookClassScreen() {
         requestedDate: selectedDate,
         locationId: selectedLocationId,
       });
-      Alert.alert("Booked!", result.message, [
+      showAlert("Booked!", result.message, [
         { text: "Done", onPress: () => router.push("/") },
       ]);
     } catch (err) {
@@ -276,7 +278,7 @@ export function BookClassScreen() {
         /already booked/i.test(message);
 
       if (alreadyBooked) {
-        Alert.alert("Ya Reservado", "Ya reservaste esta clase.", [
+        showAlert("Ya Reservado", "Ya reservaste esta clase.", [
           { text: "Aceptar" },
         ]);
         return;
@@ -284,7 +286,7 @@ export function BookClassScreen() {
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_FULL)) {
         void availabilityQuery.refetch();
-        Alert.alert(
+        showAlert(
           "Clase llena",
           "Esta clase está llena. Por favor elige otra fecha o clase.",
           [{ text: "Aceptar" }],
@@ -293,14 +295,14 @@ export function BookClassScreen() {
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_INACTIVE)) {
-        Alert.alert("Clase no disponible", "Esta clase ya no está activa.", [
+        showAlert("Clase no disponible", "Esta clase ya no está activa.", [
           { text: "Aceptar" },
         ]);
         return;
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_NOT_AVAILABLE_FOR_DATE)) {
-        Alert.alert(
+        showAlert(
           "Fecha no disponible",
           "Esta clase no está disponible en la fecha seleccionada.",
           [{ text: "Aceptar" }],
@@ -312,7 +314,7 @@ export function BookClassScreen() {
         hasCode(BOOKING_ERROR_CODES.LOCATION_NOT_FOUND) ||
         hasCode(BOOKING_ERROR_CODES.LOCATION_ID_REQUIRED)
       ) {
-        Alert.alert(
+        showAlert(
           "Ubicación no disponible",
           "Por favor selecciona una ubicación activa e inténtalo de nuevo.",
           [{ text: "Aceptar" }],
@@ -321,7 +323,7 @@ export function BookClassScreen() {
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_TEMPLATE_NOT_FOUND)) {
-        Alert.alert(
+        showAlert(
           "Clase no disponible",
           "No se pudo encontrar esta clase. Por favor actualiza e inténtalo de nuevo.",
           [{ text: "Aceptar" }],
@@ -330,7 +332,7 @@ export function BookClassScreen() {
       }
 
       if (hasCode(BOOKING_ERROR_CODES.BOOKING_TEMPORARILY_UNAVAILABLE)) {
-        Alert.alert(
+        showAlert(
           "Reserva no disponible",
           "La reserva no está disponible temporalmente. Por favor inténtalo de nuevo en un momento.",
           [{ text: "Aceptar" }],
@@ -338,7 +340,7 @@ export function BookClassScreen() {
         return;
       }
 
-      Alert.alert("Error al reservar", message);
+      showAlert("Error al reservar", message);
     }
   };
 
@@ -450,6 +452,7 @@ export function BookClassScreen() {
             minDate={today}
             disabledByWeekDays={disabledWeekDays}
             theme={calendarTheme}
+            renderArrow={renderCalendarArrow}
             style={s.calendar}
           />
           {!isDateValid && selectedTemplate ? (

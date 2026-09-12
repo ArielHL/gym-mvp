@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from 'react-native';
+  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { SocialLoginButtons } from '@/features/auth/components/SocialLoginButton
 import { authService } from '@/features/auth/services/authService';
 import { useGymBranding } from '@/features/home/hooks/useGymBranding';
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors } from "@/theme";
 
 import { Text } from "@/components/ui/Text";
@@ -33,19 +34,19 @@ export function CreateAccountScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedName) {
-      Alert.alert('Missing name', 'Please enter your full name.');
+      showAlert('Missing name', 'Please enter your full name.');
       return;
     }
     if (!trimmedEmail || !password || !confirm) {
-      Alert.alert('Missing fields', 'Please fill all fields.');
+      showAlert('Missing fields', 'Please fill all fields.');
       return;
     }
     if (password !== confirm) {
-      Alert.alert('Password mismatch', 'Passwords do not match.');
+      showAlert('Password mismatch', 'Passwords do not match.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Weak password', 'Password must be at least 6 characters.');
+      showAlert('Weak password', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -53,14 +54,14 @@ export function CreateAccountScreen() {
     try {
       const { emailConfirmationRequired } = await authService.register(trimmedEmail, password, trimmedName);
       if (emailConfirmationRequired) {
-        Alert.alert(
+        showAlert(
           'Check your email',
           `We sent a confirmation link to ${trimmedEmail}. Confirm your account, then come back to sign in.`,
           [{ text: 'OK', onPress: () => router.push('/auth') }]
         );
       }
     } catch (err) {
-      Alert.alert('Registration failed', (err as Error).message);
+      showAlert('Registration failed', (err as Error).message);
     } finally {
       setLoading(false);
     }

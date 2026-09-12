@@ -322,11 +322,7 @@ const s = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1.5,
     borderColor: withAlpha(colors.accent.cyan, "55"),
-    shadowColor: colors.accent.cyan,
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    boxShadow: `0px 5px 12px ${withAlpha(colors.accent.cyan, 0.14)}`,
   },
   cardImg: { opacity: 0.4, borderRadius: 16 },
   diffPill: {
