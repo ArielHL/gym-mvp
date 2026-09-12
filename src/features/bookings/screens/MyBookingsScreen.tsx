@@ -1,4 +1,4 @@
-import { View, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet, StatusBar } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, StatusBar } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import {
 } from "@/features/bookings/hooks/useBookings";
 import { prettyDateTime } from "@/utils/date";
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors, fontStyle, withAlpha } from "@/theme";
 import { Text } from "@/components/ui/Text";
 type BookingsFilter = "all" | "week" | "day";
@@ -73,7 +74,7 @@ export function MyBookingsScreen() {
         : "Tus próximas clases reservadas";
 
   const onCancelBooking = (classId: string) => {
-    Alert.alert("Cancelar Clase", "¿Eliminar esta clase de tus reservas?", [
+    showAlert("Cancelar Clase", "¿Eliminar esta clase de tus reservas?", [
       { text: "Mantener", style: "cancel" },
       {
         text: "Cancelar reserva",
@@ -81,9 +82,9 @@ export function MyBookingsScreen() {
         onPress: async () => {
           try {
             const result = await cancelMutation.mutateAsync(classId);
-            Alert.alert("Cancelada", result.message);
+            showAlert("Cancelada", result.message);
           } catch (err) {
-            Alert.alert("Error", (err as Error).message);
+            showAlert("Error", (err as Error).message);
           }
         },
       },

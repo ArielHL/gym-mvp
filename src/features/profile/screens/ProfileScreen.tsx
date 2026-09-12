@@ -1,5 +1,4 @@
 ﻿import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -17,6 +16,7 @@ import { useMyBookings } from "@/features/bookings/hooks/useBookings";
 import { useRouter } from "expo-router";
 import { useGymBranding } from "@/features/home/hooks/useGymBranding";
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors, fontStyle, withAlpha } from "@/theme";
 import { Text } from "@/components/ui/Text";
 const MENU_ITEMS = [
@@ -92,7 +92,7 @@ export function ProfileScreen() {
   };
 
   const onLogout = () => {
-    Alert.alert("Cerrar sesión", "¿Estás seguro de que deseas cerrar sesión?", [
+    showAlert("Cerrar sesión", "¿Estás seguro de que deseas cerrar sesión?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Cerrar sesión",
@@ -101,7 +101,7 @@ export function ProfileScreen() {
           try {
             await authService.logout();
           } catch (err) {
-            Alert.alert("Error", (err as Error).message);
+            showAlert("Error", (err as Error).message);
           }
         },
       },

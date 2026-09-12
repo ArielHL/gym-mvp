@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator, Alert, Pressable, TextInput, View } from "react-native";
+  ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Calendar, LocaleConfig } from "react-native-calendars";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Button } from "@/components/ui/Button";
 import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { Input } from "@/components/ui/Input";
@@ -23,6 +24,7 @@ import {
 } from "@/features/subscriptions/services/adminSubscriptionService";
 import { toDateKey } from "@/utils/date";
 import { calendarSelectedMark, calendarTheme, colors } from "@/theme";
+import { renderCalendarArrow } from "@/components/ui/CalendarArrow";
 
 import { Text } from "@/components/ui/Text";
 LocaleConfig.locales.es = {
@@ -247,13 +249,13 @@ export function AdminSubscriptionsScreen() {
       setSelectedUser(null);
       setIsFormVisible(false);
       reset(emptyValues);
-      Alert.alert(
+      showAlert(
         "Guardado",
         mode === "create" ? "Suscripción creada." : "Suscripción actualizada.",
       );
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 
@@ -476,6 +478,7 @@ export function AdminSubscriptionsScreen() {
             onDayPress={(day) => setPeriodEnd(day.dateString)}
             markedDates={markedDates}
             theme={calendarTheme}
+            renderArrow={renderCalendarArrow}
             style={{
               borderRadius: 16,
               overflow: "hidden",

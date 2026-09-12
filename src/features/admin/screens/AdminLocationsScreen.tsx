@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Button } from "@/components/ui/Button";
 import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { Input } from "@/components/ui/Input";
@@ -102,10 +103,10 @@ export function AdminLocationsScreen() {
       setSelectedLocation(null);
       setIsFormVisible(false);
       reset(emptyValues);
-      Alert.alert("Saved", "Location saved.");
+      showAlert("Saved", "Location saved.");
     },
     onError: (error) => {
-      Alert.alert("Save failed", (error as Error).message);
+      showAlert("Save failed", (error as Error).message);
     },
   });
 
@@ -124,13 +125,13 @@ export function AdminLocationsScreen() {
       setSelectedLocation((current) =>
         current ? { ...current, is_active: variables.isActive } : current,
       );
-      Alert.alert(
+      showAlert(
         variables.isActive ? "Reactivated" : "Deactivated",
         "Location status updated.",
       );
     },
     onError: (error) => {
-      Alert.alert("Update failed", (error as Error).message);
+      showAlert("Update failed", (error as Error).message);
     },
   });
 
@@ -154,7 +155,7 @@ export function AdminLocationsScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       "Deactivate location",
       "This keeps the location record but marks it inactive for admin management.",
       [

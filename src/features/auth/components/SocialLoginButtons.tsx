@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { showAlert } from '@/components/feedback/AppAlert';
 import { Button } from '@/components/ui/Button';
 import { authService } from '@/features/auth/services/authService';
 import { GoogleIcon } from '@/features/auth/components/icons/GoogleIcon';
@@ -16,7 +17,7 @@ export function SocialLoginButtons({ disabled }: SocialLoginButtonsProps) {
     try {
       await authService.loginWithGoogle();
     } catch (error) {
-      Alert.alert('Google Login Failed', String((error as Error).message));
+      showAlert('Google Login Failed', String((error as Error).message));
     } finally {
       setGoogleLoading(false);
     }

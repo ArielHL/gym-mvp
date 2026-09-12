@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator, Alert, Pressable, ScrollView, StatusBar, View } from "react-native";
+  ActivityIndicator, Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { fetchMySubscriptions, type Subscription } from "@/features/subscriptions/services/subscriptionService";
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors } from "@/theme";
 import { Text } from "@/components/ui/Text";
 function formatDate(value: string | null): string {
@@ -39,7 +40,7 @@ export function SubscriptionScreen() {
       })
       .catch((err) => {
         if (mounted) {
-          Alert.alert("Error", (err as Error).message);
+          showAlert("Error", (err as Error).message);
         }
       })
       .finally(() => {

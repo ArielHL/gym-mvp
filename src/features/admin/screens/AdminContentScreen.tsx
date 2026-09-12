@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, Image, Pressable, TextInput, View } from "react-native";
+  ActivityIndicator, Image, Pressable, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
@@ -178,10 +179,10 @@ export function AdminContentScreen() {
     saveCarouselMutation.mutate(slides, {
       onSuccess: () => {
         dirtyRef.current = false;
-        Alert.alert("Guardado", "Carrusel actualizado.");
+        showAlert("Guardado", "Carrusel actualizado.");
       },
       onError: (error) => {
-        Alert.alert("Error al guardar", (error as Error).message);
+        showAlert("Error al guardar", (error as Error).message);
       },
     });
   };
@@ -210,10 +211,10 @@ export function AdminContentScreen() {
           queryKey: queryKeys.publicClassTemplates,
         }),
       ]);
-      Alert.alert("Guardado", "Imagen del tipo de clase actualizada.");
+      showAlert("Guardado", "Imagen del tipo de clase actualizada.");
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 

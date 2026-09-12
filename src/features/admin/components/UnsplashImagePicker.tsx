@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, Linking, Modal, Pressable, View } from "react-native";
+  ActivityIndicator, Linking, Modal, Pressable, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -9,6 +9,7 @@ import type {
   WebViewNavigation,
 } from "react-native-webview";
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors } from "@/theme";
 import { Text } from "@/components/ui/Text";
 const BRIDGE_JS = `(function() {
@@ -228,7 +229,7 @@ export function UnsplashImagePicker({
     const normalized = normalizeUnsplashImageUrl(raw, width, quality);
     if (!normalized) {
       if (wasExtracting) {
-        Alert.alert(
+        showAlert(
           "Toca una foto",
           "Toca la imagen que quieres usar, o abre la foto y pulsa Usar esta imagen.",
         );
@@ -247,7 +248,7 @@ export function UnsplashImagePicker({
         return;
       }
       clearPendingExtract();
-      Alert.alert(
+      showAlert(
         "Toca una foto",
         "Toca la imagen que quieres usar, o abre la foto y pulsa Usar esta imagen.",
       );

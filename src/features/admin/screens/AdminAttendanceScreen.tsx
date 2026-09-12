@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, LocaleConfig } from "react-native-calendars";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Screen } from "@/components/ui/Screen";
 import { FilterChipRow } from "@/components/ui/FilterChipRow";
 import { queryKeys } from "@/constants/queryKeys";
@@ -15,6 +16,7 @@ import {
 import { toDateKey } from "@/utils/date";
 
 import { calendarSelectedMark, calendarTheme, colors } from "@/theme";
+import { renderCalendarArrow } from "@/components/ui/CalendarArrow";
 import { Text } from "@/components/ui/Text";
 type TimeFilter = "all" | "past" | "upcoming";
 
@@ -118,7 +120,7 @@ export function AdminAttendanceScreen() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers });
     },
     onError: (error) => {
-      Alert.alert("Error al guardar", (error as Error).message);
+      showAlert("Error al guardar", (error as Error).message);
     },
   });
 
@@ -211,6 +213,7 @@ export function AdminAttendanceScreen() {
             }}
             markedDates={markedDates}
             theme={calendarTheme}
+            renderArrow={renderCalendarArrow}
             style={{
               borderRadius: 16,
               overflow: "hidden",

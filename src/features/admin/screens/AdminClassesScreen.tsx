@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { showAlert } from "@/components/feedback/AppAlert";
 import { Button } from "@/components/ui/Button";
 import { ClassTypePickerModal } from "@/components/ui/ClassTypePickerModal";
 import { FilterChipRow } from "@/components/ui/FilterChipRow";
@@ -235,10 +236,10 @@ export function AdminClassesScreen() {
       setSelectedTemplate(null);
       setIsFormVisible(false);
       reset(emptyValues);
-      Alert.alert("Saved", "Recurring class template saved.");
+      showAlert("Saved", "Recurring class template saved.");
     },
     onError: (error) => {
-      Alert.alert("Save failed", (error as Error).message);
+      showAlert("Save failed", (error as Error).message);
     },
   });
 
@@ -257,13 +258,13 @@ export function AdminClassesScreen() {
       setSelectedTemplate((current) =>
         current ? { ...current, is_active: variables.isActive } : current,
       );
-      Alert.alert(
+      showAlert(
         variables.isActive ? "Reactivated" : "Deactivated",
         "Class status updated.",
       );
     },
     onError: (error) => {
-      Alert.alert("Update failed", (error as Error).message);
+      showAlert("Update failed", (error as Error).message);
     },
   });
 
@@ -290,7 +291,7 @@ export function AdminClassesScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       "Desactivar clase",
       "Esto oculta la clase de los miembros pero mantiene el historial y las reservas intactas.",
       [

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
-  ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from "react-native";
+  ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { updateMyProfile } from "@/services/userService";
 
+import { showAlert } from "@/components/feedback/AppAlert";
 import { colors } from "@/theme";
 import { Text } from "@/components/ui/Text";
 const KeyboardWrapper =
@@ -67,7 +68,7 @@ export function EditProfileScreen() {
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      Alert.alert("Falta el nombre", "Ingresa tu nombre completo.");
+      showAlert("Falta el nombre", "Ingresa tu nombre completo.");
       return;
     }
 
@@ -82,7 +83,7 @@ export function EditProfileScreen() {
       await refreshProfile();
       router.back();
     } catch (err) {
-      Alert.alert("Error al guardar", (err as Error).message);
+      showAlert("Error al guardar", (err as Error).message);
     } finally {
       setSaving(false);
     }
