@@ -405,10 +405,10 @@ export function AdminSettingsScreen() {
             keyboardType="phone-pad"
           />
           <Pressable
-            className="mb-3 rounded-xl border border-border bg-background px-4 py-3"
+            className="mb-3 rounded-xl border border-accent-cyan/60 bg-accent-cyan/10 px-4 py-3"
             onPress={() => void pasteContactPhone("phone")}
           >
-            <Text className="text-center font-semibold text-white">
+            <Text className="text-center font-semibold text-accent-cyan">
               Seleccionar contacto para teléfono
             </Text>
           </Pressable>
