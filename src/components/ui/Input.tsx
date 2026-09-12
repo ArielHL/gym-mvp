@@ -1,7 +1,12 @@
 import { useState } from "react";
 import {
   Controller, type Control, type FieldValues, type Path, } from "react-hook-form";
-import { Pressable, TextInput, View } from "react-native";
+import {
+  Pressable,
+  TextInput,
+  View,
+  type KeyboardTypeOptions,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, fontStyle } from "@/theme";
 
@@ -13,6 +18,7 @@ interface InputProps<T extends FieldValues> {
   placeholder?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  keyboardType?: KeyboardTypeOptions;
   multiline?: boolean;
 }
 
@@ -23,6 +29,7 @@ export function Input<T extends FieldValues>({
   placeholder,
   secureTextEntry,
   autoCapitalize = "none",
+  keyboardType,
   multiline = false,
 }: InputProps<T>) {
   const [showPassword, setShowPassword] = useState(false);
@@ -55,6 +62,7 @@ export function Input<T extends FieldValues>({
               placeholderTextColor={colors.muted}
               secureTextEntry={hidden && !showPassword}
               autoCapitalize={autoCapitalize}
+              keyboardType={keyboardType}
               multiline={multiline}
               textAlignVertical={multiline ? "top" : "center"}
               className="flex-1 px-3 text-foreground"

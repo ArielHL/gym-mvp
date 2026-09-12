@@ -643,6 +643,69 @@ async def get_public_class_template(template_id: str) -> dict[str, Any]:
     return _record_to_dict(row)
 
 
+@app.get("/class-templates/public/{template_id}/availability")
+async def get_public_class_template_availability(
+    template_id: str,
+    requested_date: date,
+) -> dict[str, Any]:
+    pool: asyncpg.Pool = app.state.db_pool
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            select id, capacity, start_time
+            from class_templates
+            where id = $1 and is_active = true
+            """,
+            template_id,
+        )
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=ApiResponse(
+                    success=False,
+                    message="class template not found",
+                    error_code="CLASS_TEMPLATE_NOT_FOUND",
+                ).model_dump(),
+            )
+
+        scheduled_at = _scheduled_at_for_date_and_time(requested_date, row["start_time"])
+        session = await conn.fetchrow(
+            """
+            select id, capacity
+            from class_sessions
+            where template_id = $1 and scheduled_at = $2
+            """,
+            template_id,
+            scheduled_at,
+        )
+
+        if session is None:
+            capacity = int(row["capacity"])
+            booked_count = 0
+        else:
+            capacity = int(session["capacity"])
+            booked_count = int(
+                await conn.fetchval(
+                    """
+                    select count(*)::int
+                    from bookings
+                    where session_id = $1 and status = 'confirmed'
+                    """,
+                    session["id"],
+                )
+                or 0
+            )
+
+    available_spots = max(0, capacity - booked_count)
+    return {
+        "template_id": str(row["id"]),
+        "date": requested_date.isoformat(),
+        "capacity": capacity,
+        "booked_count": booked_count,
+        "available_spots": available_spots,
+    }
+
+
 @app.get("/classes/{class_id}")
 async def get_class(class_id: str) -> dict[str, Any]:
     pool: asyncpg.Pool = app.state.db_pool

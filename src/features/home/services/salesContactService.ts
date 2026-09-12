@@ -1,4 +1,5 @@
 import { Linking } from "react-native";
+import parsePhoneNumberFromString from "libphonenumber-js/max";
 import { apiGet, apiPatch } from "@/services/api/client";
 
 export type SalesContact = {
@@ -10,6 +11,11 @@ export type SalesContact = {
 
 export function whatsappDigits(value: string): string {
   return value.replace(/\D/g, "");
+}
+
+export function formatPhoneForDisplay(value: string): string {
+  const parsed = parsePhoneNumberFromString(value.trim());
+  return parsed?.isValid() ? parsed.formatInternational() : value;
 }
 
 export async function fetchSalesContact(): Promise<SalesContact> {

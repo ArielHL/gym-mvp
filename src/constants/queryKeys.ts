@@ -5,6 +5,8 @@ export const queryKeys = {
   publicClassTemplates: ["classes", "templates", "public"] as const,
   publicClassTemplateById: (templateId: string) =>
     ["classes", "templates", "public", templateId] as const,
+  classTemplateAvailability: (templateId: string, date: string) =>
+    ["classes", "templates", "public", templateId, "availability", date] as const,
   classTemplates: ["admin", "class-templates"] as const,
   classTypes: ["admin", "class-types"] as const,
   activeClassTypes: ["class-types", "active"] as const,

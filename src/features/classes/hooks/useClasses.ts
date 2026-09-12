@@ -3,6 +3,7 @@ import { queryKeys } from '@/constants/queryKeys';
 import {
   fetchClassById,
   fetchClasses,
+  fetchClassTemplateAvailability,
   fetchPublicClassTemplateById,
   fetchPublicClassTemplates,
 } from '../services/classesService';
@@ -36,5 +37,20 @@ export function usePublicClassTemplate(templateId?: string) {
     queryKey: queryKeys.publicClassTemplateById(templateId ?? ''),
     queryFn: () => fetchPublicClassTemplateById(templateId!),
     enabled: Boolean(templateId),
+  });
+}
+
+export function useClassTemplateAvailability(
+  templateId?: string,
+  requestedDate?: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: queryKeys.classTemplateAvailability(
+      templateId ?? '',
+      requestedDate ?? '',
+    ),
+    queryFn: () => fetchClassTemplateAvailability(templateId!, requestedDate!),
+    enabled: enabled && Boolean(templateId && requestedDate),
   });
 }

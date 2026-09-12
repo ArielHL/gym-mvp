@@ -1,8 +1,12 @@
-import { useEffect } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+﻿import { useEffect } from "react";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import * as Contacts from "expo-contacts";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import parsePhoneNumberFromString, {
+  type CountryCode,
+} from "libphonenumber-js/max";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -16,6 +20,7 @@ import {
 } from "@/features/admin/services/settingsService";
 import {
   fetchSalesContact,
+  formatPhoneForDisplay,
   saveSalesContact,
 } from "@/features/home/services/salesContactService";
 import {
@@ -25,18 +30,66 @@ import {
 
 import { colors } from "@/theme";
 import { Text } from "@/components/ui/Text";
+
+const supportedCountryCodes = new Set<CountryCode>([
+  "AR",
+  "UY",
+  "CL",
+  "CO",
+  "MX",
+  "ES",
+]);
+const mobileTypes = new Set(["MOBILE", "FIXED_LINE_OR_MOBILE"]);
+type PhoneFieldName = "whatsapp" | "phone";
+
+function parseSupportedMobile(value: string) {
+  const parsed = parsePhoneNumberFromString(value.trim());
+  if (!parsed?.isValid()) {
+    return undefined;
+  }
+  if (!parsed.country || !supportedCountryCodes.has(parsed.country)) {
+    return undefined;
+  }
+  const type = parsed.getType();
+  return type && mobileTypes.has(type) ? parsed : undefined;
+}
+
+function formatMobileForSave(value: string) {
+  return parseSupportedMobile(value)?.number ?? value.trim();
+}
+
 const schema = z.object({
   cancellationWindowHours: z
     .string()
     .regex(/^\d+(\.\d+)?$/, "Ingresa un número válido"),
 });
 
-const salesSchema = z.object({
-  whatsapp: z.string(),
-  phone: z.string().optional(),
-  email: z.union([z.literal(""), z.string().email("Email inválido")]),
-  message: z.string().optional(),
-});
+const salesSchema = z
+  .object({
+    whatsapp: z.string().min(1, "Ingresa un WhatsApp"),
+    phone: z.string().optional(),
+    email: z.union([z.literal(""), z.string().email("Email inválido")]),
+    message: z.string().optional(),
+  })
+  .superRefine((values, context) => {
+    if (!parseSupportedMobile(values.whatsapp)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Ingresa un WhatsApp móvil válido con código de país, por ejemplo +54 9 11 2345 6789",
+        path: ["whatsapp"],
+      });
+    }
+
+    if (values.phone && !parseSupportedMobile(values.phone)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Ingresa un teléfono móvil válido con código de país, por ejemplo +54 9 11 2345 6789",
+        path: ["phone"],
+      });
+    }
+  });
 
 const brandingSchema = z.object({
   name: z.string().min(2, "Ingresa el nombre del gimnasio"),
@@ -57,6 +110,7 @@ export function AdminSettingsScreen() {
     control: salesControl,
     handleSubmit: handleSalesSubmit,
     reset: resetSales,
+    setValue: setSalesValue,
   } = useForm<SalesFormValues>({
     resolver: zodResolver(salesSchema),
     defaultValues: { whatsapp: "", phone: "", email: "", message: "" },
@@ -95,8 +149,8 @@ export function AdminSettingsScreen() {
   useEffect(() => {
     if (salesQuery.data) {
       resetSales({
-        whatsapp: salesQuery.data.whatsapp,
-        phone: salesQuery.data.phone,
+        whatsapp: formatPhoneForDisplay(salesQuery.data.whatsapp),
+        phone: formatPhoneForDisplay(salesQuery.data.phone),
         email: salesQuery.data.email,
         message: salesQuery.data.message,
       });
@@ -146,8 +200,8 @@ export function AdminSettingsScreen() {
   const saveSalesMutation = useMutation({
     mutationFn: async (values: SalesFormValues) =>
       saveSalesContact({
-        whatsapp: values.whatsapp,
-        phone: values.phone ?? "",
+        whatsapp: formatMobileForSave(values.whatsapp),
+        phone: values.phone ? formatMobileForSave(values.phone) : "",
         email: values.email,
         message: values.message ?? "",
       }),
@@ -161,6 +215,68 @@ export function AdminSettingsScreen() {
       Alert.alert("Error al guardar", (error as Error).message);
     },
   });
+
+  const pasteContactPhone = async (target: PhoneFieldName) => {
+    const permission = await Contacts.requestPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert(
+        "Permiso requerido",
+        "Necesitamos acceso a contactos para seleccionar un teléfono.",
+      );
+      return;
+    }
+
+    const contact = await Contacts.Contact.presentPicker();
+    if (!contact) {
+      return;
+    }
+
+    const details = await contact.getDetails([Contacts.ContactField.PHONES]);
+    const phones = details.phones?.filter((phone) => phone.number) ?? [];
+
+    if (phones.length === 0) {
+      Alert.alert(
+        "Sin teléfonos",
+        "El contacto seleccionado no tiene teléfonos.",
+      );
+      return;
+    }
+
+    const applyPhone = (phoneNumber: string) => {
+      const parsed = parseSupportedMobile(phoneNumber);
+      const formattedPhone = parsed
+        ? parsed.formatInternational()
+        : phoneNumber.trim();
+      setSalesValue(target, formattedPhone, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+
+      if (!parsed) {
+        Alert.alert(
+          "Revisa el teléfono",
+          "Pegamos el número. Agrega el código de país si falta, por ejemplo +54 9 11 2345 6789.",
+        );
+      }
+    };
+
+    if (phones.length === 1) {
+      applyPhone(phones[0].number ?? "");
+      return;
+    }
+
+    Alert.alert(
+      "Selecciona un teléfono",
+      "Este contacto tiene más de un teléfono.",
+      [
+        ...phones.slice(0, 5).map((phone) => ({
+          text: phone.number ?? "Teléfono",
+          onPress: () => applyPhone(phone.number ?? ""),
+        })),
+        { text: "Cancelar", style: "cancel" as const },
+      ],
+    );
+  };
 
   if (initializing || settingsQuery.isLoading) {
     return (
@@ -177,10 +293,10 @@ export function AdminSettingsScreen() {
       <Screen edges={[]} scroll={false}>
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-2xl font-bold text-white" variant="title">
-            Admin access required
+            Se requiere acceso de administrador
           </Text>
           <Text className="mt-2 text-center text-sm text-muted">
-            Only admins can manage class settings.
+            Solo los administradores pueden gestionar los ajustes de clases.
           </Text>
         </View>
       </Screen>
@@ -209,7 +325,7 @@ export function AdminSettingsScreen() {
             autoCapitalize="words"
           />
           <Button
-            label="Guardar Nombre"
+            label="Guardar nombre"
             onPress={handleBrandingSubmit((values) =>
               saveBrandingMutation.mutate(values),
             )}
@@ -219,7 +335,7 @@ export function AdminSettingsScreen() {
       )}
 
       <Text className="mb-2 text-2xl font-bold text-white" variant="title">
-        Ajustes de Clases
+        Ajustes de clases
       </Text>
       <Text className="mb-3 text-sm leading-5 text-muted">
         Configura las reglas que controlan las reservas y cancelaciones.
@@ -245,7 +361,7 @@ export function AdminSettingsScreen() {
             placeholder="2"
           />
           <Button
-            label="Guardar Ajustes"
+            label="Guardar ajustes"
             onPress={handleSubmit((values) => saveMutation.mutate(values))}
             loading={saveMutation.isPending}
           />
@@ -256,8 +372,9 @@ export function AdminSettingsScreen() {
         Contacto de ventas
       </Text>
       <Text className="mb-3 text-sm leading-5 text-muted">
-        Este WhatsApp se muestra en Paga una Suscripción para que los miembros
-        escriban a un asesor.
+        Este WhatsApp se muestra en Paga una suscripción para que los miembros
+        escriban a un asesor. Incluí el código de país, por ejemplo +54 9 11
+        2345 6789.
       </Text>
       {salesQuery.isError ? (
         <Text className="text-sm text-rose-400">
@@ -269,14 +386,32 @@ export function AdminSettingsScreen() {
             control={salesControl}
             name="whatsapp"
             label="WhatsApp"
-            placeholder="5491123456789"
+            placeholder="+54 9 11 2345 6789"
+            keyboardType="phone-pad"
           />
+          <Pressable
+            className="mb-3 rounded-xl border border-accent-cyan/60 bg-accent-cyan/10 px-4 py-3"
+            onPress={() => void pasteContactPhone("whatsapp")}
+          >
+            <Text className="text-center font-semibold text-accent-cyan">
+              Seleccionar contacto para WhatsApp
+            </Text>
+          </Pressable>
           <Input
             control={salesControl}
             name="phone"
             label="Teléfono"
-            placeholder="11 1234 5678"
+            placeholder="+54 9 11 1234 5678"
+            keyboardType="phone-pad"
           />
+          <Pressable
+            className="mb-3 rounded-xl border border-accent-cyan/60 bg-accent-cyan/10 px-4 py-3"
+            onPress={() => void pasteContactPhone("phone")}
+          >
+            <Text className="text-center font-semibold text-accent-cyan">
+              Seleccionar contacto para teléfono
+            </Text>
+          </Pressable>
           <Input
             control={salesControl}
             name="email"
@@ -292,7 +427,7 @@ export function AdminSettingsScreen() {
             autoCapitalize="sentences"
           />
           <Button
-            label="Guardar Contacto"
+            label="Guardar contacto"
             onPress={handleSalesSubmit((values) =>
               saveSalesMutation.mutate(values),
             )}

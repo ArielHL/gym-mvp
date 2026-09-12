@@ -12,6 +12,7 @@ import { useBookClass } from "@/features/bookings/hooks/useBookings";
 import { useAuthState } from "@/features/auth/hooks/useAuthState";
 import { fetchActiveLocations } from "@/features/locations/services/locationsService";
 import {
+  useClassTemplateAvailability,
   usePublicClassTemplate,
   usePublicClassTemplates,
 } from "@/features/classes/hooks/useClasses";
@@ -179,6 +180,13 @@ export function BookClassScreen() {
     : [];
 
   const isDateValid = dateReason === null;
+  const availabilityQuery = useClassTemplateAvailability(
+    selectedTemplateId ?? undefined,
+    selectedDate,
+    Boolean(user && selectedTemplateId && isDateValid),
+  );
+  const availableSpots = availabilityQuery.data?.available_spots;
+  const isClassFull = availableSpots === 0;
   const isReadyToBook = Boolean(selectedTemplateId && isDateValid);
   const isBookDisabled =
     !isReadyToBook ||
@@ -192,7 +200,9 @@ export function BookClassScreen() {
       ? "Selecciona una clase primero"
       : !isDateValid
         ? "Elije una fecha válida"
-        : "Confirma Reserva";
+        : isClassFull
+          ? "Clase llena"
+          : "Confirma Reserva";
 
   useEffect(() => {
     if (!locationsQuery.data?.length) {
@@ -240,6 +250,14 @@ export function BookClassScreen() {
       );
       return;
     }
+    if (isClassFull) {
+      Alert.alert(
+        "Clase llena",
+        "Esta clase está llena. Por favor elige otra fecha o clase.",
+        [{ text: "Aceptar" }],
+      );
+      return;
+    }
 
     try {
       const result = await bookMutation.mutateAsync({
@@ -265,6 +283,7 @@ export function BookClassScreen() {
       }
 
       if (hasCode(BOOKING_ERROR_CODES.CLASS_FULL)) {
+        void availabilityQuery.refetch();
         Alert.alert(
           "Clase llena",
           "Esta clase está llena. Por favor elige otra fecha o clase.",
@@ -459,10 +478,27 @@ export function BookClassScreen() {
               <Text style={s.summaryLabel}>Hora</Text>
               <Text style={s.summaryValue}>{selectedTemplate.start_time}</Text>
             </View>
-            <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
+            <View style={s.summaryRow}>
               <Text style={s.summaryLabel}>Ubicación</Text>
               <Text style={s.summaryValue}>
                 {selectedLocation?.name ?? "-"}
+              </Text>
+            </View>
+            <View style={[s.summaryRow, { borderBottomWidth: 0 }]}>
+              <Text style={s.summaryLabel}>Lugares disponibles</Text>
+              <Text
+                style={[
+                  s.summaryValue,
+                  isClassFull ? s.summaryValueFull : null,
+                ]}
+              >
+                {!isDateValid
+                  ? "-"
+                  : availabilityQuery.isLoading
+                    ? "..."
+                    : availableSpots == null
+                      ? "-"
+                      : String(availableSpots)}
               </Text>
             </View>
           </View>
@@ -639,6 +675,7 @@ const s = StyleSheet.create({
     maxWidth: "60%",
     textAlign: "right",
   },
+  summaryValueFull: { color: colors.danger },
   floatingBar: {
     position: "absolute",
     bottom: 0,

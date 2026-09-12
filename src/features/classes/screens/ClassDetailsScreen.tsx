@@ -95,8 +95,7 @@ export function ClassDetailsScreen() {
           <InfoRow label="Hora de inicio" value={template.start_time} />
           <InfoRow label="Dificultad" value={template.difficulty_level} />
           <InfoRow label="Ubicación" value={template.location_name} />
-          <InfoRow label="Válido desde" value={template.valid_from} />
-          <InfoRow label="Válido hasta" value={template.valid_until ?? "Sin fecha de fin"} />
+
         </View>
 
         <View style={styles.btnShell}>
