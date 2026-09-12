@@ -14,12 +14,21 @@
       "bundleIdentifier": "com.example.gymmobilemvp"
     },
     "android": {
-      "package": "com.example.gymmobilemvp"
+      "package": "com.example.gymmobilemvp",
+      "blockedPermissions": [
+        "android.permission.WRITE_CONTACTS"
+      ]
     },
     "plugins": [
       "expo-apple-authentication",
       "expo-notifications",
       "expo-web-browser",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Permite que Gym Mobile MVP acceda a tus contactos para seleccionar teléfonos de venta."
+        }
+      ],
       [
         "expo-router",
         {

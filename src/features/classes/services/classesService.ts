@@ -141,3 +141,22 @@ export async function fetchPublicClassTemplateById(
   );
   return normalizePublicTemplate(data);
 }
+
+export type ClassTemplateAvailability = {
+  template_id: string;
+  date: string;
+  capacity: number;
+  booked_count: number;
+  available_spots: number;
+};
+
+export async function fetchClassTemplateAvailability(
+  templateId: string,
+  requestedDate: string,
+): Promise<ClassTemplateAvailability> {
+  const params = new URLSearchParams({ requested_date: requestedDate });
+  return apiGet<ClassTemplateAvailability>(
+    `/class-templates/public/${encodeURIComponent(templateId)}/availability?${params.toString()}`,
+    { auth: false },
+  );
+}

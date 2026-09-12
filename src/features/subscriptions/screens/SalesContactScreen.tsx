@@ -6,6 +6,7 @@ import { Screen } from "@/components/ui/Screen";
 import { queryKeys } from "@/constants/queryKeys";
 import {
   fetchSalesContact,
+  formatPhoneForDisplay,
   openWhatsApp,
   whatsappDigits,
 } from "@/features/home/services/salesContactService";
@@ -81,7 +82,9 @@ export function SalesContactScreen() {
               <Text className="text-xs uppercase tracking-wide text-muted">
                 Teléfono
               </Text>
-              <Text className="mt-1 text-base text-accent-cyan">{contact.phone}</Text>
+              <Text className="mt-1 text-base text-accent-cyan">
+                {formatPhoneForDisplay(contact.phone)}
+              </Text>
             </Pressable>
           ) : null}
           {contact?.email ? (
@@ -97,7 +100,9 @@ export function SalesContactScreen() {
               <Text className="text-xs uppercase tracking-wide text-muted">
                 WhatsApp
               </Text>
-              <Text className="mt-1 text-base text-white">{contact?.whatsapp}</Text>
+              <Text className="mt-1 text-base text-white">
+                {formatPhoneForDisplay(contact?.whatsapp ?? "")}
+              </Text>
             </View>
           ) : (
             <Text className="mt-3 text-sm text-accent-amber">
