@@ -129,7 +129,10 @@ export function HomeScreen() {
   }, [selectedTypeId, todayClasses]);
 
   const bookingStats = useMemo(() => {
-    const bookedClasses = bookings ?? [];
+    const bookedClasses = (bookings ?? []).filter((item) => {
+      const date = item.gymClass.date;
+      return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= todayDate;
+    });
     const today = new Date();
     const currentDay = today.getUTCDay();
     const weekStart = new Date(
@@ -186,7 +189,7 @@ export function HomeScreen() {
           : { filter: "all" as const },
       },
     ];
-  }, [bookings]);
+  }, [bookings, todayDate]);
 
   const goToTab = (route: TabRoute) => {
     router.push(route);
